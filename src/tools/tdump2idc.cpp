@@ -126,13 +126,13 @@ static bool LoadSymbols()
 		char name[128] = {};
 
 		int result = sscanf(it->c_str(),
-			"%4x: %4hx:%4hx Type: %4hx Class: %1x BP: %1x Offs: %2x [%x]  %s",
+			"%4x: %4hx:%4hx Type: %4hx Class: %1x BP: %1x Offs: %2x [%x] %s",
 			&dummy, &symbol.segment, &symbol.offset, &symbol.type, &dummy, &dummy, &dummy, &dummy, name);
 
 		if (1 == result)
 		{
 			result = sscanf(it->c_str(),
-				"%4x: KERNEL  .%hu   Type: %4hx Class: %1x BP: %1x Offs: %2x [%x]  %s",
+				"%4x: KERNEL .%hu Type: %4hx Class: %1x BP: %1x Offs: %2x [%x] %s",
 				&dummy, &symbol.ordinal, &symbol.type, &dummy, &dummy, &dummy, &dummy, name);
 		}
 
@@ -156,7 +156,36 @@ static bool LoadSymbols()
 // --------------------------------------------------------------------------
 
 
-bool MakeScript()
+bool LoadScopes()
+{
+	auto it = std::find_if(s_tdump.begin(), s_tdump.end(), [](const std::string& line)
+	{
+		return 0 == line.find("Scopes Table");
+	});
+
+	if (s_tdump.end() == it)
+	{
+		puts("Unable to find scopes in TDUMP text");
+		return false;
+	}
+
+	// Skip marker and following empty line
+	std::advance(it, 2);
+
+	// Format:
+	//   Scope # XXX:
+    //     Autos Index:        XXXX    Autos Count:        XXXX
+    //     Parent Scope:       XXXX    Function Symbol:    XXXX
+    //     Scope Offset:       XXXX    Scope Length:       XXXX
+
+	return true;
+}
+
+
+// --------------------------------------------------------------------------
+
+
+void MakeScript()
 {
 	puts("#include <idc.idc>\n\nstatic main()\n{");
 
@@ -198,8 +227,6 @@ bool MakeScript()
 	}
 
 	puts("}");
-
-	return true;
 }
 
 
@@ -255,28 +282,9 @@ int main(int argc, char** argv)
 
 	fclose(f);
 
-	const bool result = LoadSymbols() && MakeScript();
+	const bool result = LoadSymbols() && LoadScopes();
 
-//	if (!LoadSymbols())
-//	{
-//		return EXIT_FAILURE;
-//	}
-
-
-// -----
-//	for (const Symbol& symbol : s_symbols)
-//	{
-//		if (Symbol::DEFAULT_VALUE == symbol.ordinal)
-//		{
-//			printf("%04X:%04X - %s\n", symbol.segment, symbol.offset, symbol.name.c_str());
-//		}
-//		else
-//		{
-//			printf("ORD:%05i - %s\n", symbol.ordinal, symbol.name.c_str());
-//		}
-//	}
-// -----
-	
+	MakeScript();
 
 	return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
