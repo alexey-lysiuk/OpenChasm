@@ -1,0 +1,17 @@
+# Windows
+/Debug
+/Release
+*.vcxproj.filters
+*.ncb
+*.suo
+*.pdb
+*.ilk
+*.aps
+
+# OS X
+build/
+DerivedData/
+xcuserdata/
+*.mode1v3
+*.pbxuser
+*.xccheckout
