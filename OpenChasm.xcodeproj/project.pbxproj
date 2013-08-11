@@ -25,6 +25,7 @@
 		8ACD561617B76C3100C2640A /* sound_gs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8ACD560217B76C3100C2640A /* sound_gs.cpp */; };
 		8ACD561717B76C3100C2640A /* sound_sb.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8ACD560417B76C3100C2640A /* sound_sb.cpp */; };
 		8ACD561817B76C3100C2640A /* soundip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8ACD560617B76C3100C2640A /* soundip.cpp */; };
+		8ACD562E17B7796A00C2640A /* tdump2idc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8ACD562017B778E400C2640A /* tdump2idc.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -64,6 +65,8 @@
 		8ACD560517B76C3100C2640A /* sound_sb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sound_sb.h; sourceTree = "<group>"; };
 		8ACD560617B76C3100C2640A /* soundip.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = soundip.cpp; sourceTree = "<group>"; };
 		8ACD560717B76C3100C2640A /* soundip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = soundip.h; sourceTree = "<group>"; };
+		8ACD562017B778E400C2640A /* tdump2idc.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = tdump2idc.cpp; sourceTree = "<group>"; };
+		8ACD562517B7793900C2640A /* tdump2idc */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = tdump2idc; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,6 +75,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				8A2E439617B7633300EEC482 /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8ACD562217B7793900C2640A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -92,6 +102,7 @@
 			isa = PBXGroup;
 			children = (
 				8A2E439217B7633300EEC482 /* OpenChasm.app */,
+				8ACD562517B7793900C2640A /* tdump2idc */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -108,6 +119,7 @@
 			isa = PBXGroup;
 			children = (
 				8ACD55E517B76C3000C2640A /* chasm */,
+				8ACD561F17B778E400C2640A /* tools */,
 			);
 			name = Sources;
 			path = src;
@@ -170,6 +182,14 @@
 			path = soundip;
 			sourceTree = "<group>";
 		};
+		8ACD561F17B778E400C2640A /* tools */ = {
+			isa = PBXGroup;
+			children = (
+				8ACD562017B778E400C2640A /* tdump2idc.cpp */,
+			);
+			path = tools;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -189,6 +209,22 @@
 			productName = OpenChasm;
 			productReference = 8A2E439217B7633300EEC482 /* OpenChasm.app */;
 			productType = "com.apple.product-type.application";
+		};
+		8ACD562417B7793900C2640A /* tdump2idc */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8ACD562B17B7793900C2640A /* Build configuration list for PBXNativeTarget "tdump2idc" */;
+			buildPhases = (
+				8ACD562117B7793900C2640A /* Sources */,
+				8ACD562217B7793900C2640A /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = tdump2idc;
+			productName = tdump2idc;
+			productReference = 8ACD562517B7793900C2640A /* tdump2idc */;
+			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
 
@@ -212,6 +248,7 @@
 			projectRoot = "";
 			targets = (
 				8A2E439117B7633300EEC482 /* OpenChasm */,
+				8ACD562417B7793900C2640A /* tdump2idc */,
 			);
 		};
 /* End PBXProject section */
@@ -248,6 +285,14 @@
 				8ACD561617B76C3100C2640A /* sound_gs.cpp in Sources */,
 				8ACD561717B76C3100C2640A /* sound_sb.cpp in Sources */,
 				8ACD561817B76C3100C2640A /* soundip.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8ACD562117B7793900C2640A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8ACD562E17B7796A00C2640A /* tdump2idc.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -329,6 +374,20 @@
 			};
 			name = Release;
 		};
+		8ACD562C17B7793900C2640A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		8ACD562D17B7793900C2640A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -349,6 +408,14 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
+		};
+		8ACD562B17B7793900C2640A /* Build configuration list for PBXNativeTarget "tdump2idc" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8ACD562C17B7793900C2640A /* Debug */,
+				8ACD562D17B7793900C2640A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
 		};
 /* End XCConfigurationList section */
 	};
