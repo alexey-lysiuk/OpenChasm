@@ -172,6 +172,13 @@ bool MakeScript()
 
 	for (const Symbol& symbol : s_symbols)
 	{
+		if (Symbol::DEFAULT_VALUE != symbol.ordinal)
+		{
+			printf("\tMakeName(LocByName(\"KERNEL_%hu\"), \"%s\");\n",
+				   symbol.ordinal, symbol.name.c_str());
+			continue;
+		}
+
 		if (0 == symbol.segment || symbol.segment > 11)
 		{
 			// HARDCODE: this is not code or data segment
