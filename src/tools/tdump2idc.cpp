@@ -42,11 +42,19 @@ struct Symbol
 
 	static const uint16_t DEFAULT_VALUE = 0xFFFF;
 
-	uint16_t segment = DEFAULT_VALUE; // for non-import symbol only
-	uint16_t offset  = DEFAULT_VALUE; // for non-import symbol only
+	uint16_t segment; // for non-import symbol only
+	uint16_t offset;  // for non-import symbol only
 
-	uint16_t type    = DEFAULT_VALUE;
-	uint16_t ordinal = DEFAULT_VALUE; // for import only
+	uint16_t type;
+	uint16_t ordinal; // for import only
+
+	Symbol()
+		: segment(DEFAULT_VALUE)
+		, offset(DEFAULT_VALUE)
+		, type(DEFAULT_VALUE)
+		, ordinal(DEFAULT_VALUE)
+	{
+	}
 };
 
 
@@ -58,21 +66,21 @@ static void MakeGlobalSymbolsUnique()
 {
 	std::set<std::string> uniqueSymbols;
 
-	for (Symbol& symbol : s_symbols)
+	for (auto symbol = s_symbols.begin(); s_symbols.end() != symbol; ++symbol)
 	{
-		if (0 == symbol.segment || symbol.segment > 11)
+		if (0 == symbol->segment || symbol->segment > 11)
 		{
 			// HARDCODE: this is not code or data segment
 			continue;
 		}
 
-		if ("VGA" == symbol.name)
+		if ("VGA" == symbol->name)
 		{
 			// HARDCODE: fix "failed to add constant VGA=9" error
-			symbol.name = "_VGA";
+			symbol->name = "_VGA";
 		}
 
-		if (uniqueSymbols.end() != uniqueSymbols.find(symbol.name))
+		if (uniqueSymbols.end() != uniqueSymbols.find(symbol->name))
 		{
 			std::string newName;
 			int counter = 0;
@@ -82,14 +90,14 @@ static void MakeGlobalSymbolsUnique()
 				char buf[16] = {};
 				snprintf(buf, sizeof(buf), "__%X", counter++);
 
-				newName = symbol.name + buf;
+				newName = symbol->name + buf;
 			}
 			while (uniqueSymbols.end() != uniqueSymbols.find(newName));
 
-			symbol.name = newName;
+			symbol->name = newName;
 		}
 
-		uniqueSymbols.insert(symbol.name);
+		uniqueSymbols.insert(symbol->name);
 	}
 
 }
@@ -199,16 +207,16 @@ void MakeScript()
 		"\tMakeUnkn(0x44E34, DOUNK_SIMPLE);\n"
 		"\tMakeUnkn(0x45B62, DOUNK_SIMPLE);\n");
 
-	for (const Symbol& symbol : s_symbols)
+	for (auto symbol = s_symbols.begin(); s_symbols.end() != symbol; ++symbol)
 	{
-		if (Symbol::DEFAULT_VALUE != symbol.ordinal)
+		if (Symbol::DEFAULT_VALUE != symbol->ordinal)
 		{
 			printf("\tMakeName(LocByName(\"KERNEL_%hu\"), \"%s\");\n",
-				   symbol.ordinal, symbol.name.c_str());
+				   symbol->ordinal, symbol->name.c_str());
 			continue;
 		}
 
-		if (0 == symbol.segment || symbol.segment > 11)
+		if (0 == symbol->segment || symbol->segment > 11)
 		{
 			// HARDCODE: this is not code or data segment
 			continue;
@@ -223,7 +231,7 @@ void MakeScript()
 		};
 
 		printf("\tMakeName(MK_FP(SegByName(\"%s\"), 0x%04hx), \"%s\");\n",
-			SEGMENT_NAMES[symbol.segment], symbol.offset, symbol.name.c_str());
+			SEGMENT_NAMES[symbol->segment], symbol->offset, symbol->name.c_str());
 	}
 
 	puts("}");
