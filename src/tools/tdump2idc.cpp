@@ -109,6 +109,9 @@ static void MakeGlobalSymbolsUnique()
 
 static bool LoadSymbols()
 {
+	// Symbol indices start with 1
+	s_symbols.push_back(Symbol());
+
 	auto it = std::find(s_tdump.begin(), s_tdump.end(), "Local Symbols");
 
 	if (s_tdump.end() == it)
@@ -225,8 +228,8 @@ bool LoadScopes()
 				break;
 			}
 
-			Symbol& symbol = s_symbols[function - 1];
-			symbol.localsIndex = index - 1;
+			Symbol& symbol = s_symbols[function];
+			symbol.localsIndex = index;
 			symbol.localsCount = count;
 		}
 
@@ -237,6 +240,116 @@ bool LoadScopes()
 	if (!isParseOk)
 	{
 		printf("Failed to parse scope at line %lu\n", it - s_tdump.begin());
+	}
+
+	return isParseOk;
+}
+
+
+// --------------------------------------------------------------------------
+
+
+struct Type
+{
+	std::string name;
+	uint16_t size;
+
+	Type()
+	: size(0)
+	{
+	}
+};
+
+
+typedef std::vector<Type> TypeList;
+static TypeList s_types;
+
+
+bool LoadTypes()
+{
+	auto it = std::find_if(s_tdump.begin(), s_tdump.end(), [](const std::string& line)
+	{
+		return 0 == line.find("Types Table");
+	});
+
+	if (s_tdump.end() == it)
+	{
+		puts("Unable to find types in TDUMP text");
+		return false;
+	}
+
+	// Skip marker and following empty line
+	std::advance(it, 2);
+
+	// Format:
+	//   Type Number:  XXX  name-of-type
+	//	   Type ID:         XX		Type Name:     XXXX
+	//	   Type Size:     XXXX		Type Record:   XX XXXX
+
+	bool isParseOk = true;
+
+	while (true)
+	{
+		const char* const MARKER = "  Type Number:";
+
+		if (0 != it->find(MARKER))
+		{
+			// Skip hex sequence line and try again
+			std::advance(it, 2);
+
+			if (0 != it->find(MARKER))
+			{
+				break;
+			}
+		}
+
+		// Type number (index) begins with position 15, name begins with position 21
+		// Type numbers (indices) start with 1
+
+		if (it->size() < 22)
+		{
+			isParseOk = false;
+			break;
+		}
+
+		const char* const line = it->c_str();
+		const unsigned long index = strtol(&line[15], NULL, 16);
+
+		Type type;
+		type.name = &line[21];
+
+		if (type.name.empty() || 0 == index)
+		{
+			isParseOk = false;
+			break;
+		}
+
+		// Skip unused line
+		std::advance(it, 2);
+
+		const int parseResult = sscanf(it->c_str(), " Type Size: %4hx Type Record:", &type.size);
+
+		if (1 != parseResult)
+		{
+			isParseOk = false;
+			break;
+		}
+
+		// Fill gaps between types to simplify indexing
+		while (s_types.size() < index)
+		{
+			s_types.push_back(Type());
+		}
+
+		s_types.push_back(type);
+
+		// Skip empty line
+		std::advance(it, 2);
+	}
+
+	if (!isParseOk)
+	{
+		printf("Failed to parse type at line %lu\n", it - s_tdump.begin());
 	}
 
 	return isParseOk;
@@ -285,33 +398,36 @@ void MakeScript()
 
 		const char* const segmentName = SEGMENT_NAMES[symbol->segment];
 		const char* const symbolName = symbol->name.c_str();
+		const char* const typeName = s_types[symbol->type].name.c_str();
 
-		if (0 == symbol->localsCount)
+		printf("\tea = MK_FP(SegByName(\"%s\"), 0x%04hx);\n\tMakeName(ea, \"%s\");\n",
+			segmentName, symbol->offset, symbolName);
+
+		// HARDCODE: select comment depending on segment
+		if (symbol->segment < 10)
 		{
-			printf("\tMakeName(MK_FP(SegByName(\"%s\"), 0x%04hx), \"%s\");\n",
-				segmentName, symbol->offset, symbolName);
+			printf("\tSetFunctionCmt(ea, \"%s\", 1);\n", typeName); // Code segment
 		}
 		else
 		{
-			printf("\tea = MK_FP(SegByName(\"%s\"), 0x%04hx);\n\tMakeName(ea, \"%s\");\n",
-				segmentName, symbol->offset, symbolName);
+			printf("\tMakeRptCmt(ea, \"%s\");\n", typeName); // Data segment
+		}
 
-			for (uint16_t i = 0; i < symbol->localsCount; ++i)
+		for (uint16_t i = 0; i < symbol->localsCount; ++i)
+		{
+			const Symbol& localSymbol = s_symbols[symbol->localsIndex + i];
+			const char* const localSymbolName = localSymbol.name.c_str();
+
+			if (0 ==localSymbol.segment)
 			{
-				const Symbol& localSymbol = s_symbols[symbol->localsIndex + i];
-				const char* const localSymbolName = localSymbol.name.c_str();
-
-				if (0 ==localSymbol.segment)
-				{
-					printf("\tMakeLocal(ea, 0, \"[bp%+hi]\", \"%s\");\n",
-						int16_t(localSymbol.offset), localSymbolName);
-				}
-				else
-				{
-					// TODO: figure out why a few global symbols are marked as locals
-					// Pascal inner/nested functions ???
-					printf("\t// Symbol '%s' is global\n", localSymbolName);
-				}
+				printf("\tMakeLocal(ea, 0, \"[bp%+hi]\", \"%s\");\n",
+					int16_t(localSymbol.offset), localSymbolName);
+			}
+			else
+			{
+				// TODO: figure out why a few global symbols are marked as locals
+				// Pascal inner/nested functions ???
+				printf("\t// Symbol '%s' is global\n", localSymbolName);
 			}
 		}
 	}
@@ -372,7 +488,7 @@ int main(int argc, char** argv)
 
 	fclose(f);
 
-	const bool result = LoadSymbols() && LoadScopes();
+	const bool result = LoadSymbols() && LoadScopes() && LoadTypes();
 
 	MakeScript();
 
