@@ -1,7 +1,8 @@
 # Windows
-/Debug
-/Release
+Debug/
+Release/
 *.vcxproj.filters
+*.vcxproj.user
 *.ncb
 *.suo
 *.pdb
