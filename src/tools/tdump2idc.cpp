@@ -48,11 +48,16 @@ struct Symbol
 	uint16_t type;
 	uint16_t ordinal; // for import only
 
+	uint16_t localsIndex;
+	uint16_t localsCount;
+
 	Symbol()
-		: segment(DEFAULT_VALUE)
-		, offset(DEFAULT_VALUE)
-		, type(DEFAULT_VALUE)
-		, ordinal(DEFAULT_VALUE)
+	: segment(DEFAULT_VALUE)
+	, offset(DEFAULT_VALUE)
+	, type(DEFAULT_VALUE)
+	, ordinal(DEFAULT_VALUE)
+	, localsIndex(DEFAULT_VALUE)
+	, localsCount(0)
 	{
 	}
 };
@@ -186,7 +191,55 @@ bool LoadScopes()
     //     Parent Scope:       XXXX    Function Symbol:    XXXX
     //     Scope Offset:       XXXX    Scope Length:       XXXX
 
-	return true;
+	bool isParseOk = true;
+
+	while (0 == it->find("  Scope #"))
+	{
+		uint16_t index, count, parent, function;
+
+		int parseResult = sscanf((++it)->c_str(), 
+			" Autos Index: %4hx Autos Count: %4hx", &index, &count);
+
+		if (2 != parseResult)
+		{
+			isParseOk = false;
+			break;
+		}
+
+		parseResult = sscanf((++it)->c_str(), 
+			" Parent Scope: %4hx Function Symbol: %4hx", &parent, &function);
+
+		if (2 != parseResult)
+		{
+			isParseOk = false;
+			break;
+		}
+
+		// TODO: handle FFFF function symbol (module scope)
+
+		if (0xFFFE != function && 0xFFFF != function)
+		{
+			if (0 == function || s_symbols.size() <= function || 0 == index)
+			{
+				isParseOk = false;
+				break;
+			}
+
+			Symbol& symbol = s_symbols[function - 1];
+			symbol.localsIndex = index - 1;
+			symbol.localsCount = count;
+		}
+
+		// Skip last unused and empty lines
+		std::advance(it, 3);
+	}
+
+	if (!isParseOk)
+	{
+		printf("Failed to parse scope at line %lu\n", it - s_tdump.begin());
+	}
+
+	return isParseOk;
 }
 
 
@@ -195,7 +248,7 @@ bool LoadScopes()
 
 void MakeScript()
 {
-	puts("#include <idc.idc>\n\nstatic main()\n{");
+	puts("#include <idc.idc>\n\nstatic main()\n{\n\tauto ea;\n");
 
 	// HARDCODE: fix a few "can't rename byte as '...' "
 	// "because this byte can't have a name (it is a tail byte)." errors
@@ -230,8 +283,37 @@ void MakeScript()
 			"dseg11", "cseg12", 
 		};
 
-		printf("\tMakeName(MK_FP(SegByName(\"%s\"), 0x%04hx), \"%s\");\n",
-			SEGMENT_NAMES[symbol->segment], symbol->offset, symbol->name.c_str());
+		const char* const segmentName = SEGMENT_NAMES[symbol->segment];
+		const char* const symbolName = symbol->name.c_str();
+
+		if (0 == symbol->localsCount)
+		{
+			printf("\tMakeName(MK_FP(SegByName(\"%s\"), 0x%04hx), \"%s\");\n",
+				segmentName, symbol->offset, symbolName);
+		}
+		else
+		{
+			printf("\tea = MK_FP(SegByName(\"%s\"), 0x%04hx);\n\tMakeName(ea, \"%s\");\n",
+				segmentName, symbol->offset, symbolName);
+
+			for (uint16_t i = 0; i < symbol->localsCount; ++i)
+			{
+				const Symbol& localSymbol = s_symbols[symbol->localsIndex + i];
+				const char* const localSymbolName = localSymbol.name.c_str();
+
+				if (0 ==localSymbol.segment)
+				{
+					printf("\tMakeLocal(ea, 0, \"[bp%+hi]\", \"%s\");\n",
+						int16_t(localSymbol.offset), localSymbolName);
+				}
+				else
+				{
+					// TODO: figure out why a few global symbols are marked as locals
+					// Pascal inner/nested functions ???
+					printf("\t// Symbol '%s' is global\n", localSymbolName);
+				}
+			}
+		}
 	}
 
 	puts("}");
