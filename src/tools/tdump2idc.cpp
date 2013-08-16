@@ -393,7 +393,7 @@ void MakeScript()
 			"",
 			"cseg01", "cseg02", "cseg03", "cseg04", "cseg05",
 			"cseg06", "cseg07", "cseg08", "cseg09", "cseg10",
-			"dseg11", "cseg12", 
+			"dseg11", "dseg12", 
 		};
 
 		const char* const segmentName = SEGMENT_NAMES[symbol->segment];
