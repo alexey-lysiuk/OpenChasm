@@ -104,7 +104,7 @@ private:
 
 struct TDS
 {
-	#pragma pack(push, 1)
+#pragma pack(push, 1)
 
 	struct Symbol
 	{
@@ -286,8 +286,7 @@ struct TDS
 		template<> uint16_t count<ModuleClass>() const { return moduleClassCount; }
 	};
 
-	#pragma pack(pop)
-
+#pragma pack(pop)
 
 	Header                   header;
 	std::vector<Symbol>      symbols;
@@ -304,6 +303,7 @@ struct TDS
 	std::vector<std::string> names;
 
 	bool load(const char* const filename);
+	bool load(File& file);
 
 private:
 	template <typename Entry>
@@ -314,40 +314,45 @@ private:
 
 bool TDS::load(const char* const filename)
 {
-	File f(filename);
+	File file(filename);
 
-	if (!f.isOpened())
+	if (!file.isOpened())
 	{
 		printf("Unable to open file %s\n", filename);
 		return false;
 	}
 
-	if (!f.read(&header, sizeof header))
+	return load(file);
+}
+
+bool TDS::load(File& file)
+{
+	if (!file.read(&header, sizeof header))
 	{
-		printf("Failed to read header, wrong TDS file %s\n", filename);
+		printf("Failed to read header, wrong TDS file %s\n", file.filename());
 		return false;
 	}
 
 	// TODO: check header
 
-	if (   !load(f, symbols      )
-		|| !load(f, modules      )
-		|| !load(f, sources      )
-		|| !load(f, lines        )
-		|| !load(f, scopes       )
-		|| !load(f, segments     )
-		|| !load(f, correlations )
-		|| !load(f, types        )
-		|| !load(f, members      )
-		|| !load(f, scopeClasses )
-		|| !load(f, moduleClasses))
+	if (   !load(file, symbols      )
+		|| !load(file, modules      )
+		|| !load(file, sources      )
+		|| !load(file, lines        )
+		|| !load(file, scopes       )
+		|| !load(file, segments     )
+		|| !load(file, correlations )
+		|| !load(file, types        )
+		|| !load(file, members      )
+		|| !load(file, scopeClasses )
+		|| !load(file, moduleClasses))
 	{
 		return false;
 	}
 
-	if (!f.seek(header.dataCount, SEEK_CUR))
+	if (!file.seek(header.dataCount, SEEK_CUR))
 	{
-		printf("Failed to seek to names table in file %s\n", filename);
+		printf("Failed to seek to names table in file %s\n", file.filename());
 		return false;
 	}
 
@@ -358,7 +363,7 @@ bool TDS::load(const char* const filename)
 	{
 		std::string name;
 
-		while (const int ch = f.readChar())
+		while (const int ch = file.readChar())
 		{
 			if ('\0' == ch || EOF == ch)
 			{
@@ -368,7 +373,7 @@ bool TDS::load(const char* const filename)
 			name += ch;
 		}
 
-		if (name.empty() || f.isEOF())
+		if (name.empty() || file.isEOF())
 		{
 			break;
 		}
@@ -405,6 +410,181 @@ bool TDS::load(File& input, std::vector<Entry>& output)
 
 
 static TDS s_tds;
+
+
+//---------------------------------------------------------------------------
+
+
+struct Executable
+{
+#pragma pack(push, 1)
+
+	struct OldHeader
+	{
+		uint16_t signature;
+		uint16_t bytesInLastBlock;
+		uint16_t blocksInFile;
+		uint16_t numRelocs;
+		uint16_t header_paragraphs;
+		uint16_t minExtraParagraphs;
+		uint16_t maxExtraParagraphs;
+		uint16_t ss;
+		uint16_t sp;
+		uint16_t checksum;
+		uint16_t ip;
+		uint16_t cs;
+		uint16_t relocTableOffset;
+		uint16_t overlay_number;
+	};
+
+	struct NewHeader
+	{
+		uint16_t signature;
+		uint8_t  linkerVersion;
+		uint8_t  linkerRevision;
+		uint16_t entryTableOffset;
+		uint16_t entryTableLength;
+		uint32_t crc;
+		uint16_t flags;
+		uint16_t autoDataSegment;
+		uint16_t initHeapSize;
+		uint16_t initStackSize;
+		uint32_t entryPoint;
+		uint32_t stackPoint;
+		uint16_t segmentCount;
+		uint16_t moduleReferenceCount;
+		uint16_t nonResidentNameSize;
+		uint16_t segmentOffset;         // relative to new EXE header
+		uint16_t resourceOffset;        // relative to new EXE header
+		uint16_t residentNameOffset;    // relative to new EXE header
+		uint16_t moduleReferenceOffset; // relative to new EXE header
+		uint16_t importNameOffset;      // relative to new EXE header
+		uint32_t nonResidentNameOffset; // relative to beginning of file
+		uint16_t movableEntryCount;
+		uint16_t sectorAlignmentShift;
+		uint16_t resourceCount;
+		uint8_t  loaderType;            // target OS
+		uint8_t  unused[9];
+	};
+
+	enum SegmentType
+	{
+		SEGMENT_CODE = 0,
+		SEGMENT_DATA = 1
+	};
+
+	struct Segment
+	{
+		uint16_t sectorOffset;
+		uint16_t length;
+		uint16_t flags;
+		uint16_t allocationSize;
+	};
+
+#pragma pack(pop)
+
+	OldHeader oldHeader;
+	NewHeader newHeader;
+
+	std::vector<Segment> segments;
+
+	bool load(const char* const filename);
+};
+
+
+bool Executable::load(const char* const filename)
+{
+	File file(filename);
+
+	if (!file.isOpened())
+	{
+		printf("Unable to open file %s\n", filename);
+		return false;
+	}
+
+	if (!file.read(&oldHeader, sizeof oldHeader))
+	{
+		printf("Failed to read old executable header from file %s\n", filename);
+		return false;
+	}
+
+	if (0x5A4D != oldHeader.signature)
+	{
+		printf("Input file %s is not an executable file\n", filename);
+		return false;
+	}
+
+	if (!file.seek(0x3C, SEEK_SET))
+	{
+		printf("Failed to seek to new header offset in file %s\n", file.filename());
+		return false;
+	}
+
+	uint32_t newHeaderOffset;
+
+	if (!file.read(&newHeaderOffset, sizeof newHeaderOffset))
+	{
+		printf("Failed to read new executable header offset from file %s\n", filename);
+		return false;
+	}
+
+	if (!file.seek(static_cast<long>(newHeaderOffset), SEEK_SET))
+	{
+		printf("Failed to seek to new header offset in file %s\n", file.filename());
+		return false;
+	}
+
+	if (!file.read(&newHeader, sizeof newHeader))
+	{
+		printf("Failed to read new executable header from file %s\n", filename);
+		return false;
+	}
+
+	if (0x454E != newHeader.signature)
+	{
+		printf("Input file %s is not a new executable file\n", filename);
+		return false;
+	}
+
+	for (uint16_t i = 0; i < newHeader.segmentCount; ++i)
+	{
+		Segment segment;
+
+		if (!file.read(&segment, sizeof segment))
+		{
+			printf("Failed to read segment information from file %s\n", filename);
+			return false;
+		}
+
+		segments.push_back(segment);
+	}
+
+	long tdsOffset = 0;
+
+	for (auto segment = segments.rbegin(), first = segments.rend();
+		segment != first; 
+		++segment)
+	{
+		if (segment->sectorOffset > 0 && segment->length > 0)
+		{
+			tdsOffset = (segment->sectorOffset << newHeader.sectorAlignmentShift) + segment->length;
+			break;
+		}
+	}
+
+	// TODO: it's still not a TDS offset :(
+
+	if (!file.seek(tdsOffset, SEEK_SET))
+	{
+		printf("Failed to seek to TDS in file %s\n", file.filename());
+		return false;
+	}
+
+	return s_tds.load(file);
+}
+
+
+static Executable s_executable;
 
 
 //---------------------------------------------------------------------------
@@ -627,11 +807,12 @@ int main(int argc, char** argv)
 {
 	if (argc < 2)
 	{
-		puts("Usage: tds2idc tds_file");
+		puts("Usage: tds2idc new-executable-file");
 		return EXIT_SUCCESS;
 	}
 
-	const bool result = s_tds.load(argv[1]);
+	//const bool result = s_tds.load(argv[1]);
+	const bool result = s_executable.load(argv[1]);
 
 	MakeScript();
 
