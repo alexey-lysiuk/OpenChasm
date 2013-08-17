@@ -197,9 +197,33 @@ struct TDS
 		uint8_t  id;
 		uint16_t name;
 		uint16_t size;
-		uint8_t  record[3];
+		uint8_t  recordByte;
+		uint16_t recordWord;
 
 		Type() { memset(this, 0, sizeof *this); }
+
+		uint8_t rawByte(const size_t index) const
+		{
+			assert(index < sizeof *this);
+			return reinterpret_cast<const uint8_t*>(this)[index];
+		}
+
+		uint16_t rawWord(const size_t index) const
+		{
+			assert(index < sizeof *this / 2);
+			return reinterpret_cast<const uint16_t*>(this)[index];
+		}
+
+		uint32_t rawDoubleWord(const size_t index) const
+		{
+			assert(index < sizeof *this / 4);
+			return reinterpret_cast<const uint32_t*>(this)[index];
+		}
+
+		uint64_t rawQuadWord() const
+		{
+			return *reinterpret_cast<const uint64_t*>(this);
+		}
 	};
 
 	struct Member
@@ -294,9 +318,17 @@ struct TDS
 	bool load(const char* const filename);
 	bool load(File& file);
 
+	std::string typeName(const uint16_t index) const;
+
 private:
 	template <typename Entry>
 	bool load(File& inputFile, std::vector<Entry>& outputList);
+
+	void loadNames(File& input);
+
+	void makeGlobalSymbolsUnique();
+
+	std::string functionName(const Type& type) const;
 
 };
 
@@ -358,30 +390,8 @@ bool TDS::load(File& file)
 		return false;
 	}
 
-	names.reserve(header.nameCount + 1);
-	names.push_back(std::string());
-
-	while (true)
-	{
-		std::string name;
-
-		while (const int ch = file.readChar())
-		{
-			if ('\0' == ch || EOF == ch)
-			{
-				break;
-			}
-
-			name += ch;
-		}
-
-		if (name.empty() || file.isEOF())
-		{
-			break;
-		}
-
-		names.push_back(name);
-	}
+	loadNames(file);
+	makeGlobalSymbolsUnique();
 
 	return true;
 }
@@ -408,6 +418,290 @@ bool TDS::load(File& input, std::vector<Entry>& output)
 	}
 
 	return true;
+}
+
+void TDS::loadNames(File& input)
+{
+	names.reserve(header.nameCount + 1);
+	names.push_back(std::string());
+
+	while (true)
+	{
+		std::string name;
+
+		while (const int ch = input.readChar())
+		{
+			if ('\0' == ch || EOF == ch)
+			{
+				break;
+			}
+
+			name += ch;
+		}
+
+		if (name.empty() || input.isEOF())
+		{
+			break;
+		}
+
+		names.push_back(name);
+	}
+}
+
+void TDS::makeGlobalSymbolsUnique()
+{
+	std::set<std::string> uniqueSymbols;
+
+	for (auto symbol = symbols.begin(); symbols.end() != symbol; ++symbol)
+	{
+		if (0 == symbol->segment || symbol->segment > 11)
+		{
+			// HARDCODE: this is not code or data segment
+			continue;
+		}
+
+		std::string symbolName = names[symbol->name];
+
+		if ("VGA" == symbolName)
+		{
+			// HARDCODE: fix "failed to add constant VGA=9" error
+			names[symbol->name] = "_VGA";
+		}
+
+		if (uniqueSymbols.end() != uniqueSymbols.find(symbolName))
+		{
+			std::string newName;
+			int counter = 0;
+
+			do
+			{
+				char buf[16] = {};
+				snprintf(buf, sizeof(buf), "__%X", counter++);
+
+				newName = symbolName + buf;
+			}
+			while (uniqueSymbols.end() != uniqueSymbols.find(newName));
+
+			symbol->name = static_cast<uint16_t>(names.size());
+			names.push_back(newName);
+
+			symbolName = newName;
+		}
+
+		uniqueSymbols.insert(symbolName);
+	}
+}
+
+
+static const char* GetTypeName(const uint16_t id)
+{
+	static const char* TYPE_NAMES[] =
+	{
+		"void",
+		"BASIC literal string",
+		"BASIC dynamic string",
+		"PASCAL string",
+		"signed char",
+		"signed int",
+		"signed long",
+		"signed quad",
+		"unsigned char",
+		"unsigned int",
+		"unsigned long",
+		"unsigned quad",
+		"PASCAL character",
+		"float",
+		"PASCAL 6-byte real",
+		"double",
+		"long double",
+		"4-byte BCD",
+		"8-byte BCD",
+		"10-byte BCD",
+		"cobol BCD",
+		"near pointer ",
+		"far pointer ",
+		"segment pointer ",
+		"near386",
+		"far386",
+		"c array",
+		"very large array",
+		"PASCAL array",
+		"BASIC array descriptor",
+		"struct",
+		"union",
+		"very large struct",
+		"very large union",
+		"enum",
+		"function ",
+		"label",
+		"set",
+		"PASCAL text file",
+		"PASCAL binary file",
+		"PASCAL boolean",
+		"PASCAL enum",
+		"raw pword",
+		"raw tbyte",
+		"prototype",
+		"special function",
+		"class",
+		"-- Unknown type 2F --",
+		"handle pointer",
+		"-- Unknown type 31 --",
+		"-- Unknown type 32 --",
+		"member pointer",
+		"near reference pointer ",
+		"far reference pointer ",
+		"Word Boolean",
+		"Long Boolean",
+		"new member ptr",
+		"-- Unknown type 39 --",
+		"-- Unknown type 3A --",
+		"-- Unknown type 3B --",
+		"-- Unknown type 3C --",
+		"-- Unknown type 3D --",
+		"Global Handle",
+		"Local Handle"
+	};
+	
+	return id < sizeof TYPE_NAMES / sizeof TYPE_NAMES[0]
+		? TYPE_NAMES[id]
+		: "Bad Type ID";
+}
+
+static std::string GetRange(const TDS::Type& type, const TDS::Type& extended, const uint64_t range)
+{
+	if (extended.rawQuadWord() == range)
+	{
+		return std::string();
+	}
+
+	char buffer[256] = {};
+
+	snprintf(buffer, sizeof buffer, "Range <%X,%X>  Parent %hX",
+		extended.rawDoubleWord(0), extended.rawDoubleWord(1), type.rawWord(3));
+
+	return buffer;
+}
+
+static const char* GetMemoryModel(const TDS::Type& type)
+{
+	static const char* MODEL_NAMES[] =
+	{
+		"near C ",
+		"near PASCAL ",
+		"-- unused lang 2 -- ",
+		"interrupt ",
+		"far C ",
+		"far PASCAL ",
+		"-- unused lang 6 -- ",
+		"interrupt "
+	};
+
+	return MODEL_NAMES[type.recordByte & 7];
+}
+
+std::string TDS::typeName(const uint16_t index) const
+{
+	// TODO: check for recursive types
+
+	if (types.size() <= index)
+	{
+		return std::string();
+	}
+
+	const Type& type = types[index];
+	const uint16_t typeID = type.id;
+
+	std::string result = GetTypeName(typeID);
+
+	if (names.size() <= type.name)
+	{
+		return result;
+	}
+
+	const std::string& name = names[type.name];
+
+	if (!name.empty())
+	{
+		result += " '" + name + "' ";
+	}
+
+	const Type& extended = types[index + 1];
+	char addChars[256] = {};
+
+	switch (typeID)
+	{
+	case 3: // pascal string
+		snprintf(addChars, sizeof addChars, "max %hhX ", type.recordByte);
+		break;
+
+	case 4: // int8_t
+		result += GetRange(type, extended, 0x0000007FFFFFFF80ULL);
+		break;
+
+	case 5: // int16_t
+		result += GetRange(type, extended, 0x00007FFFFFFF8000ULL);
+		break;
+
+	case 6: // int32_t
+		result += GetRange(type, extended, 0x7FFFFFFF80000000ULL);
+		break;
+
+	case 8: // uint8_t
+		result += GetRange(type, extended, 0x000000FF00000000ULL);
+		break;
+
+	case 9: // uint16_t
+		result += GetRange(type, extended, 0x0000FFFF00000000ULL);
+		break;
+
+	case 10: // uint32_t
+		result += GetRange(type, extended, 0xFFFFFFFF00000000ULL);
+		break;
+
+	case 22: // far pointers
+	case 25:
+	case 53:
+		result += (0 == type.recordByte ? "" : "huge " ) + typeName(type.recordWord);
+		break;
+
+	case 35: // function
+		result += functionName(type);
+		break;
+
+	// TODO: add other types
+
+	default:
+		break;
+	}
+
+	result += addChars;
+
+	return result;
+}
+
+std::string TDS::functionName(const Type& type) const
+{
+	std::string result;
+
+	if (type.recordByte & 0x40)
+	{
+		result += "nested ";
+	}
+
+	result += GetMemoryModel(type);
+
+	if (type.recordByte & 0x80)
+	{
+		result += "varargs ";
+	}
+
+	result += "returns ";
+	result += 0 == type.recordWord
+		? "Unknown"
+		: typeName(type.recordWord);
+
+	return result;
 }
 
 
@@ -647,7 +941,7 @@ std::string Executable::segmentName(const uint16_t index) const
 		: "cseg";
 
 	char name[7];
-	snprintf(name, sizeof name, "%s%hu", prefix, index);
+	snprintf(name, sizeof name, "%s%02hu", prefix, index);
 
 	return name;
 }
@@ -658,142 +952,6 @@ static Executable s_executable;
 
 //---------------------------------------------------------------------------
 
-
-const char* GetTypeName(const uint16_t name)
-{
-	static const char* TYPE_NAMES[] = 
-	{
-		"void",
-		"BASIC literal string",
-		"BASIC dynamic string",
-		"PASCAL string",
-		"signed char",
-		"signed int",
-		"signed long",
-		"signed quad",
-		"unsigned char",
-		"unsigned int",
-		"unsigned long",
-		"unsigned quad",
-		"PASCAL character",
-		"float",
-		"PASCAL 6-byte real",
-		"double",
-		"long double",
-		"4-byte BCD",
-		"8-byte BCD",
-		"10-byte BCD",
-		"cobol BCD",
-		"near pointer ",
-		"far pointer ",
-		"segment pointer ",
-		"near386",
-		"far386",
-		"c array",
-		"very large array",
-		"PASCAL array",
-		"BASIC array descriptor",
-		"struct",
-		"union",
-		"very large struct",
-		"very large union",
-		"enum",
-		"function ",
-		"label",
-		"set",
-		"PASCAL text file",
-		"PASCAL binary file",
-		"PASCAL boolean",
-		"PASCAL enum",
-		"raw pword",
-		"raw tbyte",
-		"prototype",
-		"special function",
-		"class",
-		"-- Unknown type 2F --",
-		"handle pointer",
-		"-- Unknown type 31 --",
-		"-- Unknown type 32 --",
-		"member pointer",
-		"near reference pointer ",
-		"far reference pointer ",
-		"Word Boolean",
-		"Long Boolean",
-		"new member ptr",
-		"-- Unknown type 39 --",
-		"-- Unknown type 3A --",
-		"-- Unknown type 3B --",
-		"-- Unknown type 3C --",
-		"-- Unknown type 3D --",
-		"Global Handle",
-		"Local Handle",
-		"static ",
-		"absolute ",
-		"auto ",
-		"Pascal var ",
-		"register ",
-		"Pascal const ",
-		"typedef ",
-		"tag ",
-		"-",
-		"_ES",
-		"_CS",
-		"_SS",
-		"_DS",
-		"_FS",
-		"_GS",
-		"near C",
-		"near PASCAL",
-		"-- unused lang 2 --",
-		"interrupt",
-		"far C",
-		"far PASCAL",
-		"-- unused lang 6 --",
-		"interrupt",
-		"AX",
-		"CX",
-		"DX",
-		"BX",
-		"SP",
-		"BP",
-		"SI",
-		"DI",
-		"AL",
-		"CL",
-		"DL",
-		"BL",
-		"AH",
-		"CH",
-		"DH",
-		"BH",
-		"ES",
-		"CS",
-		"SS",
-		"DS",
-		"FS",
-		"GS",
-		"EAX",
-		"ECX",
-		"EDX",
-		"EBX",
-		"ESP",
-		"EBP",
-		"ESI",
-		"EDI",
-		"ST(0)",
-		"ST(1)",
-		"ST(2)",
-		"ST(3)",
-		"ST(4)",
-		"ST(5)",
-		"ST(6)",
-		"ST(7)"
-	};
-
-	return name < sizeof(TYPE_NAMES) / sizeof(TYPE_NAMES[0])
-		? TYPE_NAMES[name]
-		: "";
-}
 
 void MakeScript()
 {
@@ -814,7 +972,7 @@ void MakeScript()
 	for (auto symbol = s_tds.symbols.begin(); s_tds.symbols.end() != symbol; ++symbol)
 	{
 		const char* const symbolName = s_tds.names[symbol->name].c_str();
-
+		
 		if ('\0' == symbolName[0])
 		{
 			continue;
@@ -836,23 +994,20 @@ void MakeScript()
 		printf("\tea = MK_FP(SegByName(\"%s\"), 0x%04hx);\n\tMakeName(ea, \"%s\");\n",
 			s_executable.segmentName(symbol->segment).c_str(), symbol->offset, symbolName);
 
-		const std::string& typeNameStr = s_tds.names[s_tds.types[symbol->type].name];
-		const char* const typeName = typeNameStr.empty()
-			? GetTypeName(s_tds.types[symbol->type].id)
-			: typeNameStr.c_str();
-
-		if ('\0' == typeName[0])
+		const std::string typeName = s_tds.typeName(symbol->type);
+		
+		if (typeName.empty())
 		{
 			continue;
 		}
 
 		if (s_executable.segments[symbol->segment].flags & Executable::SEGMENT_DATA)
 		{
-			printf("\tMakeRptCmt(ea, \"%s\");\n", typeName);
+			printf("\tMakeRptCmt(ea, \"%s\");\n", typeName.c_str());
 		}
 		else
 		{
-			printf("\tSetFunctionCmt(ea, \"%s\", 1);\n", typeName);
+			printf("\tSetFunctionCmt(ea, \"%s\", 1);\n", typeName.c_str());
 		}
 
 		// TODO: local symbols
