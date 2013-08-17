@@ -273,17 +273,6 @@ struct TDS
 
 		template <typename Entry> uint16_t count() const;
 
-		template<> uint16_t count<Symbol     >() const { return symbolCount;      }
-		template<> uint16_t count<Module     >() const { return moduleCount;      }
-		template<> uint16_t count<Source     >() const { return sourceCount;      }
-		template<> uint16_t count<Line       >() const { return lineCount;        }
-		template<> uint16_t count<Scope      >() const { return scopeCount;       }
-		template<> uint16_t count<Segment    >() const { return segmentCount;     }
-		template<> uint16_t count<Correlation>() const { return correlationCount; }
-		template<> uint16_t count<Type       >() const { return typeCount;        }
-		template<> uint16_t count<Member     >() const { return memberCount;      }
-		template<> uint16_t count<ScopeClass >() const { return scopeClassCount;  }
-		template<> uint16_t count<ModuleClass>() const { return moduleClassCount; }
 	};
 
 #pragma pack(pop)
@@ -310,6 +299,19 @@ private:
 	bool load(File& inputFile, std::vector<Entry>& outputList);
 
 };
+
+
+template<> uint16_t TDS::Header::count<TDS::Symbol     >() const { return symbolCount;      }
+template<> uint16_t TDS::Header::count<TDS::Module     >() const { return moduleCount;      }
+template<> uint16_t TDS::Header::count<TDS::Source     >() const { return sourceCount;      }
+template<> uint16_t TDS::Header::count<TDS::Line       >() const { return lineCount;        }
+template<> uint16_t TDS::Header::count<TDS::Scope      >() const { return scopeCount;       }
+template<> uint16_t TDS::Header::count<TDS::Segment    >() const { return segmentCount;     }
+template<> uint16_t TDS::Header::count<TDS::Correlation>() const { return correlationCount; }
+template<> uint16_t TDS::Header::count<TDS::Type       >() const { return typeCount;        }
+template<> uint16_t TDS::Header::count<TDS::Member     >() const { return memberCount;      }
+template<> uint16_t TDS::Header::count<TDS::ScopeClass >() const { return scopeClassCount;  }
+template<> uint16_t TDS::Header::count<TDS::ModuleClass>() const { return moduleClassCount; }
 
 
 bool TDS::load(const char* const filename)
@@ -751,7 +753,7 @@ void MakeScript()
 
 		if (symbol->segment > 0xC000 && symbol->offset < s_tds.names.size())
 		{
-			printf("\tMakeName(LocByName(\"%s_%hu\"), \"%s\");\n",
+			printf("\tMakeName(LocByName(\"%s_%u\"), \"%s\");\n",
 				s_tds.names[symbol->offset].c_str(), symbol->segment & 0x3FFF, symbolName);
 			continue;
 		}
