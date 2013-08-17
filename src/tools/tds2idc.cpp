@@ -437,6 +437,10 @@ struct Executable
 		uint16_t cs;
 		uint16_t relocTableOffset;
 		uint16_t overlay_number;
+		uint8_t  reserved[32];
+		uint32_t newHeaderOffset;
+
+		OldHeader() { memset(this, 0, sizeof *this); }
 	};
 
 	struct NewHeader
@@ -467,6 +471,8 @@ struct Executable
 		uint16_t resourceCount;
 		uint8_t  loaderType;            // target OS
 		uint8_t  unused[9];
+
+		NewHeader() { memset(this, 0, sizeof *this); }
 	};
 
 	enum SegmentType
@@ -481,6 +487,8 @@ struct Executable
 		uint16_t length;
 		uint16_t flags;
 		uint16_t allocationSize;
+
+		Segment() { memset(this, 0, sizeof *this); }
 	};
 
 #pragma pack(pop)
@@ -491,6 +499,15 @@ struct Executable
 	std::vector<Segment> segments;
 
 	bool load(const char* const filename);
+
+	std::string segmentName(const uint16_t index) const;
+
+private:
+	bool loadOldHeader(File& input);
+	bool loadNewHeader(File& input);
+	bool loadSegments (File& input);
+	bool loadDebugInfo(File& input);
+
 };
 
 
@@ -504,68 +521,82 @@ bool Executable::load(const char* const filename)
 		return false;
 	}
 
-	if (!file.read(&oldHeader, sizeof oldHeader))
+	return loadOldHeader(file)
+		&& loadNewHeader(file)
+		&& loadSegments (file)
+		&& loadDebugInfo(file);
+}
+
+
+bool Executable::loadOldHeader(File& input)
+{
+	if (!input.read(&oldHeader, sizeof oldHeader))
 	{
-		printf("Failed to read old executable header from file %s\n", filename);
+		printf("Failed to read old executable header from file %s\n", input.filename());
 		return false;
 	}
 
 	if (0x5A4D != oldHeader.signature)
 	{
-		printf("Input file %s is not an executable file\n", filename);
+		printf("Input file %s is not an executable file\n", input.filename());
 		return false;
 	}
 
-	if (!file.seek(0x3C, SEEK_SET))
+	return true;
+}
+
+bool Executable::loadNewHeader(File& input)
+{
+	const long newHeaderOffset = static_cast<long>(oldHeader.newHeaderOffset);
+
+	if (!input.seek(newHeaderOffset, SEEK_SET))
 	{
-		printf("Failed to seek to new header offset in file %s\n", file.filename());
+		printf("Failed to seek to new header offset in file %s\n", input.filename());
 		return false;
 	}
 
-	uint32_t newHeaderOffset;
-
-	if (!file.read(&newHeaderOffset, sizeof newHeaderOffset))
+	if (!input.read(&newHeader, sizeof newHeader))
 	{
-		printf("Failed to read new executable header offset from file %s\n", filename);
-		return false;
-	}
-
-	if (!file.seek(static_cast<long>(newHeaderOffset), SEEK_SET))
-	{
-		printf("Failed to seek to new header offset in file %s\n", file.filename());
-		return false;
-	}
-
-	if (!file.read(&newHeader, sizeof newHeader))
-	{
-		printf("Failed to read new executable header from file %s\n", filename);
+		printf("Failed to read new executable header from file %s\n", input.filename());
 		return false;
 	}
 
 	if (0x454E != newHeader.signature)
 	{
-		printf("Input file %s is not a new executable file\n", filename);
+		printf("Input file %s is not a new executable file\n", input.filename());
 		return false;
 	}
+
+	return true;
+}
+
+bool Executable::loadSegments(File& input)
+{
+	segments.push_back(Segment());
 
 	for (uint16_t i = 0; i < newHeader.segmentCount; ++i)
 	{
 		Segment segment;
 
-		if (!file.read(&segment, sizeof segment))
+		if (!input.read(&segment, sizeof segment))
 		{
-			printf("Failed to read segment information from file %s\n", filename);
+			printf("Failed to read segment information from file %s\n", input.filename());
 			return false;
 		}
 
 		segments.push_back(segment);
 	}
 
+	return true;
+}
+
+bool Executable::loadDebugInfo(File& input)
+{
 	long tdsOffset = 0;
 
 	for (auto segment = segments.rbegin(), first = segments.rend();
-		segment != first; 
-		++segment)
+		 segment != first;
+		 ++segment)
 	{
 		if (segment->sectorOffset > 0 && segment->length > 0)
 		{
@@ -574,15 +605,51 @@ bool Executable::load(const char* const filename)
 		}
 	}
 
-	// TODO: it's still not a TDS offset :(
-
-	if (!file.seek(tdsOffset, SEEK_SET))
+	if (!input.seek(tdsOffset, SEEK_SET))
 	{
-		printf("Failed to seek to TDS in file %s\n", file.filename());
+		printf("Failed to seek to TDS in file %s\n", input.filename());
 		return false;
 	}
 
-	return s_tds.load(file);
+	static const uint8_t DEBUG_INFO_HEADER[] =
+	{
+		 'N',  'B',  '0',  '2', 0xFF, 0xFF, 0xFF, 0xFF,
+		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+	};
+
+	uint8_t buffer[sizeof DEBUG_INFO_HEADER];
+
+	if (!input.read(buffer, sizeof buffer))
+	{
+		printf("Failed to read debug information header from file %s\n", input.filename());
+		return false;
+	}
+
+	if (0 != memcmp(DEBUG_INFO_HEADER, buffer, sizeof buffer))
+	{
+		printf("Unknown debug information header in file %s\n", input.filename());
+		return false;
+	}
+
+	return s_tds.load(input);
+}
+
+
+std::string Executable::segmentName(const uint16_t index) const
+{
+	if (0 == index || segments.size() <= index)
+	{
+		return std::string();
+	}
+
+	const char* const prefix = (segments[index].flags & SEGMENT_DATA)
+		? "dseg"
+		: "cseg";
+
+	char name[7];
+	snprintf(name, sizeof name, "%s%hu", prefix, index);
+
+	return name;
 }
 
 
@@ -732,8 +799,10 @@ void MakeScript()
 {
 	puts("#include <idc.idc>\n\nstatic main()\n{\n\tauto ea;\n");
 
-	// HARDCODE: fix a few "can't rename byte as '...' "
-	// "because this byte can't have a name (it is a tail byte)." errors
+	// Specific to PS10.EXE:
+	// Fix a few "can't rename byte as '...' because"
+	// "this byte can't have a name (it is a tail byte)" errors
+	// Although it's better than undefine whole data segment
 	puts(
 		"\tMakeUnkn(0x36CD6, DOUNK_SIMPLE);\n"
 		"\tMakeUnkn(0x36CDE, DOUNK_SIMPLE);\n"
@@ -753,27 +822,19 @@ void MakeScript()
 
 		if (symbol->segment > 0xC000 && symbol->offset < s_tds.names.size())
 		{
+			// Imported names are handled differently
 			printf("\tMakeName(LocByName(\"%s_%u\"), \"%s\");\n",
 				s_tds.names[symbol->offset].c_str(), symbol->segment & 0x3FFF, symbolName);
 			continue;
 		}
-
-		if (0 == symbol->segment || symbol->segment > 11)
+		else if (0 == symbol->segment || s_executable.segments.size() <= symbol->segment)
 		{
-			// HARDCODE: this is not code or data segment
+			// This is not code or data segment
 			continue;
 		}
 
-		static const char* SEGMENT_NAMES[] = // HARDCODE
-		{
-			"",
-			"cseg01", "cseg02", "cseg03", "cseg04", "cseg05",
-			"cseg06", "cseg07", "cseg08", "cseg09", "cseg10",
-			"dseg11", "dseg12", 
-		};
-
 		printf("\tea = MK_FP(SegByName(\"%s\"), 0x%04hx);\n\tMakeName(ea, \"%s\");\n",
-			SEGMENT_NAMES[symbol->segment], symbol->offset, symbolName);
+			s_executable.segmentName(symbol->segment).c_str(), symbol->offset, symbolName);
 
 		const std::string& typeNameStr = s_tds.names[s_tds.types[symbol->type].name];
 		const char* const typeName = typeNameStr.empty()
@@ -785,14 +846,13 @@ void MakeScript()
 			continue;
 		}
 
-		// HARDCODE: select comment type depending on segment: code or data
-		if (symbol->segment < 10)
+		if (s_executable.segments[symbol->segment].flags & Executable::SEGMENT_DATA)
 		{
-			printf("\tSetFunctionCmt(ea, \"%s\", 1);\n", typeName); // Code segment
+			printf("\tMakeRptCmt(ea, \"%s\");\n", typeName);
 		}
 		else
 		{
-			printf("\tMakeRptCmt(ea, \"%s\");\n", typeName); // Data segment
+			printf("\tSetFunctionCmt(ea, \"%s\", 1);\n", typeName);
 		}
 
 		// TODO: local symbols
@@ -813,7 +873,6 @@ int main(int argc, char** argv)
 		return EXIT_SUCCESS;
 	}
 
-	//const bool result = s_tds.load(argv[1]);
 	const bool result = s_executable.load(argv[1]);
 
 	MakeScript();
