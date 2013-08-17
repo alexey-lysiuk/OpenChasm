@@ -26,6 +26,7 @@
 		8ACD561717B76C3100C2640A /* sound_sb.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8ACD560417B76C3100C2640A /* sound_sb.cpp */; };
 		8ACD561817B76C3100C2640A /* soundip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8ACD560617B76C3100C2640A /* soundip.cpp */; };
 		8ACD562E17B7796A00C2640A /* tdump2idc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8ACD562017B778E400C2640A /* tdump2idc.cpp */; };
+		8AD9D96E17BF4DEF00309E97 /* tds2idc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AD9D96C17BF4DE000309E97 /* tds2idc.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -67,6 +68,8 @@
 		8ACD560717B76C3100C2640A /* soundip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = soundip.h; sourceTree = "<group>"; };
 		8ACD562017B778E400C2640A /* tdump2idc.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = tdump2idc.cpp; sourceTree = "<group>"; };
 		8ACD562517B7793900C2640A /* tdump2idc */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = tdump2idc; sourceTree = BUILT_PRODUCTS_DIR; };
+		8AD9D96B17BF4DC000309E97 /* tds2idc */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = tds2idc; sourceTree = BUILT_PRODUCTS_DIR; };
+		8AD9D96C17BF4DE000309E97 /* tds2idc.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tds2idc.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +82,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		8ACD562217B7793900C2640A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8AD9D96717BF4DC000309E97 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -103,6 +113,7 @@
 			children = (
 				8A2E439217B7633300EEC482 /* OpenChasm.app */,
 				8ACD562517B7793900C2640A /* tdump2idc */,
+				8AD9D96B17BF4DC000309E97 /* tds2idc */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -185,6 +196,7 @@
 		8ACD561F17B778E400C2640A /* tools */ = {
 			isa = PBXGroup;
 			children = (
+				8AD9D96C17BF4DE000309E97 /* tds2idc.cpp */,
 				8ACD562017B778E400C2640A /* tdump2idc.cpp */,
 			);
 			path = tools;
@@ -226,6 +238,22 @@
 			productReference = 8ACD562517B7793900C2640A /* tdump2idc */;
 			productType = "com.apple.product-type.tool";
 		};
+		8AD9D96417BF4DC000309E97 /* tds2idc */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8AD9D96817BF4DC000309E97 /* Build configuration list for PBXNativeTarget "tds2idc" */;
+			buildPhases = (
+				8AD9D96517BF4DC000309E97 /* Sources */,
+				8AD9D96717BF4DC000309E97 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = tds2idc;
+			productName = tdump2idc;
+			productReference = 8AD9D96B17BF4DC000309E97 /* tds2idc */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -249,6 +277,7 @@
 			targets = (
 				8A2E439117B7633300EEC482 /* OpenChasm */,
 				8ACD562417B7793900C2640A /* tdump2idc */,
+				8AD9D96417BF4DC000309E97 /* tds2idc */,
 			);
 		};
 /* End PBXProject section */
@@ -293,6 +322,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				8ACD562E17B7796A00C2640A /* tdump2idc.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8AD9D96517BF4DC000309E97 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8AD9D96E17BF4DEF00309E97 /* tds2idc.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -388,6 +425,20 @@
 			};
 			name = Release;
 		};
+		8AD9D96917BF4DC000309E97 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = tds2idc;
+			};
+			name = Debug;
+		};
+		8AD9D96A17BF4DC000309E97 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = tds2idc;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -416,6 +467,16 @@
 				8ACD562D17B7793900C2640A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8AD9D96817BF4DC000309E97 /* Build configuration list for PBXNativeTarget "tds2idc" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8AD9D96917BF4DC000309E97 /* Debug */,
+				8AD9D96A17BF4DC000309E97 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
