@@ -315,7 +315,6 @@ struct TDS
 	std::vector<ModuleClass> moduleClasses;
 	std::vector<std::string> names;
 
-	bool load(const char* const filename);
 	bool load(File& file);
 
 	std::string typeName(const uint16_t index) const;
@@ -325,8 +324,6 @@ private:
 	bool load(File& inputFile, std::vector<Entry>& outputList);
 
 	void loadNames(File& input);
-
-	void makeGlobalSymbolsUnique();
 
 	std::string functionName(const Type& type) const;
 
@@ -345,19 +342,6 @@ template<> uint16_t TDS::Header::count<TDS::Member     >() const { return member
 template<> uint16_t TDS::Header::count<TDS::ScopeClass >() const { return scopeClassCount;  }
 template<> uint16_t TDS::Header::count<TDS::ModuleClass>() const { return moduleClassCount; }
 
-
-bool TDS::load(const char* const filename)
-{
-	File file(filename);
-
-	if (!file.isOpened())
-	{
-		printf("Unable to open file %s\n", filename);
-		return false;
-	}
-
-	return load(file);
-}
 
 bool TDS::load(File& file)
 {
@@ -391,7 +375,6 @@ bool TDS::load(File& file)
 	}
 
 	loadNames(file);
-	makeGlobalSymbolsUnique();
 
 	return true;
 }
@@ -445,50 +428,6 @@ void TDS::loadNames(File& input)
 		}
 
 		names.push_back(name);
-	}
-}
-
-void TDS::makeGlobalSymbolsUnique()
-{
-	std::set<std::string> uniqueSymbols;
-
-	for (auto symbol = symbols.begin(); symbols.end() != symbol; ++symbol)
-	{
-		if (0 == symbol->segment || symbol->segment > 11)
-		{
-			// HARDCODE: this is not code or data segment
-			continue;
-		}
-
-		std::string symbolName = names[symbol->name];
-
-		if ("VGA" == symbolName)
-		{
-			// HARDCODE: fix "failed to add constant VGA=9" error
-			names[symbol->name] = "_VGA";
-		}
-
-		if (uniqueSymbols.end() != uniqueSymbols.find(symbolName))
-		{
-			std::string newName;
-			int counter = 0;
-
-			do
-			{
-				char buf[16] = {};
-				snprintf(buf, sizeof(buf), "__%X", counter++);
-
-				newName = symbolName + buf;
-			}
-			while (uniqueSymbols.end() != uniqueSymbols.find(newName));
-
-			symbol->name = static_cast<uint16_t>(names.size());
-			names.push_back(newName);
-
-			symbolName = newName;
-		}
-
-		uniqueSymbols.insert(symbolName);
 	}
 }
 
@@ -705,9 +644,6 @@ std::string TDS::functionName(const Type& type) const
 }
 
 
-static TDS s_tds;
-
-
 //---------------------------------------------------------------------------
 
 
@@ -791,6 +727,8 @@ struct Executable
 	NewHeader newHeader;
 
 	std::vector<Segment> segments;
+
+	TDS tds;
 
 	bool load(const char* const filename);
 
@@ -925,7 +863,7 @@ bool Executable::loadDebugInfo(File& input)
 		return false;
 	}
 
-	return s_tds.load(input);
+	return tds.load(input);
 }
 
 
@@ -947,70 +885,226 @@ std::string Executable::segmentName(const uint16_t index) const
 }
 
 
-static Executable s_executable;
-
-
 //---------------------------------------------------------------------------
 
 
-void MakeScript()
+struct IDC
 {
-	puts("#include <idc.idc>\n\nstatic main()\n{\n\tauto ea;\n");
+	enum SymbolCategory
+	{
+		SYMBOL_INVALID = -1,
+
+		SYMBOL_CODE = 0,
+		SYMBOL_DATA,
+		SYMBOL_STACK,
+		SYMBOL_IMPORT
+	};
+
+	struct Symbol
+	{
+		std::string name;
+		std::string type;
+
+		SymbolCategory category;
+
+		std::string segment;
+		uint16_t    offset;
+
+		std::string importedName;
+
+		std::vector<Symbol> locals;
+
+		Symbol()
+		: category(SYMBOL_INVALID)
+		, offset(0xFFFF)
+		{
+		}
+	};
+
+	std::vector<Symbol> symbols;
+
+	IDC(const Executable& source);
+
+	void generate(FILE* output) const;
+
+private:
+	static Symbol makeSymbol(const Executable& source, const size_t index);
+
+	void makeGlobalSymbolsUnique(const Executable& source);
+
+};
+
+
+IDC::IDC(const Executable& source)
+{
+	const std::vector<TDS::Symbol>& sourceSymbols = source.tds.symbols;
+
+	for (size_t i = 0, ei = sourceSymbols.size(); i < ei; ++i)
+	{
+		const TDS::Symbol& srcSym = sourceSymbols[i];
+
+		if (0 == srcSym.segment
+			|| (source.segments.size() <= srcSym.segment
+				&& (source.tds.names.size() <= srcSym.offset
+					|| 0 == srcSym.offset)))
+		{
+			// Skip stack or value limit symbol
+			continue;
+		}
+
+		Symbol dstSym = makeSymbol(source, i);
+
+		for (auto scope = source.tds.scopes.begin(), es = source.tds.scopes.end(); es != scope; ++scope)
+		{
+			if (i != scope->symbol || 0 == scope->count)
+			{
+				continue;
+			}
+
+			for (uint16_t j = 0; j < scope->count; ++j)
+			{
+				const Symbol local = makeSymbol(source, scope->index + j);
+				dstSym.locals.push_back(local);
+			}
+		}
+
+		symbols.push_back(dstSym);
+	}
+
+	makeGlobalSymbolsUnique(source);
+}
+
+IDC::Symbol IDC::makeSymbol(const Executable& source, const size_t index)
+{
+	// TODO: add range checks
+
+	const TDS::Symbol& srcSym = source.tds.symbols[index];
+
+	Symbol result;
+	result.name         = source.tds.names[srcSym.name];
+	result.type         = source.tds.typeName(srcSym.type);
+
+	if (srcSym.segment & 0x4000)
+	{
+		char importedName[64] = {};
+		snprintf(importedName, sizeof importedName, "%s_%u",
+			source.tds.names[srcSym.offset].c_str(), srcSym.segment & 0x3FFF);
+
+		result.importedName = importedName;
+		result.category     = SYMBOL_IMPORT;
+	}
+	else
+	{
+		result.segment = source.segmentName(srcSym.segment);
+		result.offset  = srcSym.offset;
+
+		if (0 == srcSym.segment)
+		{
+			result.category = SYMBOL_STACK;
+		}
+		else if (source.segments[srcSym.segment].flags & Executable::SEGMENT_DATA)
+		{
+			result.category = SYMBOL_DATA;
+		}
+		else
+		{
+			result.category = SYMBOL_CODE;
+		}
+	}
+
+	return result;
+}
+
+void IDC::makeGlobalSymbolsUnique(const Executable& source)
+{
+	std::set<std::string> uniqueSymbols;
+
+	for (auto symbol = symbols.begin(); symbols.end() != symbol; ++symbol)
+	{
+		if (SYMBOL_IMPORT == symbol->category)
+		{
+			continue;
+		}
+
+		if ("VGA" == symbol->name)
+		{
+			// Specific to PS10.EXE:
+			// Fix "failed to add constant VGA=9" error
+			symbol->name = "_VGA";
+		}
+
+		if (uniqueSymbols.end() != uniqueSymbols.find(symbol->name))
+		{
+			std::string newName;
+			int counter = 0;
+
+			do
+			{
+				char buf[16] = {};
+				snprintf(buf, sizeof(buf), "__%X", counter++);
+
+				newName = symbol->name + buf;
+			}
+			while (uniqueSymbols.end() != uniqueSymbols.find(newName));
+
+			symbol->name = newName;
+		}
+
+		uniqueSymbols.insert(symbol->name);
+	}
+}
+
+
+void IDC::generate(FILE* output) const
+{
+	fputs("#include <idc.idc>\n\nstatic main()\n{\n\tauto ea;\n\n", output);
 
 	// Specific to PS10.EXE:
 	// Fix a few "can't rename byte as '...' because"
 	// "this byte can't have a name (it is a tail byte)" errors
 	// Although it's better than undefine whole data segment
-	puts(
+	fputs(
 		"\tMakeUnkn(0x36CD6, DOUNK_SIMPLE);\n"
 		"\tMakeUnkn(0x36CDE, DOUNK_SIMPLE);\n"
 		"\tMakeUnkn(0x44A82, DOUNK_SIMPLE);\n"
 		"\tMakeUnkn(0x44B5C, DOUNK_SIMPLE);\n"
 		"\tMakeUnkn(0x44E34, DOUNK_SIMPLE);\n"
-		"\tMakeUnkn(0x45B62, DOUNK_SIMPLE);\n");
+		"\tMakeUnkn(0x45B62, DOUNK_SIMPLE);\n"
+		"\n", output);
 
-	for (auto symbol = s_tds.symbols.begin(); s_tds.symbols.end() != symbol; ++symbol)
+	for (auto symbol = symbols.begin(), es = symbols.end(); es != symbol; ++symbol)
 	{
-		const char* const symbolName = s_tds.names[symbol->name].c_str();
-		
-		if ('\0' == symbolName[0])
+		if (SYMBOL_IMPORT == symbol->category)
 		{
-			continue;
-		}
-
-		if (symbol->segment > 0xC000 && symbol->offset < s_tds.names.size())
-		{
-			// Imported names are handled differently
-			printf("\tMakeName(LocByName(\"%s_%u\"), \"%s\");\n",
-				s_tds.names[symbol->offset].c_str(), symbol->segment & 0x3FFF, symbolName);
-			continue;
-		}
-		else if (0 == symbol->segment || s_executable.segments.size() <= symbol->segment)
-		{
-			// This is not code or data segment
-			continue;
-		}
-
-		printf("\tea = MK_FP(SegByName(\"%s\"), 0x%04hx);\n\tMakeName(ea, \"%s\");\n",
-			s_executable.segmentName(symbol->segment).c_str(), symbol->offset, symbolName);
-
-		const std::string typeName = s_tds.typeName(symbol->type);
-		
-		if (typeName.empty())
-		{
-			continue;
-		}
-
-		if (s_executable.segments[symbol->segment].flags & Executable::SEGMENT_DATA)
-		{
-			printf("\tMakeRptCmt(ea, \"%s\");\n", typeName.c_str());
+			printf("\tea = LocByName(\"%s\");\n", symbol->importedName.c_str());
 		}
 		else
 		{
-			printf("\tSetFunctionCmt(ea, \"%s\", 1);\n", typeName.c_str());
+			fprintf(output, "\tea = MK_FP(SegByName(\"%s\"), 0x%04hx);\n",
+				symbol->segment.c_str(), symbol->offset);
 		}
 
-		// TODO: local symbols
+		fprintf(output, "\tMakeName(ea, \"%s\");\n", symbol->name.c_str());
+
+		if (SYMBOL_DATA == symbol->category)
+		{
+			fprintf(output, "\tMakeRptCmt(ea, \"%s\");\n", symbol->type.c_str());
+		}
+		else
+		{
+			fprintf(output, "\tSetFunctionCmt(ea, \"%s\", 1);\n", symbol->type.c_str());
+
+			for (auto local = symbol->locals.begin(), el = symbol->locals.end(); el != local; ++local)
+			{
+				if (SYMBOL_STACK != local->category)
+				{
+					continue;
+				}
+
+				printf("\tMakeLocal(ea, 0, \"[bp%+hi]\", \"%s\");\n",
+					static_cast<int16_t>(local->offset), local->name.c_str());
+			}
+		}
 	}
 
 	puts("}");
@@ -1028,9 +1122,15 @@ int main(int argc, char** argv)
 		return EXIT_SUCCESS;
 	}
 
-	const bool result = s_executable.load(argv[1]);
+	Executable executable;
 
-	MakeScript();
+	const bool result = executable.load(argv[1]);
+
+	if (result)
+	{
+		const IDC script(executable);
+		script.generate(stdout);
+	}
 
 	return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }
