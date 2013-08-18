@@ -936,19 +936,26 @@ struct IDC
 
 	std::vector<Symbol> symbols;
 
-	IDC(const Executable& source);
+	explicit IDC(const Executable& source);
 
 	void generate(FILE* output) const;
 
 private:
-	static Symbol makeSymbol(const Executable& source, const size_t index);
+	const Executable& m_source;
 
-	void makeGlobalSymbolsUnique(const Executable& source);
+	Symbol makeSymbol(const size_t index);
+
+	void makeGlobalSymbolsUnique();
+
+	// Without implementation
+	IDC(const IDC&);
+	IDC& operator=(const IDC&);
 
 };
 
 
 IDC::IDC(const Executable& source)
+: m_source(source)
 {
 	const std::vector<TDS::Symbol>& sourceSymbols = source.tds.symbols;
 
@@ -965,7 +972,7 @@ IDC::IDC(const Executable& source)
 			continue;
 		}
 
-		Symbol dstSym = makeSymbol(source, i);
+		Symbol dstSym = makeSymbol(i);
 
 		for (auto scope = source.tds.scopes.begin(), es = source.tds.scopes.end(); es != scope; ++scope)
 		{
@@ -976,7 +983,7 @@ IDC::IDC(const Executable& source)
 
 			for (uint16_t j = 0; j < scope->count; ++j)
 			{
-				const Symbol local = makeSymbol(source, scope->index + j);
+				const Symbol local = makeSymbol(scope->index + j);
 				dstSym.locals.push_back(local);
 			}
 		}
@@ -984,24 +991,24 @@ IDC::IDC(const Executable& source)
 		symbols.push_back(dstSym);
 	}
 
-	makeGlobalSymbolsUnique(source);
+	makeGlobalSymbolsUnique();
 }
 
-IDC::Symbol IDC::makeSymbol(const Executable& source, const size_t index)
+IDC::Symbol IDC::makeSymbol(const size_t index)
 {
 	// TODO: add range checks
 
-	const TDS::Symbol& srcSym = source.tds.symbols[index];
+	const TDS::Symbol& srcSym = m_source.tds.symbols[index];
 
 	Symbol result;
-	result.name         = source.tds.names[srcSym.name];
-	result.type         = source.tds.typeName(srcSym.type);
+	result.name = m_source.tds.names[srcSym.name];
+	result.type = m_source.tds.typeName(srcSym.type);
 
 	if (srcSym.segment & 0x4000)
 	{
 		char importedName[64] = {};
 		snprintf(importedName, sizeof importedName, "%s_%u",
-			source.tds.names[srcSym.offset].c_str(), srcSym.segment & 0x3FFF);
+			m_source.tds.names[srcSym.offset].c_str(), srcSym.segment & 0x3FFF);
 
 		result.importedName = importedName;
 		result.category     = SYMBOL_IMPORT;
@@ -1015,7 +1022,7 @@ IDC::Symbol IDC::makeSymbol(const Executable& source, const size_t index)
 		{
 			result.category = SYMBOL_STACK;
 		}
-		else if (source.segments[srcSym.segment].flags & Executable::SEGMENT_DATA)
+		else if (m_source.segments[srcSym.segment].flags & Executable::SEGMENT_DATA)
 		{
 			result.category = SYMBOL_DATA;
 		}
@@ -1028,7 +1035,7 @@ IDC::Symbol IDC::makeSymbol(const Executable& source, const size_t index)
 	return result;
 }
 
-void IDC::makeGlobalSymbolsUnique(const Executable& source)
+void IDC::makeGlobalSymbolsUnique()
 {
 	std::set<std::string> uniqueSymbols;
 
@@ -1072,8 +1079,11 @@ static void GeneratePrologue(FILE* output)
 	fputs(
 		"from idaapi import *\n"
 		"\n"
+		"def make_ea(segment, offset):\n"
+		"  return getnseg(segment - 1).startEA + offset\n"
+		"\n"
 		"def make_func(segment, offset, name, type):\n"
-		"  ea = getnseg(segment - 1).startEA + offset\n"
+		"  ea = make_ea(segment, offset)\n"
 		"  old_name = get_name(BADADDR, ea)\n"
 		"  if None == old_name or '@' != old_name[0]:\n"
 		"    set_name(ea, name, SN_CHECK)\n"
@@ -1089,7 +1099,7 @@ static void GeneratePrologue(FILE* output)
 		"  return func\n"
 		"\n"
 		"def make_data(segment, offset, name, type):\n"
-		"  ea = getnseg(segment - 1).startEA + offset\n"
+		"  ea = make_ea(segment, offset)\n"
 		"  set_name(ea, name, SN_CHECK)\n"
 		"  set_cmt(ea, type, 1)\n"
 		"\n"
@@ -1100,6 +1110,8 @@ static void GeneratePrologue(FILE* output)
 		"\n"
 		"def make_local(func, offset, name):\n"
 		"  set_member_name(get_frame(func), func.frsize + offset, name)\n"
+		"def make_src_line(segment, offset, line):\n"
+		"  set_cmt(make_ea(segment, offset), line, 0)\n"
 		"\n", output);
 
 	// Specific to PS10.EXE:
@@ -1155,6 +1167,32 @@ void IDC::generate(FILE* output) const
 				symbol->segment, symbol->offset, name, type);
 			break;
 		}
+	}
+
+	const TDS& tds = m_source.tds;
+	uint16_t segment = 1, file = 0;
+	uint16_t lastLine = 0, lastOffset = 0;
+
+	for (auto line = tds.lines.begin(), last = tds.lines.end(); last != line; ++line)
+	{
+		if (line->line < lastLine)
+		{
+			++file;
+		}
+
+		lastLine = line->line;
+
+		if (line->offset < lastOffset)
+		{
+			++segment;
+		}
+
+		lastOffset = line->offset;
+
+		const std::string& sourceName = tds.names[tds.sources[file].name];
+		
+		fprintf(output, "make_src_line(%hu, 0x%04hx, \"%s:%hu\")\n",
+			segment, line->offset, sourceName.c_str(), line->line);
 	}
 }
 
