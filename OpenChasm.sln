@@ -5,7 +5,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenChasm", "src\chasm\Open
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tdump2idc", "src\tools\tdump2idc.vcxproj", "{AF11C41F-182C-44B5-996D-7A77E86EA544}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tds2idc", "src\tools\tds2idc.vcxproj", "{FC0BECC7-C0C5-4DFF-88C6-7155B79DFDD2}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tds2idapy", "src\tools\tds2idapy.vcxproj", "{FC0BECC7-C0C5-4DFF-88C6-7155B79DFDD2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

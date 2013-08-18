@@ -320,8 +320,14 @@ struct TDS
 	std::string typeName(const uint16_t index) const;
 
 private:
+	enum CountType
+	{
+		COUNT_FROM_ZERO,
+		COUNT_FROM_ONE
+	};
+
 	template <typename Entry>
-	bool load(File& inputFile, std::vector<Entry>& outputList);
+	bool load(File& inputFile, std::vector<Entry>& outputList, const CountType countFrom = COUNT_FROM_ZERO);
 
 	void loadNames(File& input);
 
@@ -353,16 +359,16 @@ bool TDS::load(File& file)
 
 	// TODO: check header
 
-	if (   !load(file, symbols      )
-		|| !load(file, modules      )
-		|| !load(file, sources      )
-		|| !load(file, lines        )
-		|| !load(file, scopes       )
-		|| !load(file, segments     )
-		|| !load(file, correlations )
-		|| !load(file, types        )
-		|| !load(file, members      )
-		|| !load(file, scopeClasses )
+	if (   !load(file, symbols, COUNT_FROM_ONE)
+		|| !load(file, modules)
+		|| !load(file, sources)
+		|| !load(file, lines)
+		|| !load(file, scopes)
+		|| !load(file, segments)
+		|| !load(file, correlations)
+		|| !load(file, types, COUNT_FROM_ONE)
+		|| !load(file, members)
+		|| !load(file, scopeClasses)
 		|| !load(file, moduleClasses))
 	{
 		return false;
@@ -380,12 +386,19 @@ bool TDS::load(File& file)
 }
 
 template <typename Entry>
-bool TDS::load(File& input, std::vector<Entry>& output)
+bool TDS::load(File& input, std::vector<Entry>& output, const CountType countFrom)
 {
 	const size_t count = header.count<Entry>();
 
-	output.reserve(count + 1);
-	output.push_back(Entry());
+	if (COUNT_FROM_ONE == countFrom)
+	{
+		output.reserve(count + 1);
+		output.push_back(Entry());
+	}
+	else
+	{
+		output.reserve(count);
+	}
 
 	for (uint16_t i = 0; i < count; ++i)
 	{
@@ -907,8 +920,8 @@ struct IDC
 
 		SymbolCategory category;
 
-		std::string segment;
-		uint16_t    offset;
+		uint16_t segment;
+		uint16_t offset;
 
 		std::string importedName;
 
@@ -995,7 +1008,7 @@ IDC::Symbol IDC::makeSymbol(const Executable& source, const size_t index)
 	}
 	else
 	{
-		result.segment = source.segmentName(srcSym.segment);
+		result.segment = srcSym.segment;
 		result.offset  = srcSym.offset;
 
 		if (0 == srcSym.segment)
@@ -1054,60 +1067,95 @@ void IDC::makeGlobalSymbolsUnique(const Executable& source)
 	}
 }
 
-
-void IDC::generate(FILE* output) const
+static void GeneratePrologue(FILE* output)
 {
-	fputs("#include <idc.idc>\n\nstatic main()\n{\n\tauto ea;\n\n", output);
+	fputs(
+		"from idaapi import *\n"
+		"\n"
+		"def make_func(segment, offset, name, type):\n"
+		"  ea = getnseg(segment - 1).startEA + offset\n"
+		"  old_name = get_name(BADADDR, ea)\n"
+		"  if None == old_name or '@' != old_name[0]:\n"
+		"    set_name(ea, name, SN_CHECK)\n"
+		"  if add_func(ea, BADADDR):\n"
+		"    autoWait()\n"
+		"  func = get_func(ea)\n"
+		"  cmt = get_func_cmt(func, 1)\n"
+		"  if None == cmt or 0 == len(cmt):\n"
+		"    cmt = type\n"
+		"  else:\n"
+		"    cmt += '\\n' + type\n"
+		"  set_func_cmt(func, cmt, 1)\n"
+		"  return func\n"
+		"\n"
+		"def make_data(segment, offset, name, type):\n"
+		"  ea = getnseg(segment - 1).startEA + offset\n"
+		"  set_name(ea, name, SN_CHECK)\n"
+		"  set_cmt(ea, type, 1)\n"
+		"\n"
+		"def make_import(imported_name, name, type):\n"
+		"  ea = get_name_ea(BADADDR, imported_name)\n"
+		"  set_name(ea, name, SN_CHECK)\n"
+		"  set_cmt(ea, type, 1)\n"
+		"\n"
+		"def make_local(func, offset, name):\n"
+		"  set_member_name(get_frame(func), func.frsize + offset, name)\n"
+		"\n", output);
 
 	// Specific to PS10.EXE:
 	// Fix a few "can't rename byte as '...' because"
 	// "this byte can't have a name (it is a tail byte)" errors
 	// Although it's better than undefine whole data segment
 	fputs(
-		"\tMakeUnkn(0x36CD6, DOUNK_SIMPLE);\n"
-		"\tMakeUnkn(0x36CDE, DOUNK_SIMPLE);\n"
-		"\tMakeUnkn(0x44A82, DOUNK_SIMPLE);\n"
-		"\tMakeUnkn(0x44B5C, DOUNK_SIMPLE);\n"
-		"\tMakeUnkn(0x44E34, DOUNK_SIMPLE);\n"
-		"\tMakeUnkn(0x45B62, DOUNK_SIMPLE);\n"
+		"do_unknown(0x36CDC, DOUNK_SIMPLE)\n"
+		"do_unknown(0x44A82, DOUNK_SIMPLE)\n"
+		"do_unknown(0x44B5C, DOUNK_SIMPLE)\n"
+		"do_unknown(0x44E34, DOUNK_SIMPLE)\n"
+		"do_unknown(0x45B62, DOUNK_SIMPLE)\n"
 		"\n", output);
+}
+
+void IDC::generate(FILE* output) const
+{
+	assert(NULL != output);
+
+	GeneratePrologue(output);
 
 	for (auto symbol = symbols.begin(), es = symbols.end(); es != symbol; ++symbol)
 	{
-		if (SYMBOL_IMPORT == symbol->category)
-		{
-			printf("\tea = LocByName(\"%s\");\n", symbol->importedName.c_str());
-		}
-		else
-		{
-			fprintf(output, "\tea = MK_FP(SegByName(\"%s\"), 0x%04hx);\n",
-				symbol->segment.c_str(), symbol->offset);
-		}
+		const char* const name = symbol->name.c_str();
+		const char* const type = symbol->type.c_str();
 
-		fprintf(output, "\tMakeName(ea, \"%s\");\n", symbol->name.c_str());
-
-		if (SYMBOL_DATA == symbol->category)
+		switch (symbol->category)
 		{
-			fprintf(output, "\tMakeRptCmt(ea, \"%s\");\n", symbol->type.c_str());
-		}
-		else
-		{
-			fprintf(output, "\tSetFunctionCmt(ea, \"%s\", 1);\n", symbol->type.c_str());
+		case SYMBOL_CODE:
+			fprintf(output, "func = make_func(%hu, 0x%04hx, \"%s\", \"%s\")\n",
+				symbol->segment, symbol->offset, name, type);
 
-			for (auto local = symbol->locals.begin(), el = symbol->locals.end(); el != local; ++local)
+			for (auto local = symbol->locals.begin(), el = symbol->locals.end();
+				 el != local; ++local)
 			{
 				if (SYMBOL_STACK != local->category)
 				{
 					continue;
 				}
 
-				printf("\tMakeLocal(ea, 0, \"[bp%+hi]\", \"%s\");\n",
+				fprintf(output, "make_local(func, %hi, '%s')\n",
 					static_cast<int16_t>(local->offset), local->name.c_str());
 			}
+			break;
+
+		case SYMBOL_IMPORT:
+			fprintf(output, "make_import(\"%s\", \"%s\", \"%s\")\n",
+				symbol->importedName.c_str(), name, type);
+			break;
+
+		default:
+			fprintf(output, "make_data(%hu, 0x%04hx, \"%s\", \"%s\")\n",
+				symbol->segment, symbol->offset, name, type);
+			break;
 		}
 	}
-
-	puts("}");
 }
 
 

@@ -13,7 +13,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{FC0BECC7-C0C5-4DFF-88C6-7155B79DFDD2}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>tds2idc</RootNamespace>
+    <RootNamespace>tds2idapy</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -74,7 +74,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="tds2idc.cpp" />
+    <ClCompile Include="tds2idapy.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
