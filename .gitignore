@@ -1,5 +1,3 @@
-/tmp/
-
 # Windows
 Debug/
 Release/
@@ -18,3 +16,12 @@ xcuserdata/
 *.mode1v3
 *.pbxuser
 *.xccheckout
+
+# IDA Pro
+*.id0
+*.id1
+*.nam
+*.til
+
+# Misc
+/tmp/
