@@ -421,7 +421,7 @@ void TDS::loadNames(File& input)
 	names.reserve(header.nameCount + 1);
 	names.push_back(std::string());
 
-	while (true)
+	for (;;)
 	{
 		std::string name;
 
@@ -432,7 +432,7 @@ void TDS::loadNames(File& input)
 				break;
 			}
 
-			name += ch;
+			name += char(ch);
 		}
 
 		if (name.empty() || input.isEOF())
@@ -578,7 +578,9 @@ std::string TDS::typeName(const uint16_t index) const
 		result += " '" + name + "' ";
 	}
 
-	const Type& extended = types[index + 1];
+	const Type& extended = (types.size() - 1 > index)
+		? types[index + 1]
+		: Type();
 	char addChars[256] = {};
 
 	switch (typeID)
