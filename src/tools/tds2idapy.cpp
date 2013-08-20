@@ -320,14 +320,8 @@ struct TDS
 	std::string typeName(const uint16_t index) const;
 
 private:
-	enum CountType
-	{
-		COUNT_FROM_ZERO,
-		COUNT_FROM_ONE
-	};
-
 	template <typename Entry>
-	bool load(File& inputFile, std::vector<Entry>& outputList, const CountType countFrom = COUNT_FROM_ZERO);
+	bool load(File& inputFile, std::vector<Entry>& outputList);
 
 	void loadNames(File& input);
 
@@ -359,14 +353,14 @@ bool TDS::load(File& file)
 
 	// TODO: check header
 
-	if (   !load(file, symbols, COUNT_FROM_ONE)
+	if (   !load(file, symbols)
 		|| !load(file, modules)
 		|| !load(file, sources)
 		|| !load(file, lines)
 		|| !load(file, scopes)
 		|| !load(file, segments)
 		|| !load(file, correlations)
-		|| !load(file, types, COUNT_FROM_ONE)
+		|| !load(file, types)
 		|| !load(file, members)
 		|| !load(file, scopeClasses)
 		|| !load(file, moduleClasses))
@@ -386,19 +380,12 @@ bool TDS::load(File& file)
 }
 
 template <typename Entry>
-bool TDS::load(File& input, std::vector<Entry>& output, const CountType countFrom)
+bool TDS::load(File& input, std::vector<Entry>& output)
 {
 	const size_t count = header.count<Entry>();
 
-	if (COUNT_FROM_ONE == countFrom)
-	{
-		output.reserve(count + 1);
-		output.push_back(Entry());
-	}
-	else
-	{
-		output.reserve(count);
-	}
+	output.reserve(count + 1);
+	output.push_back(Entry());
 
 	for (uint16_t i = 0; i < count; ++i)
 	{
@@ -936,17 +923,51 @@ struct IDC
 		}
 	};
 
+	struct File
+	{
+		std::string name;
+
+		uint16_t segment;
+		uint16_t offset;
+
+		File()
+			: segment(0)
+			, offset(0)
+		{
+		}
+	};
+
+	struct Line
+	{
+		std::string filename;
+		uint16_t line;
+
+		uint16_t segment;
+		uint16_t offset;
+
+		Line()
+		: line(0)
+		, segment(0)
+		, offset(0)
+		{
+		}
+	};
+
 	std::vector<Symbol> symbols;
+	std::vector<File> files;
+	std::vector<Line> lines;
 
 	explicit IDC(const Executable& source);
 
 	void generate(FILE* output) const;
 
 private:
-	const Executable& m_source;
+	const Executable& source;
+
+	void makeSymbolList();
+	void makeFileAndLineLists();
 
 	Symbol makeSymbol(const size_t index);
-
 	void makeGlobalSymbolsUnique();
 
 	// Without implementation
@@ -957,11 +978,18 @@ private:
 
 
 IDC::IDC(const Executable& source)
-: m_source(source)
+: source(source)
+{
+	makeSymbolList();
+	makeFileAndLineLists();
+}
+
+
+void IDC::makeSymbolList()
 {
 	const std::vector<TDS::Symbol>& sourceSymbols = source.tds.symbols;
 
-	for (size_t i = 0, ei = sourceSymbols.size(); i < ei; ++i)
+	for (size_t i = 1, ei = sourceSymbols.size(); i < ei; ++i)
 	{
 		const TDS::Symbol& srcSym = sourceSymbols[i];
 
@@ -976,7 +1004,8 @@ IDC::IDC(const Executable& source)
 
 		Symbol dstSym = makeSymbol(i);
 
-		for (auto scope = source.tds.scopes.begin(), es = source.tds.scopes.end(); es != scope; ++scope)
+		for (auto scope = source.tds.scopes.begin(), es = source.tds.scopes.end();
+			es != scope; ++scope)
 		{
 			if (i != scope->symbol || 0 == scope->count)
 			{
@@ -996,21 +1025,65 @@ IDC::IDC(const Executable& source)
 	makeGlobalSymbolsUnique();
 }
 
+void IDC::makeFileAndLineLists()
+{
+	// TODO: add range checks
+
+	const TDS& tds = source.tds;
+	const std::vector<TDS::Correlation>& correlations = tds.correlations;
+
+	for (size_t i = 1, ei = correlations.size(); i < ei; ++i)
+	{
+		const TDS::Correlation& corr = correlations[i];
+
+		const TDS::Segment& segment = tds.segments[corr.segmentIndex];
+		const TDS::Source& srcFile = tds.sources[corr.fileIndex];
+		
+		uint16_t startOffset = 0xFFFF;
+
+		for (uint16_t j = corr.lineIndex; j < corr.lineIndex + corr.lineCount; ++j)
+		{
+			const TDS::Line& srcLine = tds.lines[j];
+
+			Line dstLine;
+			dstLine.filename = tds.names[srcFile.name];
+			dstLine.line     = srcLine.line;
+			dstLine.segment  = segment.codeSegment;
+			dstLine.offset   = srcLine.offset;
+
+			lines.push_back(dstLine);
+
+			if (0xFFFF == startOffset)
+			{
+				startOffset = srcLine.offset;
+			}
+		}
+
+		File dstFile;
+		dstFile.name    = tds.names[srcFile.name];
+		dstFile.segment = segment.codeSegment;
+		dstFile.offset  = startOffset;
+
+		files.push_back(dstFile);
+	}
+}
+
+
 IDC::Symbol IDC::makeSymbol(const size_t index)
 {
 	// TODO: add range checks
 
-	const TDS::Symbol& srcSym = m_source.tds.symbols[index];
+	const TDS::Symbol& srcSym = source.tds.symbols[index];
 
 	Symbol result;
-	result.name = m_source.tds.names[srcSym.name];
-	result.type = m_source.tds.typeName(srcSym.type);
+	result.name = source.tds.names[srcSym.name];
+	result.type = source.tds.typeName(srcSym.type);
 
 	if (srcSym.segment & 0x4000)
 	{
 		char importedName[64] = {};
 		snprintf(importedName, sizeof importedName, "%s_%u",
-			m_source.tds.names[srcSym.offset].c_str(), srcSym.segment & 0x3FFF);
+			source.tds.names[srcSym.offset].c_str(), srcSym.segment & 0x3FFF);
 
 		result.importedName = importedName;
 		result.category     = SYMBOL_IMPORT;
@@ -1024,7 +1097,7 @@ IDC::Symbol IDC::makeSymbol(const size_t index)
 		{
 			result.category = SYMBOL_STACK;
 		}
-		else if (m_source.segments[srcSym.segment].flags & Executable::SEGMENT_DATA)
+		else if (source.segments[srcSym.segment].flags & Executable::SEGMENT_DATA)
 		{
 			result.category = SYMBOL_DATA;
 		}
@@ -1076,6 +1149,7 @@ void IDC::makeGlobalSymbolsUnique()
 	}
 }
 
+
 static void GeneratePrologue(FILE* output)
 {
 	fputs(
@@ -1112,6 +1186,10 @@ static void GeneratePrologue(FILE* output)
 		"\n"
 		"def make_local(func, offset, name):\n"
 		"  set_member_name(get_frame(func), func.frsize + offset, name)\n"
+		"\n"
+		"def make_file_line(segment, offset, filename):\n"
+		"  ExtraUpdate(make_ea(segment, offset), filename, E_PREV)\n"
+		"\n"
 		"def make_src_line(segment, offset, line):\n"
 		"  set_cmt(make_ea(segment, offset), line, 0)\n"
 		"\n", output);
@@ -1171,31 +1249,23 @@ void IDC::generate(FILE* output) const
 		}
 	}
 
-	const TDS& tds = m_source.tds;
-	uint16_t segment = 1, file = 0;
-	uint16_t lastLine = 0, lastOffset = 0;
+	fputs("\n", output);
 
-	for (auto line = tds.lines.begin(), last = tds.lines.end(); last != line; ++line)
+	for (auto file = files.begin(), last = files.end(); last != file; ++file)
 	{
-		if (line->line < lastLine)
-		{
-			++file;
-		}
-
-		lastLine = line->line;
-
-		if (line->offset < lastOffset)
-		{
-			++segment;
-		}
-
-		lastOffset = line->offset;
-
-		const std::string& sourceName = tds.names[tds.sources[file].name];
-		
-		fprintf(output, "make_src_line(%hu, 0x%04hx, \"%s:%hu\")\n",
-			segment, line->offset, sourceName.c_str(), line->line);
+		fprintf(output, "make_file_line(%hu, 0x%04hx, \"%s\")\n",
+			file->segment, file->offset, file->name.c_str());
 	}
+
+	fputs("\n", output);
+
+	for (auto line = lines.begin(), last = lines.end(); last != line; ++line)
+	{
+		fprintf(output, "make_src_line(%hu, 0x%04hx, \"%s:%hu\")\n",
+			line->segment, line->offset, line->filename.c_str(), line->line);
+	}
+
+	fputs("\nrefresh_idaview_anyway()\n", output);
 }
 
 
