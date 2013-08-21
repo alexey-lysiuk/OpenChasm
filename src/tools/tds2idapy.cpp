@@ -1166,6 +1166,8 @@ static void GeneratePrologue(FILE* output)
 	fputs(
 		"from idaapi import *\n"
 		"\n"
+		"get_inf_structure().s_cmtflg = SW_RPTCMT | SW_ALLCMT | SW_LINNUM\n"
+		"\n"
 		"def make_ea(segment, offset):\n"
 		"  return getnseg(segment - 1).startEA + offset\n"
 		"\n"
