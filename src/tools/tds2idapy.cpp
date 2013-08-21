@@ -928,27 +928,28 @@ struct IDC
 		std::string name;
 
 		uint16_t segment;
-		uint16_t offset;
+		uint16_t startOffset;
+		uint16_t endOffset;
 
 		File()
-			: segment(0)
-			, offset(0)
+		: segment(0)
+		, startOffset(0)
+		, endOffset(0)
 		{
 		}
 	};
 
 	struct Line
 	{
-		std::string filename;
-		uint16_t line;
-
 		uint16_t segment;
 		uint16_t offset;
 
+		uint16_t line;
+
 		Line()
-		: line(0)
-		, segment(0)
+		: segment(0)
 		, offset(0)
+		, line(0)
 		{
 		}
 	};
@@ -1025,6 +1026,16 @@ void IDC::makeSymbolList()
 	makeGlobalSymbolsUnique();
 }
 
+static void EraseSubString(std::string& str, const char* const sub)
+{
+	const size_t pos = str.find(sub);
+
+	if (std::string::npos != pos)
+	{
+		str.erase(pos, strlen(sub));
+	}
+}
+
 void IDC::makeFileAndLineLists()
 {
 	// TODO: add range checks
@@ -1039,30 +1050,30 @@ void IDC::makeFileAndLineLists()
 		const TDS::Segment& segment = tds.segments[corr.segmentIndex];
 		const TDS::Source& srcFile = tds.sources[corr.fileIndex];
 		
-		uint16_t startOffset = 0xFFFF;
-
 		for (uint16_t j = corr.lineIndex; j < corr.lineIndex + corr.lineCount; ++j)
 		{
 			const TDS::Line& srcLine = tds.lines[j];
 
 			Line dstLine;
-			dstLine.filename = tds.names[srcFile.name];
 			dstLine.line     = srcLine.line;
 			dstLine.segment  = segment.codeSegment;
 			dstLine.offset   = srcLine.offset;
 
 			lines.push_back(dstLine);
-
-			if (0xFFFF == startOffset)
-			{
-				startOffset = srcLine.offset;
-			}
 		}
 
+		std::string filename = tds.names[srcFile.name];
+
+		// Specific to PS10.EXE:
+		// Remove unneeded parts of source file names
+		EraseSubString(filename, "CHASM.SRC\\");
+		EraseSubString(filename, "\\BP\\PROPAS\\");
+
 		File dstFile;
-		dstFile.name    = tds.names[srcFile.name];
-		dstFile.segment = segment.codeSegment;
-		dstFile.offset  = startOffset;
+		dstFile.name        = filename;
+		dstFile.segment     = segment.codeSegment;
+		dstFile.startOffset = segment.codeOffset;
+		dstFile.endOffset   = segment.codeOffset + segment.codeLength;
 
 		files.push_back(dstFile);
 	}
@@ -1187,11 +1198,13 @@ static void GeneratePrologue(FILE* output)
 		"def make_local(func, offset, name):\n"
 		"  set_member_name(get_frame(func), func.frsize + offset, name)\n"
 		"\n"
-		"def make_file_line(segment, offset, filename):\n"
-		"  ExtraUpdate(make_ea(segment, offset), filename, E_PREV)\n"
+		"def make_file_line(segment, start_offset, end_offset, filename):\n"
+		"  start_addr = make_ea(segment, start_offset)\n"
+		"  end_addr = make_ea(segment, end_offset)\n"
+		"  add_sourcefile(start_addr, end_addr, filename)\n"
 		"\n"
 		"def make_src_line(segment, offset, line):\n"
-		"  set_cmt(make_ea(segment, offset), line, 0)\n"
+		"  set_source_linnum(make_ea(segment, offset), line)\n"
 		"\n", output);
 
 	// Specific to PS10.EXE:
@@ -1253,16 +1266,16 @@ void IDC::generate(FILE* output) const
 
 	for (auto file = files.begin(), last = files.end(); last != file; ++file)
 	{
-		fprintf(output, "make_file_line(%hu, 0x%04hx, \"%s\")\n",
-			file->segment, file->offset, file->name.c_str());
+		fprintf(output, "make_file_line(%hu, 0x%04hx, 0x%04hx, \"%s\")\n",
+			file->segment, file->startOffset, file->endOffset, file->name.c_str());
 	}
 
 	fputs("\n", output);
 
 	for (auto line = lines.begin(), last = lines.end(); last != line; ++line)
 	{
-		fprintf(output, "make_src_line(%hu, 0x%04hx, \"%s:%hu\")\n",
-			line->segment, line->offset, line->filename.c_str(), line->line);
+		fprintf(output, "make_src_line(%hu, 0x%04hx, %hu)\n",
+			line->segment, line->offset, line->line);
 	}
 
 	fputs("\nrefresh_idaview_anyway()\n", output);
