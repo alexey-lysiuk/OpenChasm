@@ -1197,8 +1197,17 @@ static void GeneratePrologue(FILE* output)
 		"  set_name(ea, name, SN_CHECK)\n"
 		"  set_cmt(ea, type, 1)\n"
 		"\n"
-		"def make_local(func, offset, name):\n"
-		"  set_member_name(get_frame(func), func.frsize + offset, name)\n"
+		"def make_local(func, offset, name, type):\n"
+		"  offset += func.frsize\n"
+		"  frame = get_frame(func)\n"
+		"  set_member_name(frame, offset, name)\n"
+		"  member = None\n"
+		"  try:\n"
+		"    member = get_member(frame, offset)\n"
+		"  except OverflowError:\n"
+		"    pass\n"
+		"  if member:\n"
+		"    set_member_cmt(member, type, 1)\n"
 		"\n"
 		"def make_file_line(segment, start_offset, end_offset, filename):\n"
 		"  start_addr = make_ea(segment, start_offset)\n"
@@ -1247,8 +1256,8 @@ void IDC::generate(FILE* output) const
 					continue;
 				}
 
-				fprintf(output, "make_local(func, %hi, '%s')\n",
-					static_cast<int16_t>(local->offset), local->name.c_str());
+				fprintf(output, "make_local(func, %hi, \"%s\", \"%s\")\n",
+					static_cast<int16_t>(local->offset), local->name.c_str(), local->type.c_str());
 			}
 			break;
 
