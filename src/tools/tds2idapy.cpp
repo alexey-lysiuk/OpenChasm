@@ -918,7 +918,7 @@ struct IDC
 
 		Symbol()
 		: category(SYMBOL_INVALID)
-		, offset(0xFFFF)
+		, offset(UINT16_MAX)
 		{
 		}
 	};
@@ -1049,7 +1049,10 @@ void IDC::makeFileAndLineLists()
 
 		const TDS::Segment& segment = tds.segments[corr.segmentIndex];
 		const TDS::Source& srcFile = tds.sources[corr.fileIndex];
-		
+
+		uint16_t startOffset = UINT16_MAX;
+		uint16_t endOffset = 0;
+
 		for (uint16_t j = corr.lineIndex; j < corr.lineIndex + corr.lineCount; ++j)
 		{
 			const TDS::Line& srcLine = tds.lines[j];
@@ -1060,6 +1063,13 @@ void IDC::makeFileAndLineLists()
 			dstLine.offset   = srcLine.offset;
 
 			lines.push_back(dstLine);
+
+			if (UINT16_MAX == startOffset)
+			{
+				startOffset = srcLine.offset;
+			}
+
+			endOffset = srcLine.offset;
 		}
 
 		std::string filename = tds.names[srcFile.name];
@@ -1072,8 +1082,8 @@ void IDC::makeFileAndLineLists()
 		File dstFile;
 		dstFile.name        = filename;
 		dstFile.segment     = segment.codeSegment;
-		dstFile.startOffset = segment.codeOffset;
-		dstFile.endOffset   = segment.codeOffset + segment.codeLength;
+		dstFile.startOffset = startOffset;
+		dstFile.endOffset   = endOffset + (UINT16_MAX == endOffset ? 0 : 1);
 
 		files.push_back(dstFile);
 	}
