@@ -911,6 +911,7 @@ struct IDC
 
 		uint16_t segment;
 		uint16_t offset;
+		uint16_t size;
 
 		std::string importedName;
 
@@ -919,6 +920,7 @@ struct IDC
 		Symbol()
 		: category(SYMBOL_INVALID)
 		, offset(UINT16_MAX)
+		, size(0)
 		{
 		}
 	};
@@ -1121,6 +1123,7 @@ IDC::Symbol IDC::makeSymbol(const size_t index)
 		else if (source.segments[srcSym.segment].flags & Executable::SEGMENT_DATA)
 		{
 			result.category = SYMBOL_DATA;
+			result.size     = source.tds.types[srcSym.type].size;
 		}
 		else
 		{
@@ -1199,10 +1202,19 @@ static void GeneratePrologue(FILE* output)
 		"  set_func_cmt(func, cmt, 1)\n"
 		"  return func\n"
 		"\n"
-		"def make_data(segment, offset, name, type):\n"
+		"def make_data(segment, offset, name, type, size):\n"
 		"  ea = make_ea(segment, offset)\n"
 		"  set_name(ea, name, SN_CHECK)\n"
 		"  set_cmt(ea, type, 1)\n"
+		"  do_unknown_range(ea, size, DOUNK_SIMPLE)\n"
+		"  if 1 == size:\n"
+		"    doByte(ea, 1)\n"
+		"  elif 2 == size:\n"
+		"    doWord(ea, 2)\n"
+		"  elif 4 == size:\n"
+		"    doDwrd(ea, 4)\n"
+		"  else:\n"
+		"    do_data_ex(ea, FF_BYTE, size, BADADDR)\n"
 		"\n"
 		"def make_import(imported_name, name, type):\n"
 		"  ea = get_name_ea(BADADDR, imported_name)\n"
@@ -1279,8 +1291,8 @@ void IDC::generate(FILE* output) const
 			break;
 
 		default:
-			fprintf(output, "make_data(%hu, 0x%04hx, \"%s\", \"%s\")\n",
-				symbol->segment, symbol->offset, name, type);
+			fprintf(output, "make_data(%hu, 0x%04hx, \"%s\", \"%s\", %hu)\n",
+				symbol->segment, symbol->offset, name, type, symbol->size);
 			break;
 		}
 	}
