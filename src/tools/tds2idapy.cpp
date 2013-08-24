@@ -1221,7 +1221,7 @@ static void GeneratePrologue(FILE* output)
 		"  if member:\n"
 		"    set_member_cmt(member, type, 1)\n"
 		"\n"
-		"def make_file_line(segment, start_offset, end_offset, filename):\n"
+		"def make_src_file(segment, start_offset, end_offset, filename):\n"
 		"  start_addr = make_ea(segment, start_offset)\n"
 		"  end_addr = make_ea(segment, end_offset)\n"
 		"  add_sourcefile(start_addr, end_addr, filename)\n"
@@ -1289,7 +1289,7 @@ void IDC::generate(FILE* output) const
 
 	for (auto file = files.begin(), last = files.end(); last != file; ++file)
 	{
-		fprintf(output, "make_file_line(%hu, 0x%04hx, 0x%04hx, \"%s\")\n",
+		fprintf(output, "make_src_file(%hu, 0x%04hx, 0x%04hx, \"%s\")\n",
 			file->segment, file->startOffset, file->endOffset, file->name.c_str());
 	}
 
