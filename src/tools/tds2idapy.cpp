@@ -1186,6 +1186,8 @@ static void GeneratePrologue(FILE* output)
 		"  old_name = get_name(BADADDR, ea)\n"
 		"  if None == old_name or '@' != old_name[0]:\n"
 		"    set_name(ea, name, SN_CHECK)\n"
+		"  if create_insn(ea):\n"
+		"    autoWait()\n"
 		"  if add_func(ea, BADADDR):\n"
 		"    autoWait()\n"
 		"  func = get_func(ea)\n"
