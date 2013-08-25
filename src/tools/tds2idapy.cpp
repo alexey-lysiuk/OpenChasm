@@ -925,6 +925,62 @@ struct Script
 		}
 	};
 
+	struct Member
+	{
+		std::string name;
+		std::string type;
+
+		uint16_t size;
+
+		Member() : size(0) { }
+	};
+
+	enum TypeOfType
+	{
+		TYPE_INVALID = -1,
+		TYPE_SKIP_NEXT = -2,
+
+		TYPE_STRUCT = 0,
+		TYPE_UNION,
+		TYPE_ENUM
+	};
+
+	static const uint8_t INFO_NEW_OFFSET  = 0x40;
+	static const uint8_t INFO_END_OF_TYPE = 0x80;
+
+	struct Type
+	{
+		TypeOfType type;
+
+		std::string name;
+		std::vector<Member> members;
+
+		explicit Type(const TypeOfType type = TYPE_INVALID) : type(type) { }
+
+		uint16_t size() const
+		{
+			if (TYPE_ENUM == type)
+			{
+				// TODO: store size from TDS::Type
+				return 1;
+			}
+			else if (TYPE_STRUCT == type || TYPE_UNION == type)
+			{
+				uint16_t result = 0;
+
+				for (auto member = members.begin(), last = members.end();
+					 member != last; ++member)
+				{
+					result += member->size;
+				}
+
+				return result;
+			}
+
+			return 0;
+		}
+	};
+
 	struct File
 	{
 		std::string name;
@@ -957,6 +1013,7 @@ struct Script
 	};
 
 	std::vector<Symbol> symbols;
+	std::vector<Type> types;
 	std::vector<File> files;
 	std::vector<Line> lines;
 
@@ -968,10 +1025,13 @@ private:
 	const Executable& source;
 
 	void makeSymbolList();
+	void makeTypeList();
 	void makeFileAndLineLists();
 
 	Symbol makeSymbol(const size_t index);
 	void makeGlobalSymbolsUnique();
+
+	TypeOfType typeOfType(const uint16_t index) const;
 
 	// Without implementation
 	Script(const Script&);
@@ -984,6 +1044,7 @@ Script::Script(const Executable& source)
 : source(source)
 {
 	makeSymbolList();
+	makeTypeList();
 	makeFileAndLineLists();
 }
 
@@ -1034,6 +1095,106 @@ void Script::makeSymbolList()
 	}
 
 	makeGlobalSymbolsUnique();
+}
+
+void Script::makeTypeList()
+{
+	// TODO: add range checks
+
+	const std::vector<TDS::Type>& sourceTypes = source.tds.types;
+
+	for (size_t i = 1, ei = sourceTypes.size(); i < ei; ++i)
+	{
+		const TDS::Type& srcType = sourceTypes[i];
+		const TypeOfType dstTypeOfType = typeOfType(i);
+
+		if (TYPE_INVALID == dstTypeOfType)
+		{
+			continue;
+		}
+		else if (TYPE_SKIP_NEXT == dstTypeOfType)
+		{
+			++i;
+			continue;
+		}
+
+		Type dstType(TYPE_UNION == dstTypeOfType ? TYPE_STRUCT : dstTypeOfType);
+		dstType.name = source.tds.names[srcType.name];
+
+		Type unionType(TYPE_UNION);
+		unionType.name = dstType.name;
+
+		uint16_t structIndex = 0;
+
+		const std::vector<TDS::Member>& sourceMembers = source.tds.members;
+		const uint16_t memberIndex = TYPE_ENUM == dstTypeOfType
+			? sourceTypes[i + 1].rawWord(2)
+			: srcType.recordWord;
+
+		for (uint16_t j = memberIndex, ej = sourceMembers.size(); j < ej; ++j)
+		{
+			const TDS::Member& srcMember = sourceMembers[j];
+
+			Member dstMember;
+			dstMember.name = source.tds.names[srcMember.name];
+
+			if (TYPE_ENUM == dstTypeOfType)
+			{
+				dstMember.size = srcMember.type;
+			}
+			else
+			{
+				dstMember.type = source.tds.typeName(srcMember.type);
+				dstMember.size = source.tds.types[srcMember.type].size;
+			}
+
+			if (INFO_NEW_OFFSET != srcMember.info)
+			{
+				dstType.members.push_back(dstMember);
+			}
+
+			if (TYPE_UNION == dstTypeOfType
+				&& (INFO_END_OF_TYPE == srcMember.info || INFO_NEW_OFFSET == srcMember.info))
+			{
+				Member unionMember;
+
+				if (dstType.members.size() == 1)
+				{
+					// Use type directly
+					unionMember = dstType.members.front();
+				}
+				else
+				{
+					// Use wrapping struct type
+					char memberName[16] = {};
+					snprintf(memberName, sizeof memberName, "u%i", structIndex++);
+
+					dstType.name = unionType.name + "__" + memberName;
+					types.push_back(dstType);
+
+					unionMember.name = memberName;
+					unionMember.type = "struct " + dstType.name;
+					unionMember.size = dstType.size();
+				}
+
+				unionType.members.push_back(unionMember);
+
+				dstType.members.clear();
+			}
+
+			if (INFO_END_OF_TYPE == srcMember.info)
+			{
+				break;
+			}
+		}
+
+		types.push_back(TYPE_UNION == dstTypeOfType ? unionType : dstType);
+
+		if (TYPE_ENUM == dstTypeOfType)
+		{
+			++i; // Enums have extended type info
+		}
+	}
 }
 
 static void EraseSubString(std::string& str, const char* const sub)
@@ -1179,6 +1340,45 @@ void Script::makeGlobalSymbolsUnique()
 
 		uniqueSymbols.insert(symbol->name);
 	}
+}
+
+
+Script::TypeOfType Script::typeOfType(const uint16_t index) const
+{
+	const TDS::Type& type = source.tds.types[index];
+
+	if ((type.id >= 4 && type.id <= 12)
+		|| 0x1C == type.id)
+	{
+		// Base types and arrays have extended type info
+		return TYPE_SKIP_NEXT;
+	}
+	else if (0x1E == type.id)
+	{
+		const std::vector<TDS::Member>& members = source.tds.members;
+
+		for (uint16_t i = type.recordWord, ei = members.size(); i < ei; ++i)
+		{
+			const uint8_t info = members[i].info;
+
+			if (INFO_NEW_OFFSET == info)
+			{
+				return TYPE_UNION;
+			}
+			else if (INFO_END_OF_TYPE == info)
+			{
+				break;
+			}
+		}
+
+		return TYPE_STRUCT;
+	}
+	else if (0x29 == type.id)
+	{
+		return TYPE_ENUM;
+	}
+
+	return TYPE_INVALID;
 }
 
 
