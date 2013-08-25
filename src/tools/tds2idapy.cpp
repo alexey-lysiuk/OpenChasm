@@ -1017,8 +1017,16 @@ void Script::makeSymbolList()
 
 			for (uint16_t j = 0; j < scope->count; ++j)
 			{
-				const Symbol local = makeSymbol(scope->index + j);
-				dstSym.locals.push_back(local);
+				const uint16_t localIndex = scope->index + j;
+				const TDS::Symbol& srcLocal = sourceSymbols[localIndex];
+
+				if (0 == srcLocal.segment && 0 == srcLocal.offset)
+				{
+					continue;
+				}
+
+				const Symbol dstLocal = makeSymbol(localIndex);
+				dstSym.locals.push_back(dstLocal);
 			}
 		}
 
