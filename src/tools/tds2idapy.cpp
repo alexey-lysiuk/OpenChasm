@@ -1267,6 +1267,14 @@ static void GeneratePS10Specifics(FILE* output)
 		"make_func(8, 0x6b43, '__CspBioInit', '')\n"
 		"make_func(9, 0x2685, '__SoundIPInit', '')\n"
 		"\n", output);
+
+	// Program entry function has BP-based frame
+	fputs(
+		"func = get_func(get_name_ea(BADADDR, 'PROGRAM'))\n"
+		"func.flags &= ~FUNC_NORET\n"
+		"func.flags |= FUNC_FRAME\n"
+		"reanalyze_function(func)\n"
+		"\n", output);
 }
 
 void IDC::generate(FILE* output) const
