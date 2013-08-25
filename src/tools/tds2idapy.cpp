@@ -1241,8 +1241,10 @@ static void GeneratePrologue(FILE* output)
 		"def make_src_line(segment, offset, line):\n"
 		"  set_source_linnum(make_ea(segment, offset), line)\n"
 		"\n", output);
+}
 
-	// Specific to PS10.EXE:
+static void GeneratePS10Specifics(FILE* output)
+{
 	// Fix a few "can't rename byte as '...' because"
 	// "this byte can't have a name (it is a tail byte)" errors
 	// Although it's better than undefine whole data segment
@@ -1253,6 +1255,18 @@ static void GeneratePrologue(FILE* output)
 		"do_unknown(0x44E34, DOUNK_SIMPLE)\n"
 		"do_unknown(0x45B62, DOUNK_SIMPLE)\n"
 		"\n", output);
+
+	// Global variable initialization functions for Pascal units
+	fputs(
+		"make_func(2, 0x2070, '__CspRndrInit', '')\n"
+		"make_func(3, 0x3756, '__CsDemoInit', '')\n"
+		"make_func(4, 0x32cb, '__Cs3dm2Init', '')\n"
+		"make_func(5, 0x84ea, '__CsActInit', '')\n"
+		"make_func(6, 0x6ff8, '__CspUtlInit', '')\n"
+		"make_func(7, 0x2cdd, '__CsMenuInit', '')\n"
+		"make_func(8, 0x6b43, '__CspBioInit', '')\n"
+		"make_func(9, 0x2685, '__SoundIPInit', '')\n"
+		"\n", output);
 }
 
 void IDC::generate(FILE* output) const
@@ -1260,6 +1274,7 @@ void IDC::generate(FILE* output) const
 	assert(NULL != output);
 
 	GeneratePrologue(output);
+	GeneratePS10Specifics(output);
 
 	for (auto symbol = symbols.begin(), es = symbols.end(); es != symbol; ++symbol)
 	{
