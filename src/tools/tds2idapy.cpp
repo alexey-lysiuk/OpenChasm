@@ -890,7 +890,7 @@ std::string Executable::segmentName(const uint16_t index) const
 //---------------------------------------------------------------------------
 
 
-struct IDC
+struct Script
 {
 	enum SymbolCategory
 	{
@@ -960,7 +960,7 @@ struct IDC
 	std::vector<File> files;
 	std::vector<Line> lines;
 
-	explicit IDC(const Executable& source);
+	explicit Script(const Executable& source);
 
 	void generate(FILE* output) const;
 
@@ -974,13 +974,13 @@ private:
 	void makeGlobalSymbolsUnique();
 
 	// Without implementation
-	IDC(const IDC&);
-	IDC& operator=(const IDC&);
+	Script(const Script&);
+	Script& operator=(const Script&);
 
 };
 
 
-IDC::IDC(const Executable& source)
+Script::Script(const Executable& source)
 : source(source)
 {
 	makeSymbolList();
@@ -988,7 +988,7 @@ IDC::IDC(const Executable& source)
 }
 
 
-void IDC::makeSymbolList()
+void Script::makeSymbolList()
 {
 	const std::vector<TDS::Symbol>& sourceSymbols = source.tds.symbols;
 
@@ -1038,7 +1038,7 @@ static void EraseSubString(std::string& str, const char* const sub)
 	}
 }
 
-void IDC::makeFileAndLineLists()
+void Script::makeFileAndLineLists()
 {
 	// TODO: add range checks
 
@@ -1092,7 +1092,7 @@ void IDC::makeFileAndLineLists()
 }
 
 
-IDC::Symbol IDC::makeSymbol(const size_t index)
+Script::Symbol Script::makeSymbol(const size_t index)
 {
 	// TODO: add range checks
 
@@ -1134,7 +1134,7 @@ IDC::Symbol IDC::makeSymbol(const size_t index)
 	return result;
 }
 
-void IDC::makeGlobalSymbolsUnique()
+void Script::makeGlobalSymbolsUnique()
 {
 	std::set<std::string> uniqueSymbols;
 
@@ -1277,7 +1277,7 @@ static void GeneratePS10Specifics(FILE* output)
 		"\n", output);
 }
 
-void IDC::generate(FILE* output) const
+void Script::generate(FILE* output) const
 {
 	assert(NULL != output);
 
@@ -1347,7 +1347,7 @@ int main(int argc, char** argv)
 {
 	if (argc < 2)
 	{
-		puts("Usage: tds2idc new-executable-file [output-file]");
+		puts("Usage: tds2idapy new-executable-file [output-file]");
 		return EXIT_SUCCESS;
 	}
 
@@ -1372,7 +1372,7 @@ int main(int argc, char** argv)
 			}
 		}
 
-		const IDC script(executable);
+		const Script script(executable);
 		script.generate(output);
 
 		if (output != stdout)
