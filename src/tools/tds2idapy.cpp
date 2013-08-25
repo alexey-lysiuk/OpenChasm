@@ -1324,7 +1324,7 @@ int main(int argc, char** argv)
 {
 	if (argc < 2)
 	{
-		puts("Usage: tds2idc new-executable-file");
+		puts("Usage: tds2idc new-executable-file [output-file]");
 		return EXIT_SUCCESS;
 	}
 
@@ -1334,8 +1334,28 @@ int main(int argc, char** argv)
 
 	if (result)
 	{
+		FILE* output = stdout;
+
+		if (argc >= 3)
+		{
+			const char* const filename = argv[2];
+			
+			output = fopen(filename, "w");
+
+			if (NULL == output)
+			{
+				printf("Unable to open output file %s\n", filename);
+				return EXIT_FAILURE;
+			}
+		}
+
 		const IDC script(executable);
-		script.generate(stdout);
+		script.generate(output);
+
+		if (output != stdout)
+		{
+			fclose(output);
+		}
 	}
 
 	return result ? EXIT_SUCCESS : EXIT_FAILURE;
