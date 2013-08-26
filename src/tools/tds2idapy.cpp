@@ -890,498 +890,6 @@ std::string Executable::segmentName(const uint16_t index) const
 //---------------------------------------------------------------------------
 
 
-struct Script
-{
-	enum SymbolCategory
-	{
-		SYMBOL_INVALID = -1,
-
-		SYMBOL_CODE = 0,
-		SYMBOL_DATA,
-		SYMBOL_STACK,
-		SYMBOL_IMPORT
-	};
-
-	struct Symbol
-	{
-		std::string name;
-		std::string type;
-
-		SymbolCategory category;
-
-		uint16_t segment;
-		uint16_t offset;
-		uint16_t size;
-
-		std::string importedName;
-
-		std::vector<Symbol> locals;
-
-		Symbol()
-		: category(SYMBOL_INVALID)
-		, offset(UINT16_MAX)
-		, size(0)
-		{
-		}
-	};
-
-	struct Member
-	{
-		std::string name;
-		std::string type;
-
-		uint16_t size;
-
-		Member() : size(0) { }
-	};
-
-	enum TypeOfType
-	{
-		TYPE_INVALID = -1,
-		TYPE_SKIP_NEXT = -2,
-
-		TYPE_STRUCT = 0,
-		TYPE_UNION,
-		TYPE_ENUM
-	};
-
-	static const uint8_t INFO_NEW_OFFSET  = 0x40;
-	static const uint8_t INFO_END_OF_TYPE = 0x80;
-
-	struct Type
-	{
-		TypeOfType type;
-
-		std::string name;
-		std::vector<Member> members;
-
-		explicit Type(const TypeOfType type = TYPE_INVALID) : type(type) { }
-
-		uint16_t size() const
-		{
-			if (TYPE_ENUM == type)
-			{
-				// TODO: store size from TDS::Type
-				return 1;
-			}
-			else if (TYPE_STRUCT == type || TYPE_UNION == type)
-			{
-				uint16_t result = 0;
-
-				for (auto member = members.begin(), last = members.end();
-					 member != last; ++member)
-				{
-					result += member->size;
-				}
-
-				return result;
-			}
-
-			return 0;
-		}
-	};
-
-	struct File
-	{
-		std::string name;
-
-		uint16_t segment;
-		uint16_t startOffset;
-		uint16_t endOffset;
-
-		File()
-		: segment(0)
-		, startOffset(0)
-		, endOffset(0)
-		{
-		}
-	};
-
-	struct Line
-	{
-		uint16_t segment;
-		uint16_t offset;
-
-		uint16_t line;
-
-		Line()
-		: segment(0)
-		, offset(0)
-		, line(0)
-		{
-		}
-	};
-
-	std::vector<Symbol> symbols;
-	std::vector<Type> types;
-	std::vector<File> files;
-	std::vector<Line> lines;
-
-	explicit Script(const Executable& source);
-
-	void generate(FILE* output) const;
-
-private:
-	const Executable& source;
-
-	void makeSymbolList();
-	void makeTypeList();
-	void makeFileAndLineLists();
-
-	Symbol makeSymbol(const size_t index);
-	void makeGlobalSymbolsUnique();
-
-	TypeOfType typeOfType(const uint16_t index) const;
-
-	// Without implementation
-	Script(const Script&);
-	Script& operator=(const Script&);
-
-};
-
-
-Script::Script(const Executable& source)
-: source(source)
-{
-	makeSymbolList();
-	makeTypeList();
-	makeFileAndLineLists();
-}
-
-
-void Script::makeSymbolList()
-{
-	const std::vector<TDS::Symbol>& sourceSymbols = source.tds.symbols;
-
-	for (size_t i = 1, ei = sourceSymbols.size(); i < ei; ++i)
-	{
-		const TDS::Symbol& srcSym = sourceSymbols[i];
-
-		if (0 == srcSym.segment
-			|| (source.segments.size() <= srcSym.segment
-				&& (source.tds.names.size() <= srcSym.offset
-					|| 0 == srcSym.offset)))
-		{
-			// Skip stack or value limit symbol
-			continue;
-		}
-
-		Symbol dstSym = makeSymbol(i);
-
-		for (auto scope = source.tds.scopes.begin(), es = source.tds.scopes.end();
-			es != scope; ++scope)
-		{
-			if (i != scope->symbol || 0 == scope->count)
-			{
-				continue;
-			}
-
-			for (uint16_t j = 0; j < scope->count; ++j)
-			{
-				const uint16_t localIndex = scope->index + j;
-				const TDS::Symbol& srcLocal = sourceSymbols[localIndex];
-
-				if (0 == srcLocal.segment && 0 == srcLocal.offset)
-				{
-					continue;
-				}
-
-				const Symbol dstLocal = makeSymbol(localIndex);
-				dstSym.locals.push_back(dstLocal);
-			}
-		}
-
-		symbols.push_back(dstSym);
-	}
-
-	makeGlobalSymbolsUnique();
-}
-
-void Script::makeTypeList()
-{
-	// TODO: add range checks
-
-	const std::vector<TDS::Type>& sourceTypes = source.tds.types;
-
-	for (size_t i = 1, ei = sourceTypes.size(); i < ei; ++i)
-	{
-		const TDS::Type& srcType = sourceTypes[i];
-		const TypeOfType dstTypeOfType = typeOfType(i);
-
-		if (TYPE_INVALID == dstTypeOfType)
-		{
-			continue;
-		}
-		else if (TYPE_SKIP_NEXT == dstTypeOfType)
-		{
-			++i;
-			continue;
-		}
-
-		Type dstType(TYPE_UNION == dstTypeOfType ? TYPE_STRUCT : dstTypeOfType);
-		dstType.name = source.tds.names[srcType.name];
-
-		Type unionType(TYPE_UNION);
-		unionType.name = dstType.name;
-
-		uint16_t structIndex = 0;
-
-		const std::vector<TDS::Member>& sourceMembers = source.tds.members;
-		const uint16_t memberIndex = TYPE_ENUM == dstTypeOfType
-			? sourceTypes[i + 1].rawWord(2)
-			: srcType.recordWord;
-
-		for (uint16_t j = memberIndex, ej = sourceMembers.size(); j < ej; ++j)
-		{
-			const TDS::Member& srcMember = sourceMembers[j];
-
-			Member dstMember;
-			dstMember.name = source.tds.names[srcMember.name];
-
-			if (TYPE_ENUM == dstTypeOfType)
-			{
-				dstMember.size = srcMember.type;
-			}
-			else
-			{
-				dstMember.type = source.tds.typeName(srcMember.type);
-				dstMember.size = source.tds.types[srcMember.type].size;
-			}
-
-			if (INFO_NEW_OFFSET != srcMember.info)
-			{
-				dstType.members.push_back(dstMember);
-			}
-
-			if (TYPE_UNION == dstTypeOfType
-				&& (INFO_END_OF_TYPE == srcMember.info || INFO_NEW_OFFSET == srcMember.info))
-			{
-				Member unionMember;
-
-				if (dstType.members.size() == 1)
-				{
-					// Use type directly
-					unionMember = dstType.members.front();
-				}
-				else
-				{
-					// Use wrapping struct type
-					char memberName[16] = {};
-					snprintf(memberName, sizeof memberName, "u%i", structIndex++);
-
-					dstType.name = unionType.name + "__" + memberName;
-					types.push_back(dstType);
-
-					unionMember.name = memberName;
-					unionMember.type = "struct " + dstType.name;
-					unionMember.size = dstType.size();
-				}
-
-				unionType.members.push_back(unionMember);
-
-				dstType.members.clear();
-			}
-
-			if (INFO_END_OF_TYPE == srcMember.info)
-			{
-				break;
-			}
-		}
-
-		types.push_back(TYPE_UNION == dstTypeOfType ? unionType : dstType);
-
-		if (TYPE_ENUM == dstTypeOfType)
-		{
-			++i; // Enums have extended type info
-		}
-	}
-}
-
-static void EraseSubString(std::string& str, const char* const sub)
-{
-	const size_t pos = str.find(sub);
-
-	if (std::string::npos != pos)
-	{
-		str.erase(pos, strlen(sub));
-	}
-}
-
-void Script::makeFileAndLineLists()
-{
-	// TODO: add range checks
-
-	const TDS& tds = source.tds;
-	const std::vector<TDS::Correlation>& correlations = tds.correlations;
-
-	for (size_t i = 1, ei = correlations.size(); i < ei; ++i)
-	{
-		const TDS::Correlation& corr = correlations[i];
-
-		const TDS::Segment& segment = tds.segments[corr.segmentIndex];
-		const TDS::Source& srcFile = tds.sources[corr.fileIndex];
-
-		uint16_t startOffset = UINT16_MAX;
-		uint16_t endOffset = 0;
-
-		for (uint16_t j = corr.lineIndex; j < corr.lineIndex + corr.lineCount; ++j)
-		{
-			const TDS::Line& srcLine = tds.lines[j];
-
-			Line dstLine;
-			dstLine.line     = srcLine.line;
-			dstLine.segment  = segment.codeSegment;
-			dstLine.offset   = srcLine.offset;
-
-			lines.push_back(dstLine);
-
-			if (UINT16_MAX == startOffset)
-			{
-				startOffset = srcLine.offset;
-			}
-
-			endOffset = srcLine.offset;
-		}
-
-		std::string filename = tds.names[srcFile.name];
-
-		// Specific to PS10.EXE:
-		// Remove unneeded parts of source file names
-		EraseSubString(filename, "CHASM.SRC\\");
-		EraseSubString(filename, "\\BP\\PROPAS\\");
-
-		File dstFile;
-		dstFile.name        = filename;
-		dstFile.segment     = segment.codeSegment;
-		dstFile.startOffset = startOffset;
-		dstFile.endOffset   = endOffset + (UINT16_MAX == endOffset ? 0 : 1);
-
-		files.push_back(dstFile);
-	}
-}
-
-
-Script::Symbol Script::makeSymbol(const size_t index)
-{
-	// TODO: add range checks
-
-	const TDS::Symbol& srcSym = source.tds.symbols[index];
-
-	Symbol result;
-	result.name = source.tds.names[srcSym.name];
-	result.type = source.tds.typeName(srcSym.type);
-
-	if (srcSym.segment & 0x4000)
-	{
-		char importedName[64] = {};
-		snprintf(importedName, sizeof importedName, "%s_%u",
-			source.tds.names[srcSym.offset].c_str(), srcSym.segment & 0x3FFF);
-
-		result.importedName = importedName;
-		result.category     = SYMBOL_IMPORT;
-	}
-	else
-	{
-		result.segment = srcSym.segment;
-		result.offset  = srcSym.offset;
-
-		if (0 == srcSym.segment)
-		{
-			result.category = SYMBOL_STACK;
-		}
-		else if (source.segments[srcSym.segment].flags & Executable::SEGMENT_DATA)
-		{
-			result.category = SYMBOL_DATA;
-			result.size     = source.tds.types[srcSym.type].size;
-		}
-		else
-		{
-			result.category = SYMBOL_CODE;
-		}
-	}
-
-	return result;
-}
-
-void Script::makeGlobalSymbolsUnique()
-{
-	std::set<std::string> uniqueSymbols;
-
-	for (auto symbol = symbols.begin(); symbols.end() != symbol; ++symbol)
-	{
-		if (SYMBOL_IMPORT == symbol->category)
-		{
-			continue;
-		}
-
-		if ("VGA" == symbol->name)
-		{
-			// Specific to PS10.EXE:
-			// Fix "failed to add constant VGA=9" error
-			symbol->name = "_VGA";
-		}
-
-		if (uniqueSymbols.end() != uniqueSymbols.find(symbol->name))
-		{
-			std::string newName;
-			int counter = 0;
-
-			do
-			{
-				char buf[16] = {};
-				snprintf(buf, sizeof(buf), "__%X", counter++);
-
-				newName = symbol->name + buf;
-			}
-			while (uniqueSymbols.end() != uniqueSymbols.find(newName));
-
-			symbol->name = newName;
-		}
-
-		uniqueSymbols.insert(symbol->name);
-	}
-}
-
-
-Script::TypeOfType Script::typeOfType(const uint16_t index) const
-{
-	const TDS::Type& type = source.tds.types[index];
-
-	if ((type.id >= 4 && type.id <= 12)
-		|| 0x1C == type.id)
-	{
-		// Base types and arrays have extended type info
-		return TYPE_SKIP_NEXT;
-	}
-	else if (0x1E == type.id)
-	{
-		const std::vector<TDS::Member>& members = source.tds.members;
-
-		for (uint16_t i = type.recordWord, ei = members.size(); i < ei; ++i)
-		{
-			const uint8_t info = members[i].info;
-
-			if (INFO_NEW_OFFSET == info)
-			{
-				return TYPE_UNION;
-			}
-			else if (INFO_END_OF_TYPE == info)
-			{
-				break;
-			}
-		}
-
-		return TYPE_STRUCT;
-	}
-	else if (0x29 == type.id)
-	{
-		return TYPE_ENUM;
-	}
-
-	return TYPE_INVALID;
-}
-
-
 static void GeneratePrologue(FILE* output)
 {
 	fputs(
@@ -1485,64 +993,203 @@ static void GeneratePS10Specifics(FILE* output)
 		"\n", output);
 }
 
-void Script::generate(FILE* output) const
+
+static void GenerateTypes(const Executable& source, FILE* const output)
+{
+
+}
+
+
+static bool IsSymbolGlobal(const Executable& source, const uint16_t index)
+{
+	const TDS::Symbol& symbol = source.tds.symbols[index];
+
+	// Return false for stack or value limit symbols
+
+	return 0 != symbol.segment
+		&& (symbol.segment < source.segments.size()
+			|| (symbol.offset < source.tds.names.size() && 0 != symbol.offset));
+}
+
+static std::string MakeSymbolName(const Executable& source, const uint16_t index)
+{
+	const TDS::Symbol& symbol = source.tds.symbols[index];
+	const std::string& originalName = source.tds.names[symbol.name];
+
+	std::string result = originalName;
+
+	if ("VGA" == result)
+	{
+		// Specific to PS10.EXE:
+		// Fix "failed to add constant VGA=9" error
+		result = "_VGA";
+	}
+
+	static std::set<std::string> uniqueSymbols;
+
+	if (uniqueSymbols.end() != uniqueSymbols.find(result))
+	{
+		int counter = 0;
+
+		do
+		{
+			char buf[16] = {};
+			snprintf(buf, sizeof(buf), "__%X", counter++);
+
+			result = originalName + buf;
+		}
+		while (uniqueSymbols.end() != uniqueSymbols.find(result));
+	}
+
+	uniqueSymbols.insert(result);
+
+	return result;
+}
+
+static void GenerateSymbols(const Executable& source, FILE* const output)
+{
+	const TDS& tds = source.tds;
+	const std::vector<TDS::Symbol>& symbols = tds.symbols;
+
+	for (size_t i = 1, ei = symbols.size(); i < ei; ++i)
+	{
+		const TDS::Symbol& symbol = symbols[i];
+
+		if (!IsSymbolGlobal(source, i))
+		{
+			continue;
+		}
+
+		const std::string nameStr = MakeSymbolName(source, i);
+		const std::string typeStr = tds.typeName(symbol.type);
+
+		const char* const name = nameStr.c_str();
+		const char* const type = typeStr.c_str();
+
+		if (symbol.segment & 0x4000)
+		{
+			char importedName[64] = {};
+			snprintf(importedName, sizeof importedName, "%s_%u",
+				tds.names[symbol.offset].c_str(), symbol.segment & 0x3FFF);
+
+			fprintf(output, "make_import(\"%s\", \"%s\", \"%s\")\n",
+				importedName, name, type);
+		}
+		else if (source.segments[symbol.segment].flags & Executable::SEGMENT_DATA)
+		{
+			fprintf(output, "make_data(%hu, 0x%04hx, \"%s\", \"%s\", %hu)\n",
+				symbol.segment, symbol.offset, name, type, tds.types[symbol.type].size);
+		}
+		else
+		{
+			fprintf(output, "func = make_func(%hu, 0x%04hx, \"%s\", \"%s\")\n",
+					symbol.segment, symbol.offset, name, type);
+
+			for (auto scope = tds.scopes.begin(), last = tds.scopes.end();
+				 last != scope; ++scope)
+			{
+				if (i != scope->symbol)
+				{
+					continue;
+				}
+
+				for (uint16_t j = 0; j < scope->count; ++j)
+				{
+					const uint16_t localIndex = scope->index + j;
+					const TDS::Symbol& local = symbols[localIndex];
+
+					if ((0 == local.segment && 0 == local.offset)
+						|| IsSymbolGlobal(source, localIndex))
+					{
+						continue;
+					}
+
+					const std::string localType = tds.typeName(local.type);
+
+					fprintf(output, "make_local(func, %hi, \"%s\", \"%s\")\n",
+						static_cast<int16_t>(local.offset),
+						tds.names[local.name].c_str(), localType.c_str());
+				}
+			}
+		}
+	}
+
+	fputs("\n", output);
+}
+
+
+static void EraseSubString(std::string& str, const char* const sub)
+{
+	const size_t pos = str.find(sub);
+
+	if (std::string::npos != pos)
+	{
+		str.erase(pos, strlen(sub));
+	}
+}
+
+static void GenerateSources(const Executable& source, FILE* const output)
+{
+	const TDS& tds = source.tds;
+	const std::vector<TDS::Correlation>& correlations = tds.correlations;
+
+	for (size_t i = 1, ei = correlations.size(); i < ei; ++i)
+	{
+		const TDS::Correlation& corr = correlations[i];
+
+		const TDS::Segment& segment = tds.segments[corr.segmentIndex];
+		const TDS::Source& srcFile = tds.sources[corr.fileIndex];
+
+		uint16_t startOffset = UINT16_MAX;
+		uint16_t endOffset = 0;
+
+		for (uint16_t j = corr.lineIndex; j < corr.lineIndex + corr.lineCount; ++j)
+		{
+			const TDS::Line& line = tds.lines[j];
+
+			fprintf(output, "make_src_line(%hu, 0x%04hx, %hu)\n",
+				segment.codeSegment, line.offset, line.line);
+
+			if (UINT16_MAX == startOffset)
+			{
+				startOffset = line.offset;
+			}
+
+			endOffset = line.offset;
+		}
+
+		std::string filename = tds.names[srcFile.name];
+
+		// Specific to PS10.EXE:
+		// Remove unneeded parts of source file names
+		EraseSubString(filename, "CHASM.SRC\\");
+		EraseSubString(filename, "\\BP\\PROPAS\\");
+
+		if (endOffset < UINT16_MAX)
+		{
+			++endOffset;
+		}
+
+		fprintf(output, "make_src_file(%hu, 0x%04hx, 0x%04hx, \"%s\")\n",
+			segment.codeSegment, startOffset, endOffset, filename.c_str());
+
+		fputs("\n", output);
+	}
+}
+
+
+static void GenerateScript(const Executable& source, FILE* const output)
 {
 	assert(NULL != output);
 
 	GeneratePrologue(output);
 	GeneratePS10Specifics(output);
 
-	for (auto symbol = symbols.begin(), es = symbols.end(); es != symbol; ++symbol)
-	{
-		const char* const name = symbol->name.c_str();
-		const char* const type = symbol->type.c_str();
+	// TODO: add range checks for all generator functions
 
-		switch (symbol->category)
-		{
-		case SYMBOL_CODE:
-			fprintf(output, "func = make_func(%hu, 0x%04hx, \"%s\", \"%s\")\n",
-				symbol->segment, symbol->offset, name, type);
-
-			for (auto local = symbol->locals.begin(), el = symbol->locals.end();
-				 el != local; ++local)
-			{
-				if (SYMBOL_STACK != local->category)
-				{
-					continue;
-				}
-
-				fprintf(output, "make_local(func, %hi, \"%s\", \"%s\")\n",
-					static_cast<int16_t>(local->offset), local->name.c_str(), local->type.c_str());
-			}
-			break;
-
-		case SYMBOL_IMPORT:
-			fprintf(output, "make_import(\"%s\", \"%s\", \"%s\")\n",
-				symbol->importedName.c_str(), name, type);
-			break;
-
-		default:
-			fprintf(output, "make_data(%hu, 0x%04hx, \"%s\", \"%s\", %hu)\n",
-				symbol->segment, symbol->offset, name, type, symbol->size);
-			break;
-		}
-	}
-
-	fputs("\n", output);
-
-	for (auto file = files.begin(), last = files.end(); last != file; ++file)
-	{
-		fprintf(output, "make_src_file(%hu, 0x%04hx, 0x%04hx, \"%s\")\n",
-			file->segment, file->startOffset, file->endOffset, file->name.c_str());
-	}
-
-	fputs("\n", output);
-
-	for (auto line = lines.begin(), last = lines.end(); last != line; ++line)
-	{
-		fprintf(output, "make_src_line(%hu, 0x%04hx, %hu)\n",
-			line->segment, line->offset, line->line);
-	}
+	GenerateTypes(source, output);
+	GenerateSymbols(source, output);
+	GenerateSources(source, output);
 
 	fputs("\nrefresh_idaview_anyway()\n", output);
 }
@@ -1580,8 +1227,7 @@ int main(int argc, char** argv)
 			}
 		}
 
-		const Script script(executable);
-		script.generate(output);
+		GenerateScript(executable, output);
 
 		if (output != stdout)
 		{
