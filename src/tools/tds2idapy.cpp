@@ -1008,6 +1008,52 @@ static void GeneratePS10Specifics(FILE* output)
 }
 
 
+template <typename Item>
+static std::string MakeTypeName(const TDS& tds, const std::vector<Item>& collection, const uint16_t typeIndex)
+{
+	assert(!collection.empty());
+
+	for (size_t i = 1, ei = collection.size(); i < ei; ++i)
+	{
+		const Item& item = collection[i];
+
+		if (typeIndex == item.type)
+		{
+			return tds.names[item.name] + "Type";
+		}
+
+		const TDS::Type& symbolType = tds.types[item.type];
+
+		if (0x1C == symbolType.id && typeIndex == symbolType.recordWord)
+		{
+			// Type is an array element
+			return tds.names[item.name] + "Element";
+		}
+	}
+
+	return std::string();
+}
+
+static std::string MakeTypeName(const TDS& tds, const uint16_t typeIndex)
+{
+	const TDS::Type& type = tds.types[typeIndex];
+	const std::string& originalName = tds.names[type.name];
+
+	if (!originalName.empty())
+	{
+		return originalName;
+	}
+
+	std::string result = MakeTypeName(tds, tds.symbols, typeIndex);
+
+	if (result.empty())
+	{
+		result = MakeTypeName(tds, tds.members, typeIndex);
+	}
+
+	return result;
+}
+
 static void GenerateTypes(const Executable& source, FILE* const output)
 {
 	const TDS& tds = source.tds;
@@ -1028,7 +1074,9 @@ static void GenerateTypes(const Executable& source, FILE* const output)
 			continue;
 		}
 
-		const char* const typeName = tds.names[type.name].c_str();
+		const std::string typeNameStr = MakeTypeName(tds, i);
+		const char* const typeName = typeNameStr.c_str();
+
 		const bool isEnum = 0x29 == type.id; // Otherwise, it's a struct
 
 		if (isEnum)
@@ -1103,9 +1151,8 @@ static bool IsSymbolGlobal(const Executable& source, const uint16_t index)
 			|| (symbol.offset < source.tds.names.size() && 0 != symbol.offset));
 }
 
-static std::string MakeSymbolName(const Executable& source, const uint16_t index)
+static std::string MakeSymbolName(const TDS& tds, const uint16_t index)
 {
-	const TDS& tds = source.tds;
 	const TDS::Symbol& symbol = tds.symbols[index];
 
 	const std::string& originalName = tds.names[symbol.name];
@@ -1153,7 +1200,7 @@ static void GenerateSymbols(const Executable& source, FILE* const output)
 			continue;
 		}
 
-		const std::string nameStr = MakeSymbolName(source, i);
+		const std::string nameStr = MakeSymbolName(tds, i);
 		const std::string typeStr = tds.typeName(symbol.type);
 
 		const char* const name = nameStr.c_str();
