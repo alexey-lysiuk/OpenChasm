@@ -897,6 +897,20 @@ static void GeneratePrologue(FILE* output)
 		"\n"
 		"get_inf_structure().s_cmtflg = SW_RPTCMT | SW_ALLCMT | SW_LINNUM\n"
 		"\n"
+		"def make_struc(name):\n"
+		"  return get_struc(add_struc(BADADDR, name))\n"
+		"\n"
+		"def make_struc_member(struc, name, offset, size, type):\n"
+		"  flags = FF_DATA\n"
+		"  if 1 == size:\n"
+		"    flags |= FF_BYTE\n"
+		"  elif 2 == size:\n"
+		"    flags |= FF_WORD\n"
+		"  elif 4 == size:\n"
+		"    flags |= FF_DWRD\n"
+		"  add_struc_member(struc, name, offset, flags, None, size)\n"
+		"  set_member_cmt(get_member(struc, offset), type, 0)\n"
+		"\n"
 		"def make_ea(segment, offset):\n"
 		"  return getnseg(segment - 1).startEA + offset\n"
 		"\n"
@@ -996,7 +1010,85 @@ static void GeneratePS10Specifics(FILE* output)
 
 static void GenerateTypes(const Executable& source, FILE* const output)
 {
+	const TDS& tds = source.tds;
+	const std::vector<TDS::Type>& types = tds.types;
 
+	for (size_t i = 1, ei = types.size(); i < ei; ++i)
+	{
+		const TDS::Type& type = types[i];
+
+		if ((type.id >= 4 && type.id <= 12)
+			|| 0x1C == type.id)
+		{
+			++i; // Basic types and arrays have extended type info
+			continue;
+		}
+		else if (0x1E != type.id && 0x29 != type.id)
+		{
+			continue;
+		}
+
+		const char* const typeName = tds.names[type.name].c_str();
+		const bool isEnum = 0x29 == type.id; // Otherwise, it's a struct
+
+		if (isEnum)
+		{
+			fprintf(output, "enum = add_enum(BADADDR, \"%s\", 0)\n", typeName);
+		}
+		else
+		{
+			fprintf(output, "struc = make_struc(\"%s\")\n", typeName);
+		}
+
+		const std::vector<TDS::Member>& members = tds.members;
+		const uint16_t startIndex = isEnum
+			? types[i + 1].rawWord(2)
+			: type.recordWord;
+
+		uint16_t offset = 0;
+
+		for (uint16_t j = startIndex, ej = members.size(); j < ej; ++j)
+		{
+			const TDS::Member& member = members[j];
+
+			static const uint8_t INFO_NEW_OFFSET  = 0x40;
+			static const uint8_t INFO_END_OF_TYPE = 0x80;
+
+			if (INFO_NEW_OFFSET == member.info)
+			{
+				// TODO: support for variant records as unions in C/C++
+				break;
+			}
+
+			const char* const memberName = tds.names[member.name].c_str();
+			const uint16_t memberSize = isEnum ? 0 : tds.types[member.type].size;
+
+			if (isEnum)
+			{
+				fprintf(output, "add_enum_member(enum, \"%s\", %hu)\n",
+					memberName, member.type);
+			}
+			else
+			{
+				fprintf(output, "make_struc_member(struc, \"%s\", %hu, %hu, \"%s\")\n",
+					memberName, offset, memberSize, tds.typeName(member.type).c_str());
+			}
+
+			if (INFO_END_OF_TYPE == member.info)
+			{
+				break;
+			}
+
+			offset += memberSize;
+		}
+
+		if (isEnum)
+		{
+			++i; // Enums have extended type info
+		}
+	}
+
+	fputs("\n", output);
 }
 
 
@@ -1013,9 +1105,10 @@ static bool IsSymbolGlobal(const Executable& source, const uint16_t index)
 
 static std::string MakeSymbolName(const Executable& source, const uint16_t index)
 {
-	const TDS::Symbol& symbol = source.tds.symbols[index];
-	const std::string& originalName = source.tds.names[symbol.name];
+	const TDS& tds = source.tds;
+	const TDS::Symbol& symbol = tds.symbols[index];
 
+	const std::string& originalName = tds.names[symbol.name];
 	std::string result = originalName;
 
 	if ("VGA" == result)
@@ -1191,7 +1284,7 @@ static void GenerateScript(const Executable& source, FILE* const output)
 	GenerateSymbols(source, output);
 	GenerateSources(source, output);
 
-	fputs("\nrefresh_idaview_anyway()\n", output);
+	fputs("refresh_idaview_anyway()\n", output);
 }
 
 
