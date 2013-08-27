@@ -1009,7 +1009,7 @@ static void GeneratePS10Specifics(FILE* output)
 
 
 template <typename Item>
-static std::string MakeTypeName(const TDS& tds, const std::vector<Item>& collection, const uint16_t typeIndex)
+static std::string MakeTypeName(const TDS& tds, const std::vector<Item>& collection, const size_t typeIndex)
 {
 	assert(!collection.empty());
 
@@ -1034,7 +1034,7 @@ static std::string MakeTypeName(const TDS& tds, const std::vector<Item>& collect
 	return std::string();
 }
 
-static std::string MakeTypeName(const TDS& tds, const uint16_t typeIndex)
+static std::string MakeTypeName(const TDS& tds, const size_t typeIndex)
 {
 	const TDS::Type& type = tds.types[typeIndex];
 	const std::string& originalName = tds.names[type.name];
@@ -1095,7 +1095,7 @@ static void GenerateTypes(const Executable& source, FILE* const output)
 
 		uint16_t offset = 0;
 
-		for (uint16_t j = startIndex, ej = members.size(); j < ej; ++j)
+		for (size_t j = startIndex, ej = members.size(); j < ej; ++j)
 		{
 			const TDS::Member& member = members[j];
 
@@ -1140,7 +1140,7 @@ static void GenerateTypes(const Executable& source, FILE* const output)
 }
 
 
-static bool IsSymbolGlobal(const Executable& source, const uint16_t index)
+static bool IsSymbolGlobal(const Executable& source, const size_t index)
 {
 	const TDS::Symbol& symbol = source.tds.symbols[index];
 
@@ -1151,7 +1151,7 @@ static bool IsSymbolGlobal(const Executable& source, const uint16_t index)
 			|| (symbol.offset < source.tds.names.size() && 0 != symbol.offset));
 }
 
-static std::string MakeSymbolName(const TDS& tds, const uint16_t index)
+static std::string MakeSymbolName(const TDS& tds, const size_t index)
 {
 	const TDS::Symbol& symbol = tds.symbols[index];
 
