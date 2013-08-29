@@ -98,6 +98,217 @@ private:
 //---------------------------------------------------------------------------
 
 
+struct Executable
+{
+#pragma pack(push, 1)
+
+	struct OldHeader
+	{
+		uint16_t signature;
+		uint16_t bytesInLastBlock;
+		uint16_t blocksInFile;
+		uint16_t numRelocs;
+		uint16_t header_paragraphs;
+		uint16_t minExtraParagraphs;
+		uint16_t maxExtraParagraphs;
+		uint16_t ss;
+		uint16_t sp;
+		uint16_t checksum;
+		uint16_t ip;
+		uint16_t cs;
+		uint16_t relocTableOffset;
+		uint16_t overlay_number;
+		uint8_t  reserved[32];
+		uint32_t newHeaderOffset;
+
+		OldHeader() { memset(this, 0, sizeof *this); }
+	};
+
+	struct NewHeader
+	{
+		uint16_t signature;
+		uint8_t  linkerVersion;
+		uint8_t  linkerRevision;
+		uint16_t entryTableOffset;
+		uint16_t entryTableLength;
+		uint32_t crc;
+		uint16_t flags;
+		uint16_t autoDataSegment;
+		uint16_t initHeapSize;
+		uint16_t initStackSize;
+		uint32_t entryPoint;
+		uint32_t stackPoint;
+		uint16_t segmentCount;
+		uint16_t moduleReferenceCount;
+		uint16_t nonResidentNameSize;
+		uint16_t segmentOffset;         // relative to new EXE header
+		uint16_t resourceOffset;        // relative to new EXE header
+		uint16_t residentNameOffset;    // relative to new EXE header
+		uint16_t moduleReferenceOffset; // relative to new EXE header
+		uint16_t importNameOffset;      // relative to new EXE header
+		uint32_t nonResidentNameOffset; // relative to beginning of file
+		uint16_t movableEntryCount;
+		uint16_t sectorAlignmentShift;
+		uint16_t resourceCount;
+		uint8_t  loaderType;            // target OS
+		uint8_t  unused[9];
+
+		NewHeader() { memset(this, 0, sizeof *this); }
+	};
+
+	enum SegmentType
+	{
+		SEGMENT_CODE = 0,
+		SEGMENT_DATA = 1
+	};
+
+	struct Segment
+	{
+		uint16_t sectorOffset;
+		uint16_t length;
+		uint16_t flags;
+		uint16_t allocationSize;
+
+		Segment() { memset(this, 0, sizeof *this); }
+	};
+
+#pragma pack(pop)
+
+	OldHeader oldHeader;
+	NewHeader newHeader;
+
+	std::vector<Segment> segments;
+
+	bool load(File& file);
+
+private:
+	bool loadOldHeader(File& input);
+	bool loadNewHeader(File& input);
+	bool loadSegments (File& input);
+	bool loadDebugInfo(File& input);
+
+};
+
+
+bool Executable::load(File& file)
+{
+	return loadOldHeader(file)
+		&& loadNewHeader(file)
+		&& loadSegments (file)
+		&& loadDebugInfo(file);
+}
+
+
+bool Executable::loadOldHeader(File& input)
+{
+	if (!input.read(&oldHeader, sizeof oldHeader))
+	{
+		printf("Failed to read old executable header from file %s\n", input.filename());
+		return false;
+	}
+
+	if (0x5A4D != oldHeader.signature)
+	{
+		printf("Input file %s is not an executable file\n", input.filename());
+		return false;
+	}
+
+	return true;
+}
+
+bool Executable::loadNewHeader(File& input)
+{
+	const long newHeaderOffset = static_cast<long>(oldHeader.newHeaderOffset);
+
+	if (!input.seek(newHeaderOffset, SEEK_SET))
+	{
+		printf("Failed to seek to new header offset in file %s\n", input.filename());
+		return false;
+	}
+
+	if (!input.read(&newHeader, sizeof newHeader))
+	{
+		printf("Failed to read new executable header from file %s\n", input.filename());
+		return false;
+	}
+
+	if (0x454E != newHeader.signature)
+	{
+		printf("Input file %s is not a new executable file\n", input.filename());
+		return false;
+	}
+
+	return true;
+}
+
+bool Executable::loadSegments(File& input)
+{
+	segments.push_back(Segment());
+
+	for (uint16_t i = 0; i < newHeader.segmentCount; ++i)
+	{
+		Segment segment;
+
+		if (!input.read(&segment, sizeof segment))
+		{
+			printf("Failed to read segment information from file %s\n", input.filename());
+			return false;
+		}
+
+		segments.push_back(segment);
+	}
+
+	return true;
+}
+
+
+bool Executable::loadDebugInfo(File& input)
+{
+	long tdsOffset = 0;
+
+	for (auto segment = segments.rbegin(), first = segments.rend();
+		segment != first; ++segment)
+	{
+		if (segment->sectorOffset > 0 && segment->length > 0)
+		{
+			tdsOffset = (segment->sectorOffset << newHeader.sectorAlignmentShift) + segment->length;
+			break;
+		}
+	}
+
+	if (!input.seek(tdsOffset, SEEK_SET))
+	{
+		printf("Failed to seek to TDS in file %s\n", input.filename());
+		return false;
+	}
+
+	static const uint8_t DEBUG_INFO_HEADER[] =
+	{
+		'N',  'B',  '0',  '2', 0xFF, 0xFF, 0xFF, 0xFF,
+		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+	};
+
+	uint8_t buffer[sizeof DEBUG_INFO_HEADER];
+
+	if (!input.read(buffer, sizeof buffer))
+	{
+		printf("Failed to read debug information header from file %s\n", input.filename());
+		return false;
+	}
+
+	if (0 != memcmp(DEBUG_INFO_HEADER, buffer, sizeof buffer))
+	{
+		printf("Unknown debug information header in file %s\n", input.filename());
+		return false;
+	}
+
+	return true;
+}
+
+
+//---------------------------------------------------------------------------
+
+
 // Turbo Debugger Symbols (TDS)
 // All structures are packed to 1-byte boundary so expect unaligned access
 // All numbers are little endian
@@ -301,6 +512,8 @@ struct TDS
 
 #pragma pack(pop)
 
+	Executable               executable;
+
 	Header                   header;
 	std::vector<Symbol>      symbols;
 	std::vector<Module>      modules;
@@ -315,9 +528,11 @@ struct TDS
 	std::vector<ModuleClass> moduleClasses;
 	std::vector<std::string> names;
 
-	bool load(File& file);
+	bool load(const char* const filename);
 
-	std::string typeName(const uint16_t index) const;
+	std::string typeName(const size_t typeIndex) const;
+
+	bool isGlobalSymbol(const size_t symbolIndex) const;
 
 private:
 	template <typename Entry>
@@ -343,8 +558,21 @@ template<> uint16_t TDS::Header::count<TDS::ScopeClass >() const { return scopeC
 template<> uint16_t TDS::Header::count<TDS::ModuleClass>() const { return moduleClassCount; }
 
 
-bool TDS::load(File& file)
+bool TDS::load(const char* const filename)
 {
+	File file(filename);
+
+	if (!file.isOpened())
+	{
+		printf("Unable to open file %s\n", filename);
+		return false;
+	}
+
+	if (!executable.load(file))
+	{
+		return false;
+	}
+
 	if (!file.read(&header, sizeof header))
 	{
 		printf("Failed to read header, wrong TDS file %s\n", file.filename());
@@ -501,7 +729,7 @@ static const char* GetTypeName(const uint16_t id)
 		"Global Handle",
 		"Local Handle"
 	};
-	
+
 	return id < sizeof TYPE_NAMES / sizeof TYPE_NAMES[0]
 		? TYPE_NAMES[id]
 		: "Bad Type ID";
@@ -539,16 +767,16 @@ static const char* GetMemoryModel(const TDS::Type& type)
 	return MODEL_NAMES[type.recordByte & 7];
 }
 
-std::string TDS::typeName(const uint16_t index) const
+std::string TDS::typeName(const size_t typeIndex) const
 {
 	// TODO: check for recursive types
 
-	if (types.size() <= index)
+	if (types.size() <= typeIndex)
 	{
 		return std::string();
 	}
 
-	const Type& type = types[index];
+	const Type& type = types[typeIndex];
 	const uint16_t typeID = type.id;
 
 	std::string result = GetTypeName(typeID);
@@ -565,8 +793,8 @@ std::string TDS::typeName(const uint16_t index) const
 		result += " '" + name + "' ";
 	}
 
-	const Type& extended = (types.size() - 1 > index)
-		? types[index + 1]
+	const Type& extended = (types.size() - 1 > typeIndex)
+		? types[typeIndex + 1]
 		: Type();
 	char addChars[256] = {};
 
@@ -646,244 +874,15 @@ std::string TDS::functionName(const Type& type) const
 }
 
 
-//---------------------------------------------------------------------------
-
-
-struct Executable
+bool TDS::isGlobalSymbol(const size_t symbolIndex) const
 {
-#pragma pack(push, 1)
+	const TDS::Symbol& symbol = symbols[symbolIndex];
 
-	struct OldHeader
-	{
-		uint16_t signature;
-		uint16_t bytesInLastBlock;
-		uint16_t blocksInFile;
-		uint16_t numRelocs;
-		uint16_t header_paragraphs;
-		uint16_t minExtraParagraphs;
-		uint16_t maxExtraParagraphs;
-		uint16_t ss;
-		uint16_t sp;
-		uint16_t checksum;
-		uint16_t ip;
-		uint16_t cs;
-		uint16_t relocTableOffset;
-		uint16_t overlay_number;
-		uint8_t  reserved[32];
-		uint32_t newHeaderOffset;
+	// Return false for stack or value limit symbols
 
-		OldHeader() { memset(this, 0, sizeof *this); }
-	};
-
-	struct NewHeader
-	{
-		uint16_t signature;
-		uint8_t  linkerVersion;
-		uint8_t  linkerRevision;
-		uint16_t entryTableOffset;
-		uint16_t entryTableLength;
-		uint32_t crc;
-		uint16_t flags;
-		uint16_t autoDataSegment;
-		uint16_t initHeapSize;
-		uint16_t initStackSize;
-		uint32_t entryPoint;
-		uint32_t stackPoint;
-		uint16_t segmentCount;
-		uint16_t moduleReferenceCount;
-		uint16_t nonResidentNameSize;
-		uint16_t segmentOffset;         // relative to new EXE header
-		uint16_t resourceOffset;        // relative to new EXE header
-		uint16_t residentNameOffset;    // relative to new EXE header
-		uint16_t moduleReferenceOffset; // relative to new EXE header
-		uint16_t importNameOffset;      // relative to new EXE header
-		uint32_t nonResidentNameOffset; // relative to beginning of file
-		uint16_t movableEntryCount;
-		uint16_t sectorAlignmentShift;
-		uint16_t resourceCount;
-		uint8_t  loaderType;            // target OS
-		uint8_t  unused[9];
-
-		NewHeader() { memset(this, 0, sizeof *this); }
-	};
-
-	enum SegmentType
-	{
-		SEGMENT_CODE = 0,
-		SEGMENT_DATA = 1
-	};
-
-	struct Segment
-	{
-		uint16_t sectorOffset;
-		uint16_t length;
-		uint16_t flags;
-		uint16_t allocationSize;
-
-		Segment() { memset(this, 0, sizeof *this); }
-	};
-
-#pragma pack(pop)
-
-	OldHeader oldHeader;
-	NewHeader newHeader;
-
-	std::vector<Segment> segments;
-
-	TDS tds;
-
-	bool load(const char* const filename);
-
-	std::string segmentName(const uint16_t index) const;
-
-private:
-	bool loadOldHeader(File& input);
-	bool loadNewHeader(File& input);
-	bool loadSegments (File& input);
-	bool loadDebugInfo(File& input);
-
-};
-
-
-bool Executable::load(const char* const filename)
-{
-	File file(filename);
-
-	if (!file.isOpened())
-	{
-		printf("Unable to open file %s\n", filename);
-		return false;
-	}
-
-	return loadOldHeader(file)
-		&& loadNewHeader(file)
-		&& loadSegments (file)
-		&& loadDebugInfo(file);
-}
-
-
-bool Executable::loadOldHeader(File& input)
-{
-	if (!input.read(&oldHeader, sizeof oldHeader))
-	{
-		printf("Failed to read old executable header from file %s\n", input.filename());
-		return false;
-	}
-
-	if (0x5A4D != oldHeader.signature)
-	{
-		printf("Input file %s is not an executable file\n", input.filename());
-		return false;
-	}
-
-	return true;
-}
-
-bool Executable::loadNewHeader(File& input)
-{
-	const long newHeaderOffset = static_cast<long>(oldHeader.newHeaderOffset);
-
-	if (!input.seek(newHeaderOffset, SEEK_SET))
-	{
-		printf("Failed to seek to new header offset in file %s\n", input.filename());
-		return false;
-	}
-
-	if (!input.read(&newHeader, sizeof newHeader))
-	{
-		printf("Failed to read new executable header from file %s\n", input.filename());
-		return false;
-	}
-
-	if (0x454E != newHeader.signature)
-	{
-		printf("Input file %s is not a new executable file\n", input.filename());
-		return false;
-	}
-
-	return true;
-}
-
-bool Executable::loadSegments(File& input)
-{
-	segments.push_back(Segment());
-
-	for (uint16_t i = 0; i < newHeader.segmentCount; ++i)
-	{
-		Segment segment;
-
-		if (!input.read(&segment, sizeof segment))
-		{
-			printf("Failed to read segment information from file %s\n", input.filename());
-			return false;
-		}
-
-		segments.push_back(segment);
-	}
-
-	return true;
-}
-
-bool Executable::loadDebugInfo(File& input)
-{
-	long tdsOffset = 0;
-
-	for (auto segment = segments.rbegin(), first = segments.rend();
-		 segment != first;
-		 ++segment)
-	{
-		if (segment->sectorOffset > 0 && segment->length > 0)
-		{
-			tdsOffset = (segment->sectorOffset << newHeader.sectorAlignmentShift) + segment->length;
-			break;
-		}
-	}
-
-	if (!input.seek(tdsOffset, SEEK_SET))
-	{
-		printf("Failed to seek to TDS in file %s\n", input.filename());
-		return false;
-	}
-
-	static const uint8_t DEBUG_INFO_HEADER[] =
-	{
-		 'N',  'B',  '0',  '2', 0xFF, 0xFF, 0xFF, 0xFF,
-		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
-	};
-
-	uint8_t buffer[sizeof DEBUG_INFO_HEADER];
-
-	if (!input.read(buffer, sizeof buffer))
-	{
-		printf("Failed to read debug information header from file %s\n", input.filename());
-		return false;
-	}
-
-	if (0 != memcmp(DEBUG_INFO_HEADER, buffer, sizeof buffer))
-	{
-		printf("Unknown debug information header in file %s\n", input.filename());
-		return false;
-	}
-
-	return tds.load(input);
-}
-
-
-std::string Executable::segmentName(const uint16_t index) const
-{
-	if (0 == index || segments.size() <= index)
-	{
-		return std::string();
-	}
-
-	const char* const prefix = (segments[index].flags & SEGMENT_DATA)
-		? "dseg"
-		: "cseg";
-
-	char name[7];
-	snprintf(name, sizeof name, "%s%02hu", prefix, index);
-
-	return name;
+	return 0 != symbol.segment
+		&& (symbol.segment < executable.segments.size()
+			|| (symbol.offset < names.size() && 0 != symbol.offset));
 }
 
 
@@ -1054,9 +1053,8 @@ static std::string MakeTypeName(const TDS& tds, const size_t typeIndex)
 	return result;
 }
 
-static void GenerateTypes(const Executable& source, FILE* const output)
+static void GenerateTypes(const TDS& tds, FILE* const output)
 {
-	const TDS& tds = source.tds;
 	const std::vector<TDS::Type>& types = tds.types;
 
 	for (size_t i = 1, ei = types.size(); i < ei; ++i)
@@ -1140,17 +1138,6 @@ static void GenerateTypes(const Executable& source, FILE* const output)
 }
 
 
-static bool IsSymbolGlobal(const Executable& source, const size_t index)
-{
-	const TDS::Symbol& symbol = source.tds.symbols[index];
-
-	// Return false for stack or value limit symbols
-
-	return 0 != symbol.segment
-		&& (symbol.segment < source.segments.size()
-			|| (symbol.offset < source.tds.names.size() && 0 != symbol.offset));
-}
-
 static std::string MakeSymbolName(const TDS& tds, const size_t index)
 {
 	const TDS::Symbol& symbol = tds.symbols[index];
@@ -1186,16 +1173,15 @@ static std::string MakeSymbolName(const TDS& tds, const size_t index)
 	return result;
 }
 
-static void GenerateSymbols(const Executable& source, FILE* const output)
+static void GenerateSymbols(const TDS& tds, FILE* const output)
 {
-	const TDS& tds = source.tds;
 	const std::vector<TDS::Symbol>& symbols = tds.symbols;
 
 	for (size_t i = 1, ei = symbols.size(); i < ei; ++i)
 	{
 		const TDS::Symbol& symbol = symbols[i];
 
-		if (!IsSymbolGlobal(source, i))
+		if (!tds.isGlobalSymbol(i))
 		{
 			continue;
 		}
@@ -1215,7 +1201,7 @@ static void GenerateSymbols(const Executable& source, FILE* const output)
 			fprintf(output, "make_import(\"%s\", \"%s\", \"%s\")\n",
 				importedName, name, type);
 		}
-		else if (source.segments[symbol.segment].flags & Executable::SEGMENT_DATA)
+		else if (tds.executable.segments[symbol.segment].flags & Executable::SEGMENT_DATA)
 		{
 			fprintf(output, "make_data(%hu, 0x%04hx, \"%s\", \"%s\", %hu)\n",
 				symbol.segment, symbol.offset, name, type, tds.types[symbol.type].size);
@@ -1223,10 +1209,10 @@ static void GenerateSymbols(const Executable& source, FILE* const output)
 		else
 		{
 			fprintf(output, "func = make_func(%hu, 0x%04hx, \"%s\", \"%s\")\n",
-					symbol.segment, symbol.offset, name, type);
+				symbol.segment, symbol.offset, name, type);
 
 			for (auto scope = tds.scopes.begin(), last = tds.scopes.end();
-				 last != scope; ++scope)
+				last != scope; ++scope)
 			{
 				if (i != scope->symbol)
 				{
@@ -1239,7 +1225,7 @@ static void GenerateSymbols(const Executable& source, FILE* const output)
 					const TDS::Symbol& local = symbols[localIndex];
 
 					if ((0 == local.segment && 0 == local.offset)
-						|| IsSymbolGlobal(source, localIndex))
+						|| tds.isGlobalSymbol(localIndex))
 					{
 						continue;
 					}
@@ -1268,9 +1254,8 @@ static void EraseSubString(std::string& str, const char* const sub)
 	}
 }
 
-static void GenerateSources(const Executable& source, FILE* const output)
+static void GenerateSources(const TDS& tds, FILE* const output)
 {
-	const TDS& tds = source.tds;
 	const std::vector<TDS::Correlation>& correlations = tds.correlations;
 
 	for (size_t i = 1, ei = correlations.size(); i < ei; ++i)
@@ -1318,7 +1303,7 @@ static void GenerateSources(const Executable& source, FILE* const output)
 }
 
 
-static void GenerateScript(const Executable& source, FILE* const output)
+static void GenerateScript(const TDS& tds, FILE* const output)
 {
 	assert(NULL != output);
 
@@ -1327,9 +1312,9 @@ static void GenerateScript(const Executable& source, FILE* const output)
 
 	// TODO: add range checks for all generator functions
 
-	GenerateTypes(source, output);
-	GenerateSymbols(source, output);
-	GenerateSources(source, output);
+	GenerateTypes(tds, output);
+	GenerateSymbols(tds, output);
+	GenerateSources(tds, output);
 
 	fputs("refresh_idaview_anyway()\n", output);
 }
@@ -1346,9 +1331,9 @@ int main(int argc, char** argv)
 		return EXIT_SUCCESS;
 	}
 
-	Executable executable;
+	TDS tds;
 
-	const bool result = executable.load(argv[1]);
+	const bool result = tds.load(argv[1]);
 
 	if (result)
 	{
@@ -1357,7 +1342,7 @@ int main(int argc, char** argv)
 		if (argc >= 3)
 		{
 			const char* const filename = argv[2];
-			
+
 			output = fopen(filename, "w");
 
 			if (NULL == output)
@@ -1367,7 +1352,7 @@ int main(int argc, char** argv)
 			}
 		}
 
-		GenerateScript(executable, output);
+		GenerateScript(tds, output);
 
 		if (output != stdout)
 		{
