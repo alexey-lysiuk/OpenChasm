@@ -435,6 +435,31 @@ struct TDS
 		{
 			return *reinterpret_cast<const uint64_t*>(this);
 		}
+
+		bool isBasic() const
+		{
+			return 0 == id || (id >= 4 && id <= 12);
+		}
+
+		bool isArray() const
+		{
+			return 0x1C == id;
+		}
+
+		bool isStruct() const
+		{
+			return 0x1E == id;
+		}
+
+		bool isEnum() const
+		{
+			return 0x29 == id;
+		}
+
+		bool hasExtendedTypeInfo() const
+		{
+			return isBasic() || isArray() || isEnum();
+		}
 	};
 
 	struct Member
@@ -507,7 +532,6 @@ struct TDS
 		Header() { memset(this, 0, sizeof *this); }
 
 		template <typename Entry> uint16_t count() const;
-
 	};
 
 #pragma pack(pop)
@@ -534,6 +558,60 @@ struct TDS
 
 	bool isGlobalSymbol(const size_t symbolIndex) const;
 
+	class TypeIterator
+	{
+	public:
+		explicit TypeIterator(const std::vector<Type>& types)
+		: m_types(&types)
+		, m_index(1)
+		{
+		}
+
+		const Type* type() const
+		{
+			return m_index < m_types->size()
+				? &(*m_types)[m_index]
+				: NULL;
+		}
+		
+		size_t index() const
+		{
+			return m_index;
+		}
+
+		bool hasNext() const
+		{
+			return m_index < m_types->size();
+		}
+
+		void operator++()
+		{
+			if (m_index >= m_types->size())
+			{
+				return;
+			}
+
+			const Type* const type = this->type();
+			assert(NULL != type);
+
+			if (type->hasExtendedTypeInfo())
+			{
+				++m_index;
+			}
+
+			++m_index;
+		}
+
+	private:
+		const std::vector<Type>* m_types;
+		size_t m_index;
+	};
+
+	TypeIterator typeIterator() const
+	{
+		return TypeIterator(types);
+	}
+
 private:
 	template <typename Entry>
 	bool load(File& inputFile, std::vector<Entry>& outputList);
@@ -542,6 +620,11 @@ private:
 
 	void renameReservedWords();
 	void makeGlobalSymbolsUnique();
+	void assignMissingTypeNames();
+	void applyPS10Specific();
+
+	template <typename Item>
+	std::string findNameForType(const std::vector<Item>& collection, const size_t typeIndex) const;
 
 	std::string functionName(const Type& type) const;
 
@@ -609,6 +692,8 @@ bool TDS::load(const char* const filename)
 
 	renameReservedWords();
 	makeGlobalSymbolsUnique();
+	assignMissingTypeNames();
+	applyPS10Specific();
 
 	return true;
 }
@@ -727,6 +812,82 @@ void TDS::makeGlobalSymbolsUnique()
 		}
 
 		uniqueSymbols.insert(name);
+	}
+}
+
+void TDS::assignMissingTypeNames()
+{
+	for (TypeIterator i = typeIterator(); i.hasNext(); ++i)
+	{
+		const Type& type = *i.type();
+
+		if (0 != type.name
+			|| !(type.isStruct() || type.isEnum()))
+		{
+			continue;
+		}
+
+		const size_t index = i.index();
+		std::string name = findNameForType(symbols, index);
+
+		if (name.empty())
+		{
+			name = findNameForType(members, index);
+		}
+
+		if (!name.empty())
+		{
+			types[index].name = static_cast<uint16_t>(names.size());
+			names.push_back(name);
+		}
+	}
+}
+
+template <typename Item>
+std::string TDS::findNameForType(const std::vector<Item>& collection, const size_t typeIndex) const
+{
+	assert(!collection.empty());
+
+	for (size_t i = 1, ei = collection.size(); i < ei; ++i)
+	{
+		const Item& item = collection[i];
+
+		if (typeIndex == item.type)
+		{
+			return names[item.name] + "$Type";
+		}
+
+		const TDS::Type& symbolType = types[item.type];
+
+		if (symbolType.isArray() && typeIndex == symbolType.recordWord)
+		{
+			return names[item.name] + "$Element";
+		}
+	}
+
+	return std::string();
+}
+
+void TDS::applyPS10Specific()
+{
+	auto name = std::find(names.begin(), names.end(), "A$Type");
+
+	if (names.end() != name)
+	{
+		*name = "$PPoint"; // Guessed name, find name heuristic fails on it
+	}
+
+	for (TDS::TypeIterator i = typeIterator(); i.hasNext(); ++i)
+	{
+		const Type& type = *i.type();
+
+		if (0 != type.name || !type.isStruct() || 4 != type.size)
+		{
+			continue;
+		}
+
+		types[i.index()].name = uint16_t(names.size());
+		names.push_back("Free_vert$Element");
 	}
 }
 
@@ -1078,75 +1239,20 @@ static void GeneratePS10Specifics(FILE* output)
 }
 
 
-template <typename Item>
-static std::string MakeTypeName(const TDS& tds, const std::vector<Item>& collection, const size_t typeIndex)
-{
-	assert(!collection.empty());
-
-	for (size_t i = 1, ei = collection.size(); i < ei; ++i)
-	{
-		const Item& item = collection[i];
-
-		if (typeIndex == item.type)
-		{
-			return tds.names[item.name] + "Type";
-		}
-
-		const TDS::Type& symbolType = tds.types[item.type];
-
-		if (0x1C == symbolType.id && typeIndex == symbolType.recordWord)
-		{
-			// Type is an array element
-			return tds.names[item.name] + "Element";
-		}
-	}
-
-	return std::string();
-}
-
-static std::string MakeTypeName(const TDS& tds, const size_t typeIndex)
-{
-	const TDS::Type& type = tds.types[typeIndex];
-	const std::string& originalName = tds.names[type.name];
-
-	if (!originalName.empty())
-	{
-		return originalName;
-	}
-
-	std::string result = MakeTypeName(tds, tds.symbols, typeIndex);
-
-	if (result.empty())
-	{
-		result = MakeTypeName(tds, tds.members, typeIndex);
-	}
-
-	return result;
-}
-
 static void GenerateTypes(const TDS& tds, FILE* const output)
 {
-	const std::vector<TDS::Type>& types = tds.types;
-
-	for (size_t i = 1, ei = types.size(); i < ei; ++i)
+	for (TDS::TypeIterator i = tds.typeIterator(); i.hasNext(); ++i)
 	{
-		const TDS::Type& type = types[i];
+		const TDS::Type& type = *i.type();
 
-		if ((type.id >= 4 && type.id <= 12)
-			|| 0x1C == type.id)
-		{
-			++i; // Basic types and arrays have extended type info
-			continue;
-		}
-		else if (0x1E != type.id && 0x29 != type.id)
+		if (!type.isStruct() && !type.isEnum())
 		{
 			continue;
 		}
 
-		const std::string typeNameStr = MakeTypeName(tds, i);
-		const char* const typeName = typeNameStr.c_str();
+		const char* const typeName = tds.names[type.name].c_str();
 
-		const bool isEnum = 0x29 == type.id; // Otherwise, it's a struct
+		const bool isEnum = type.isEnum(); // Otherwise, it's a struct
 
 		if (isEnum)
 		{
@@ -1159,7 +1265,7 @@ static void GenerateTypes(const TDS& tds, FILE* const output)
 
 		const std::vector<TDS::Member>& members = tds.members;
 		const uint16_t startIndex = isEnum
-			? types[i + 1].rawWord(2)
+			? tds.types[i.index() + 1].rawWord(2)
 			: type.recordWord;
 
 		uint16_t offset = 0;
@@ -1197,11 +1303,6 @@ static void GenerateTypes(const TDS& tds, FILE* const output)
 			}
 
 			offset += memberSize;
-		}
-
-		if (isEnum)
-		{
-			++i; // Enums have extended type info
 		}
 	}
 
