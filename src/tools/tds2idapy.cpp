@@ -540,6 +540,9 @@ private:
 
 	void loadNames(File& input);
 
+	void renameReservedWords();
+	void makeGlobalSymbolsUnique();
+
 	std::string functionName(const Type& type) const;
 
 };
@@ -604,6 +607,9 @@ bool TDS::load(const char* const filename)
 
 	loadNames(file);
 
+	renameReservedWords();
+	makeGlobalSymbolsUnique();
+
 	return true;
 }
 
@@ -656,6 +662,71 @@ void TDS::loadNames(File& input)
 		}
 
 		names.push_back(name);
+	}
+}
+
+void TDS::renameReservedWords()
+{
+	static const char* RESERVED_NAMES[] = 
+	{
+		"VGA", // Fix "failed to add constant VGA=9" error
+		"AX", "BX", "CX", "DX", "BP", "SI", "DI", "CS", "DS", "ES", "SS"
+		"AH", "AL", "BH", "BL", "CH", "CL", "DH", "DL"
+	};
+
+	static const size_t RESERVED_NAME_COUNT = sizeof(RESERVED_NAMES) / sizeof(RESERVED_NAMES[0]);
+
+	std::set<std::string> reservedNames;
+
+	for (size_t i = 0; i < RESERVED_NAME_COUNT; ++i)
+	{
+		reservedNames.insert(RESERVED_NAMES[i]);
+	}
+
+	for (auto name = names.begin(), last = names.end(); name != last; ++name)
+	{
+		if (reservedNames.end() != reservedNames.find(*name))
+		{
+			name->insert(0, "$");
+		}
+	}
+}
+
+void TDS::makeGlobalSymbolsUnique()
+{
+	std::set<std::string> uniqueSymbols;
+
+	for (size_t i = 1, ei = symbols.size(); i < ei; ++i)
+	{
+		if (!isGlobalSymbol(i))
+		{
+			continue;
+		}
+
+		Symbol& symbol = symbols[i];
+		const std::string& name = names[symbol.name];
+
+		if (uniqueSymbols.end() != uniqueSymbols.find(name))
+		{
+			std::string newName;
+			unsigned counter = 0;
+
+			do
+			{
+				char buffer[256];
+				snprintf(buffer, sizeof buffer, "%s$%u", name.c_str(), counter++);
+
+				newName = buffer;
+			}
+			while (uniqueSymbols.end() != uniqueSymbols.find(newName));
+
+			symbol.name = static_cast<uint16_t>(names.size());
+			names.push_back(newName);
+
+			uniqueSymbols.insert(newName);
+		}
+
+		uniqueSymbols.insert(name);
 	}
 }
 
@@ -987,14 +1058,14 @@ static void GeneratePS10Specifics(FILE* output)
 
 	// Global variable initialization functions for Pascal units
 	fputs(
-		"make_func(2, 0x2070, '__CspRndrInit', '')\n"
-		"make_func(3, 0x3756, '__CsDemoInit', '')\n"
-		"make_func(4, 0x32cb, '__Cs3dm2Init', '')\n"
-		"make_func(5, 0x84ea, '__CsActInit', '')\n"
-		"make_func(6, 0x6ff8, '__CspUtlInit', '')\n"
-		"make_func(7, 0x2cdd, '__CsMenuInit', '')\n"
-		"make_func(8, 0x6b43, '__CspBioInit', '')\n"
-		"make_func(9, 0x2685, '__SoundIPInit', '')\n"
+		"make_func(2, 0x2070, '$CspRndrInit', '')\n"
+		"make_func(3, 0x3756, '$CsDemoInit', '')\n"
+		"make_func(4, 0x32cb, '$Cs3dm2Init', '')\n"
+		"make_func(5, 0x84ea, '$CsActInit', '')\n"
+		"make_func(6, 0x6ff8, '$CspUtlInit', '')\n"
+		"make_func(7, 0x2cdd, '$CsMenuInit', '')\n"
+		"make_func(8, 0x6b43, '$CspBioInit', '')\n"
+		"make_func(9, 0x2685, '$SoundIPInit', '')\n"
 		"\n", output);
 
 	// Program entry function has BP-based frame
@@ -1138,41 +1209,6 @@ static void GenerateTypes(const TDS& tds, FILE* const output)
 }
 
 
-static std::string MakeSymbolName(const TDS& tds, const size_t index)
-{
-	const TDS::Symbol& symbol = tds.symbols[index];
-
-	const std::string& originalName = tds.names[symbol.name];
-	std::string result = originalName;
-
-	if ("VGA" == result)
-	{
-		// Specific to PS10.EXE:
-		// Fix "failed to add constant VGA=9" error
-		result = "_VGA";
-	}
-
-	static std::set<std::string> uniqueSymbols;
-
-	if (uniqueSymbols.end() != uniqueSymbols.find(result))
-	{
-		int counter = 0;
-
-		do
-		{
-			char buf[16] = {};
-			snprintf(buf, sizeof(buf), "__%X", counter++);
-
-			result = originalName + buf;
-		}
-		while (uniqueSymbols.end() != uniqueSymbols.find(result));
-	}
-
-	uniqueSymbols.insert(result);
-
-	return result;
-}
-
 static void GenerateSymbols(const TDS& tds, FILE* const output)
 {
 	const std::vector<TDS::Symbol>& symbols = tds.symbols;
@@ -1186,10 +1222,9 @@ static void GenerateSymbols(const TDS& tds, FILE* const output)
 			continue;
 		}
 
-		const std::string nameStr = MakeSymbolName(tds, i);
 		const std::string typeStr = tds.typeName(symbol.type);
 
-		const char* const name = nameStr.c_str();
+		const char* const name = tds.names[symbol.name].c_str();
 		const char* const type = typeStr.c_str();
 
 		if (symbol.segment & 0x4000)
