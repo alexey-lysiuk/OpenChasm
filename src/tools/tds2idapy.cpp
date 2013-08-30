@@ -1206,16 +1206,6 @@ static void GeneratePrologue(FILE* output)
 
 static void GeneratePS10Specifics(FILE* output)
 {
-	// Fix a few "can't rename byte as '...' because"
-	// "this byte can't have a name (it is a tail byte)" errors
-	// Although it's better than undefine whole data segment
-	fputs(
-		"do_unknown(0x36CDC, DOUNK_SIMPLE)\n"
-		"do_unknown(0x44A82, DOUNK_SIMPLE)\n"
-		"do_unknown(0x44B5C, DOUNK_SIMPLE)\n"
-		"do_unknown(0x44E34, DOUNK_SIMPLE)\n"
-		"do_unknown(0x45B62, DOUNK_SIMPLE)\n"
-		"\n", output);
 
 	// Global variable initialization functions for Pascal units
 	fputs(
