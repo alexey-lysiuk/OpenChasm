@@ -30,6 +30,8 @@
 #include <string>
 #include <vector>
 
+#include "tds2ida.py.h"
+
 
 class File
 {
@@ -1121,92 +1123,8 @@ bool TDS::isGlobalSymbol(const size_t symbolIndex) const
 //---------------------------------------------------------------------------
 
 
-static void GeneratePrologue(FILE* output)
-{
-	fputs(
-		"from idaapi import *\n"
-		"\n"
-		"get_inf_structure().s_cmtflg = SW_RPTCMT | SW_ALLCMT | SW_LINNUM\n"
-		"\n"
-		"def make_struc(name):\n"
-		"  return get_struc(add_struc(BADADDR, name))\n"
-		"\n"
-		"def make_struc_member(struc, name, offset, size, type):\n"
-		"  flags = FF_DATA\n"
-		"  if 1 == size:\n"
-		"    flags |= FF_BYTE\n"
-		"  elif 2 == size:\n"
-		"    flags |= FF_WORD\n"
-		"  elif 4 == size:\n"
-		"    flags |= FF_DWRD\n"
-		"  add_struc_member(struc, name, offset, flags, None, size)\n"
-		"  set_member_cmt(get_member(struc, offset), type, 0)\n"
-		"\n"
-		"def make_ea(segment, offset):\n"
-		"  return getnseg(segment - 1).startEA + offset\n"
-		"\n"
-		"def make_func(segment, offset, name, type):\n"
-		"  ea = make_ea(segment, offset)\n"
-		"  old_name = get_name(BADADDR, ea)\n"
-		"  if None == old_name or '@' != old_name[0]:\n"
-		"    set_name(ea, name, SN_CHECK)\n"
-		"  if create_insn(ea):\n"
-		"    autoWait()\n"
-		"  if add_func(ea, BADADDR):\n"
-		"    autoWait()\n"
-		"  func = get_func(ea)\n"
-		"  cmt = get_func_cmt(func, 1)\n"
-		"  if None == cmt or 0 == len(cmt):\n"
-		"    cmt = type\n"
-		"  else:\n"
-		"    cmt += '\\n' + type\n"
-		"  set_func_cmt(func, cmt, 1)\n"
-		"  return func\n"
-		"\n"
-		"def make_data(segment, offset, name, type, size):\n"
-		"  ea = make_ea(segment, offset)\n"
-		"  set_name(ea, name, SN_CHECK)\n"
-		"  set_cmt(ea, type, 1)\n"
-		"  do_unknown_range(ea, size, DOUNK_SIMPLE)\n"
-		"  if 1 == size:\n"
-		"    doByte(ea, 1)\n"
-		"  elif 2 == size:\n"
-		"    doWord(ea, 2)\n"
-		"  elif 4 == size:\n"
-		"    doDwrd(ea, 4)\n"
-		"  else:\n"
-		"    do_data_ex(ea, FF_BYTE, size, BADADDR)\n"
-		"\n"
-		"def make_import(imported_name, name, type):\n"
-		"  ea = get_name_ea(BADADDR, imported_name)\n"
-		"  set_name(ea, name, SN_CHECK)\n"
-		"  set_cmt(ea, type, 1)\n"
-		"\n"
-		"def make_local(func, offset, name, type):\n"
-		"  offset += func.frsize\n"
-		"  frame = get_frame(func)\n"
-		"  set_member_name(frame, offset, name)\n"
-		"  member = None\n"
-		"  try:\n"
-		"    member = get_member(frame, offset)\n"
-		"  except OverflowError:\n"
-		"    pass\n"
-		"  if member:\n"
-		"    set_member_cmt(member, type, 1)\n"
-		"\n"
-		"def make_src_file(segment, start_offset, end_offset, filename):\n"
-		"  start_addr = make_ea(segment, start_offset)\n"
-		"  end_addr = make_ea(segment, end_offset)\n"
-		"  add_sourcefile(start_addr, end_addr, filename)\n"
-		"\n"
-		"def make_src_line(segment, offset, line):\n"
-		"  set_source_linnum(make_ea(segment, offset), line)\n"
-		"\n", output);
-}
-
 static void GeneratePS10Specifics(FILE* output)
 {
-
 	// Global variable initialization functions for Pascal units
 	fputs(
 		"make_func(2, 0x2070, '$CspRndrInit', '')\n"
@@ -1217,14 +1135,6 @@ static void GeneratePS10Specifics(FILE* output)
 		"make_func(7, 0x2cdd, '$CsMenuInit', '')\n"
 		"make_func(8, 0x6b43, '$CspBioInit', '')\n"
 		"make_func(9, 0x2685, '$SoundIPInit', '')\n"
-		"\n", output);
-
-	// Program entry function has BP-based frame
-	fputs(
-		"func = get_func(get_name_ea(BADADDR, 'PROGRAM'))\n"
-		"func.flags &= ~FUNC_NORET\n"
-		"func.flags |= FUNC_FRAME\n"
-		"reanalyze_function(func)\n"
 		"\n", output);
 }
 
@@ -1433,7 +1343,8 @@ static void GenerateScript(const TDS& tds, FILE* const output)
 {
 	assert(NULL != output);
 
-	GeneratePrologue(output);
+	fwrite(tds2ida_py, tds2ida_py_len, 1, output);
+
 	GeneratePS10Specifics(output);
 
 	// TODO: add range checks for all generator functions

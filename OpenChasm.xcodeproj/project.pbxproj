@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8A215F3817D32DC800C0A000 /* asmsplit.py in Resources */ = {isa = PBXBuildFile; fileRef = 8A215F3617D32DC800C0A000 /* asmsplit.py */; };
+		8A215F3917D32DC800C0A000 /* tds2ida.py in Resources */ = {isa = PBXBuildFile; fileRef = 8A215F3717D32DC800C0A000 /* tds2ida.py */; };
 		8A2E439617B7633300EEC482 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A2E439517B7633300EEC482 /* Cocoa.framework */; };
 		8ACD560817B76C3100C2640A /* cs3dm2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8ACD55E617B76C3000C2640A /* cs3dm2.cpp */; };
 		8ACD560917B76C3100C2640A /* cs_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8ACD55E817B76C3000C2640A /* cs_demo.cpp */; };
@@ -30,6 +32,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		8A215F3617D32DC800C0A000 /* asmsplit.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = asmsplit.py; sourceTree = "<group>"; };
+		8A215F3717D32DC800C0A000 /* tds2ida.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = tds2ida.py; sourceTree = "<group>"; };
 		8A2E439217B7633300EEC482 /* OpenChasm.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OpenChasm.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A2E439517B7633300EEC482 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		8ACD55B117B763C500C2640A /* OpenChasm-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "OpenChasm-Info.plist"; sourceTree = "<group>"; };
@@ -196,6 +200,8 @@
 		8ACD561F17B778E400C2640A /* tools */ = {
 			isa = PBXGroup;
 			children = (
+				8A215F3617D32DC800C0A000 /* asmsplit.py */,
+				8A215F3717D32DC800C0A000 /* tds2ida.py */,
 				8AD9D96C17BF4DE000309E97 /* tds2idapy.cpp */,
 				8ACD562017B778E400C2640A /* tdump2idc.cpp */,
 			);
@@ -242,6 +248,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 8AD9D96817BF4DC000309E97 /* Build configuration list for PBXNativeTarget "tds2idapy" */;
 			buildPhases = (
+				8A215F3417D32A5900C0A000 /* Process tds2ida.py */,
 				8AD9D96517BF4DC000309E97 /* Sources */,
 				8AD9D96717BF4DC000309E97 /* Frameworks */,
 			);
@@ -287,10 +294,31 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8A215F3817D32DC800C0A000 /* asmsplit.py in Resources */,
+				8A215F3917D32DC800C0A000 /* tds2ida.py in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		8A215F3417D32A5900C0A000 /* Process tds2ida.py */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/src/tools/tds2ida.py",
+			);
+			name = "Process tds2ida.py";
+			outputPaths = (
+				"$(PROJECT_TEMP_DIR)/tds2ida.py.h",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "cd \"${SRCROOT}/src/tools\"\nxxd -i tds2ida.py \"${PROJECT_TEMP_DIR}/tds2ida.py.h\"";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		8A2E438E17B7633300EEC482 /* Sources */ = {
@@ -428,6 +456,7 @@
 		8AD9D96917BF4DC000309E97 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				HEADER_SEARCH_PATHS = "$(PROJECT_TEMP_DIR)";
 				PRODUCT_NAME = tds2idapy;
 			};
 			name = Debug;
@@ -435,6 +464,7 @@
 		8AD9D96A17BF4DC000309E97 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				HEADER_SEARCH_PATHS = "$(PROJECT_TEMP_DIR)";
 				PRODUCT_NAME = tds2idapy;
 			};
 			name = Release;
