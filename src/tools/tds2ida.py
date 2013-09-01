@@ -2,17 +2,17 @@
 # ---------------------------------------------------------------------------
 #  OpenChasm - Free software reconstruction of Chasm: The Rift game
 #  Copyright (C) 2013 Alexey Lysiuk
-# 
+#
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
-# 
+#
 #  This program is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-# 
+#
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # ---------------------------------------------------------------------------
@@ -23,16 +23,21 @@ from idaapi import *
 def make_struc(name):
 	return get_struc(add_struc(BADADDR, name))
 
-def make_struc_member(struc, name, offset, size, type):
-	flags = FF_DATA
-	if 1 == size:
-		flags |= FF_BYTE
-	elif 2 == size:
-		flags |= FF_WORD
-	elif 4 == size:
-		flags |= FF_DWRD
-	add_struc_member(struc, name, offset, flags, None, size)
-	set_member_cmt(get_member(struc, offset), type, 0)
+def make_struc_member(struc, name, offset, type, size, element_size, flags):
+	if not struc:
+		return
+
+	flags  |= FF_DATA
+	typeid  = get_struc_id(type)
+
+	Eval('AddStrucMember(%d, "%s", %d, %d, %d, %d);' % (struc.id, name, offset, flags, typeid, size))
+
+ 	comment = type
+
+ 	if -1 != element_size:
+ 		comment += '[' + str(size / element_size) + ']'
+
+	set_member_cmt(get_member(struc, offset), comment, 0)
 
 def make_ea(segment, offset):
 	return getnseg(segment - 1).startEA + offset
