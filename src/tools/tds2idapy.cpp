@@ -778,7 +778,10 @@ void TDS::renameReservedWords()
 
 	for (auto name = names.begin(), last = names.end(); name != last; ++name)
 	{
-		if (reservedNames.end() != reservedNames.find(*name))
+		std::string upperName = *name;
+		std::transform(upperName.begin(), upperName.end(), upperName.begin(), toupper);
+
+		if (reservedNames.end() != reservedNames.find(upperName))
 		{
 			name->insert(0, "$");
 		}
