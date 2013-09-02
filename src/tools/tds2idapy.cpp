@@ -829,35 +829,24 @@ void TDS::assignMissingTypeNames()
 	{
 		const Type& type = *i.type();
 
-		if (0 != type.name)
+		if (0 != type.name
+			|| !(type.isStruct() || type.isEnum()))
 		{
 			continue;
 		}
 
 		const size_t index = i.index();
+		std::string name = findNameForType(symbols, index);
 
-		if (type.isPascalString())
+		if (name.empty())
 		{
-			char name[32] = {};
-			snprintf(name, sizeof name, "PascalString%hhu", type.recordByte);
+			name = findNameForType(members, index);
+		}
 
+		if (!name.empty())
+		{
 			types[index].name = static_cast<uint16_t>(names.size());
 			names.push_back(name);
-		}
-		else if (type.isStruct() || type.isEnum())
-		{
-			std::string name = findNameForType(symbols, index);
-
-			if (name.empty())
-			{
-				name = findNameForType(members, index);
-			}
-
-			if (!name.empty())
-			{
-				types[index].name = static_cast<uint16_t>(names.size());
-				names.push_back(name);
-			}
 		}
 	}
 }
@@ -1162,6 +1151,7 @@ static const char* GetTypeName(const TDS& tds, const size_t typeIndex)
 
 	switch (type.id)
 	{
+		case  3: return "char";
 		case  4: return "int8_t";
 		case  5: return "int16_t";
 		case  6: return "int32_t";
@@ -1194,6 +1184,9 @@ static const char* GetTypeFlags(const TDS& tds, const size_t typeIndex)
 
 	switch (type.id)
 	{
+		case 3:
+			return "FF_ASCI";
+
 		case 4:
 		case 8:
 		case 12:
@@ -1219,7 +1212,6 @@ static const char* GetTypeFlags(const TDS& tds, const size_t typeIndex)
 			return GetTypeFlags(tds, elementType);
 		}
 
-		case 3:
 		case 0x1E:
 			return "FF_STRU";
 
@@ -1230,9 +1222,22 @@ static const char* GetTypeFlags(const TDS& tds, const size_t typeIndex)
 
 static int32_t GetElementSize(const TDS& tds, const size_t typeIndex)
 {
-	return 0x1C == tds.types[typeIndex].id
-		? tds.types[tds.types[typeIndex + 1].rawWord(0)].size
-		: -1;
+	const TDS::Type& type = tds.types[typeIndex];
+
+	switch (type.id)
+	{
+		case 3:
+			return 1;
+
+		case 0x1C:
+		{
+			const uint16_t elementType = tds.types[typeIndex + 1].rawWord(0);
+			return tds.types[elementType].size;
+		}
+
+		default:
+			return -1;
+	}
 }
 
 static void GenerateTypes(const TDS& tds, FILE* const output)
@@ -1240,21 +1245,13 @@ static void GenerateTypes(const TDS& tds, FILE* const output)
 	for (TDS::TypeIterator i = tds.typeIterator(); i.hasNext(); ++i)
 	{
 		const TDS::Type& type = *i.type();
-		const char* const typeName = tds.names[type.name].c_str();
 
-		if (type.isPascalString())
-		{
-			fprintf(output,
-				"struc = make_struc(\"%s\")\n"
-				"make_struc_member(struc, 'length', 0, 'uint8_t', 1, -1, FF_BYTE)\n"
-				"make_struc_member(struc, 'content', 1, 'char', %hhu, -1, FF_BYTE)\n",
-				typeName, type.recordByte);
-			continue;
-		}
-		else if (!type.isStruct() && !type.isEnum())
+		if (!type.isStruct() && !type.isEnum())
 		{
 			continue;
 		}
+
+		const char* const typeName = tds.names[type.name].c_str();
 
 		const bool isEnum = type.isEnum(); // Otherwise, it's a struct
 

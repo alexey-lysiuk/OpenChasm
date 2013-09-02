@@ -28,14 +28,20 @@ def make_struc_member(struc, name, offset, type, size, element_size, flags):
 		return
 
 	flags  |= FF_DATA
-	typeid  = get_struc_id(type)
-
-	Eval('AddStrucMember(%d, "%s", %d, %d, %d, %d);' % (struc.id, name, offset, flags, typeid, size))
-
- 	comment = type
+	typeid  = -1
+	comment = type
 
  	if -1 != element_size:
- 		comment += '[' + str(size / element_size) + ']'
+		comment += '[' + str(size / element_size) + ']'
+
+	if isASCII(flags):
+		typeid   = ASCSTR_PASCAL
+		comment += ' // Pascal string'
+	elif isStruct(flags):
+		typeid  = get_struc_id(type)
+		comment = 'struct ' + comment
+
+	Eval('AddStrucMember(%d, "%s", %d, %d, %d, %d);' % (struc.id, name, offset, flags, typeid, size))
 
 	set_member_cmt(get_member(struc, offset), comment, 0)
 
