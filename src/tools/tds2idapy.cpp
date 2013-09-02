@@ -405,6 +405,76 @@ struct TDS
 		Correlation() { memset(this, 0, sizeof *this); }
 	};
 
+	enum TypeOfType
+	{
+		TYPE_VOID,
+		TYPE_BASIC_LITERAL_STRING,
+		TYPE_BASIC_DYNAMIC_STRING,
+		TYPE_PASCAL_STRING,
+		TYPE_SIGNED_CHAR,
+		TYPE_SIGNED_INT,
+		TYPE_SIGNED_LONG,
+		TYPE_SIGNED_QUAD,
+		TYPE_UNSIGNED_CHAR,
+		TYPE_UNSIGNED_INT,
+		TYPE_UNSIGNED_LONG,
+		TYPE_UNSIGNED_QUAD,
+		TYPE_PASCAL_CHARACTER,
+		TYPE_FLOAT,
+		TYPE_PASCAL_6BYTE_REAL,
+		TYPE_DOUBLE,
+		TYPE_LONG_DOUBLE,
+		TYPE_4BYTE_BCD,
+		TYPE_8BYTE_BCD,
+		TYPE_10BYTE_BCD,
+		TYPE_COBOL_BCD,
+		TYPE_NEAR_POINTER,
+		TYPE_FAR_POINTER,
+		TYPE_SEGMENT_POINTER,
+		TYPE_NEAR386,
+		TYPE_FAR386,
+		TYPE_C_ARRAY,
+		TYPE_VERY_LARGE_ARRAY,
+		TYPE_PASCAL_ARRAY,
+		TYPE_BASIC_ARRAY_DESCRIPTOR,
+		TYPE_STRUCT,
+		TYPE_UNION,
+		TYPE_VERY_LARGE_STRUCT,
+		TYPE_VERY_LARGE_UNION,
+		TYPE_ENUM,
+		TYPE_FUNCTION,
+		TYPE_LABEL,
+		TYPE_SET,
+		TYPE_PASCAL_TEXT_FILE,
+		TYPE_PASCAL_BINARY_FILE,
+		TYPE_PASCAL_BOOLEAN,
+		TYPE_PASCAL_ENUM,
+		TYPE_RAW_PWORD,
+		TYPE_RAW_TBYTE,
+		TYPE_PROTOTYPE,
+		TYPE_SPECIAL_FUNCTION,
+		TYPE_CLASS,
+		TYPE_UNKNOWN_TYPE_2F,
+		TYPE_HANDLE_POINTER,
+		TYPE_UNKNOWN_TYPE_31,
+		TYPE_UNKNOWN_TYPE_32,
+		TYPE_MEMBER_POINTER,
+		TYPE_NEAR_REFERENCE_POINTER,
+		TYPE_FAR_REFERENCE_POINTER,
+		TYPE_WORD_BOOLEAN,
+		TYPE_LONG_BOOLEAN,
+		TYPE_NEW_MEMBER_PTR,
+		TYPE_UNKNOWN_TYPE_39,
+		TYPE_UNKNOWN_TYPE_3A,
+		TYPE_UNKNOWN_TYPE_3B,
+		TYPE_UNKNOWN_TYPE_3C,
+		TYPE_UNKNOWN_TYPE_3D,
+		TYPE_GLOBAL_HANDLE,
+		TYPE_LOCAL_HANDLE,
+
+		TYPES_COUNT
+	};
+
 	struct Type
 	{
 		uint8_t  id;
@@ -438,34 +508,27 @@ struct TDS
 			return *reinterpret_cast<const uint64_t*>(this);
 		}
 
-		bool isBasic() const
+		bool isPascalArray() const
 		{
-			return 0 == id || (id >= 4 && id <= 12);
-		}
-
-		bool isPascalString() const
-		{
-			return 3 == id;
-		}
-
-		bool isArray() const
-		{
-			return 0x1C == id;
+			return TYPE_PASCAL_ARRAY == id;
 		}
 
 		bool isStruct() const
 		{
-			return 0x1E == id;
+			return TYPE_STRUCT == id;
 		}
 
-		bool isEnum() const
+		bool isPascalEnum() const
 		{
-			return 0x29 == id;
+			return TYPE_PASCAL_ENUM == id;
 		}
 
 		bool hasExtendedTypeInfo() const
 		{
-			return isBasic() || isArray() || isEnum();
+			return TYPE_VOID == id 
+				|| (id >= TYPE_SIGNED_CHAR && id <= TYPE_DOUBLE)
+				|| isPascalArray()
+				|| isPascalEnum();
 		}
 	};
 
@@ -565,6 +628,13 @@ struct TDS
 	std::string typeString(const size_t typeIndex) const;
 
 	bool isGlobalSymbol(const size_t symbolIndex) const;
+
+	uint16_t elementTypeIndex(const size_t arrayTypeIndex) const
+	{
+		return TYPE_PASCAL_ARRAY == types[arrayTypeIndex].id
+			? types[arrayTypeIndex + 1].rawWord(0)
+			: 0;
+	}
 
 	class TypeIterator
 	{
@@ -833,7 +903,7 @@ void TDS::assignMissingTypeNames()
 		const Type& type = *i.type();
 
 		if (0 != type.name
-			|| !(type.isStruct() || type.isEnum()))
+			|| !(type.isStruct() || type.isPascalEnum()))
 		{
 			continue;
 		}
@@ -870,7 +940,7 @@ std::string TDS::findNameForType(const std::vector<Item>& collection, const size
 
 		const TDS::Type& symbolType = types[item.type];
 
-		if (symbolType.isArray() && typeIndex == symbolType.recordWord)
+		if (symbolType.isPascalArray() && typeIndex == symbolType.recordWord)
 		{
 			return names[item.name] + "$Element";
 		}
@@ -905,7 +975,7 @@ void TDS::applyPS10Specific()
 
 static const char* GetTypeString(const uint16_t id)
 {
-	static const char* TYPE_NAMES[] =
+	static const char* TYPE_NAMES[TDS::TYPES_COUNT] =
 	{
 		"void",
 		"BASIC literal string",
@@ -973,8 +1043,8 @@ static const char* GetTypeString(const uint16_t id)
 		"Local Handle"
 	};
 
-	return id < sizeof TYPE_NAMES / sizeof TYPE_NAMES[0]
-		? TYPE_NAMES[id]
+	return id < TDS::TYPES_COUNT 
+		? TYPE_NAMES[id] 
 		: "Bad Type ID";
 }
 
@@ -1020,9 +1090,7 @@ std::string TDS::typeString(const size_t typeIndex) const
 	}
 
 	const Type& type = types[typeIndex];
-	const uint16_t typeID = type.id;
-
-	std::string result = GetTypeString(typeID);
+	std::string result = GetTypeString(type.id);
 
 	if (names.size() <= type.name)
 	{
@@ -1041,43 +1109,43 @@ std::string TDS::typeString(const size_t typeIndex) const
 		: Type();
 	char addChars[256] = {};
 
-	switch (typeID)
+	switch (type.id)
 	{
-	case 3: // pascal string
+	case TYPE_PASCAL_STRING:
 		snprintf(addChars, sizeof addChars, "max %hhX ", type.recordByte);
 		break;
 
-	case 4: // int8_t
+	case TYPE_SIGNED_CHAR:
 		result += GetRange(type, extended, 0x0000007FFFFFFF80ULL);
 		break;
 
-	case 5: // int16_t
+	case TYPE_SIGNED_INT:
 		result += GetRange(type, extended, 0x00007FFFFFFF8000ULL);
 		break;
 
-	case 6: // int32_t
+	case TYPE_SIGNED_LONG:
 		result += GetRange(type, extended, 0x7FFFFFFF80000000ULL);
 		break;
 
-	case 8: // uint8_t
+	case TYPE_UNSIGNED_CHAR:
 		result += GetRange(type, extended, 0x000000FF00000000ULL);
 		break;
 
-	case 9: // uint16_t
+	case TYPE_UNSIGNED_INT:
 		result += GetRange(type, extended, 0x0000FFFF00000000ULL);
 		break;
 
-	case 10: // uint32_t
+	case TYPE_UNSIGNED_LONG:
 		result += GetRange(type, extended, 0xFFFFFFFF00000000ULL);
 		break;
 
-	case 22: // far pointers
-	case 25:
-	case 53:
+	case TYPE_FAR_POINTER:
+	case TYPE_FAR386:
+	case TYPE_FAR_REFERENCE_POINTER:
 		result += (0 == type.recordByte ? "" : "huge " ) + typeString(type.recordWord);
 		break;
 
-	case 35: // function
+	case TYPE_FUNCTION:
 		result += functionTypeString(type);
 		break;
 
@@ -1154,30 +1222,55 @@ static const char* GetTypeName(const TDS& tds, const size_t typeIndex)
 
 	switch (type.id)
 	{
-		case  3: return "char";
-		case  4: return "int8_t";
-		case  5: return "int16_t";
-		case  6: return "int32_t";
-		case  7: return "int64_t";
-		case  8: return "uint8_t";
-		case  9: return "uint16_t";
-		case 10: return "uint32_t";
-		case 11: return "uint64_t";
-		case 12: return "char";
-		case 13: return "float";
-		case 14: return "real_t";
-		case 15: return "double";
-		case 16: return "long double";
+	case TDS::TYPE_PASCAL_STRING:
+		return "char";
+
+	case TDS::TYPE_SIGNED_CHAR:
+		return "int8_t";
+
+	case TDS::TYPE_SIGNED_INT:
+		return "int16_t";
+
+	case TDS::TYPE_SIGNED_LONG:
+		return "int32_t";
+
+	case TDS::TYPE_SIGNED_QUAD:
+		return "int64_t";
+
+	case TDS::TYPE_UNSIGNED_CHAR:
+		return "uint8_t";
+
+	case TDS::TYPE_UNSIGNED_INT:
+		return "uint16_t";
+
+	case TDS::TYPE_UNSIGNED_LONG:
+		return "uint32_t";
+
+	case TDS::TYPE_UNSIGNED_QUAD:
+		return "uint64_t";
+
+	case TDS::TYPE_PASCAL_CHARACTER:
+		return "char";
+
+	case TDS::TYPE_FLOAT:
+		return "float";
+
+	case TDS::TYPE_PASCAL_6BYTE_REAL:
+		return "real_t";
+
+	case TDS::TYPE_DOUBLE:
+		return "double";
+
+	case TDS::TYPE_LONG_DOUBLE:
+		return "long double";
 
 		// TODO...
 
-		case 0x1C:
-		{
-			const uint16_t elementType = tds.types[typeIndex + 1].rawWord(0);
-			return GetTypeName(tds, elementType);
-		}
+	case TDS::TYPE_PASCAL_ARRAY:
+		return GetTypeName(tds, tds.elementTypeIndex(typeIndex));
 
-		default: return tds.names[type.name].c_str();
+	default: 
+		return tds.names[type.name].c_str();
 	}
 }
 
@@ -1187,39 +1280,36 @@ static const char* GetTypeFlags(const TDS& tds, const size_t typeIndex)
 
 	switch (type.id)
 	{
-		case 3:
-			return "FF_ASCI";
+	case TDS::TYPE_PASCAL_STRING:
+		return "FF_ASCI";
 
-		case 4:
-		case 8:
-		case 12:
-			return "FF_BYTE";
+	case TDS::TYPE_SIGNED_CHAR:
+	case TDS::TYPE_UNSIGNED_CHAR:
+	case TDS::TYPE_PASCAL_CHARACTER:
+		return "FF_BYTE";
 
-		case 5:
-		case 9:
-			return "FF_WORD";
+	case TDS::TYPE_SIGNED_INT:
+	case TDS::TYPE_UNSIGNED_INT:
+		return "FF_WORD";
 
-		case 6:
-		case 10:
-			return "FF_DWRD";
+	case TDS::TYPE_SIGNED_LONG:
+	case TDS::TYPE_UNSIGNED_LONG:
+		return "FF_DWRD";
 
-		case 7:
-		case 11:
-			return "FF_QWRD";
+	case TDS::TYPE_SIGNED_QUAD:
+	case TDS::TYPE_UNSIGNED_QUAD:
+		return "FF_QWRD";
 
-			// TODO...
+		// TODO...
 
-		case 0x1C:
-		{
-			const uint16_t elementType = tds.types[typeIndex + 1].rawWord(0);
-			return GetTypeFlags(tds, elementType);
-		}
+	case TDS::TYPE_PASCAL_ARRAY:
+		return GetTypeFlags(tds, tds.elementTypeIndex(typeIndex));
 
-		case 0x1E:
-			return "FF_STRU";
+	case TDS::TYPE_STRUCT:
+		return "FF_STRU";
 
-		default:
-			return "0";
+	default:
+		return "0";
 	}
 }
 
@@ -1229,17 +1319,14 @@ static int32_t GetElementSize(const TDS& tds, const size_t typeIndex)
 
 	switch (type.id)
 	{
-		case 3:
+		case TDS::TYPE_PASCAL_STRING:
 			return 1;
 
-		case 0x1C:
-		{
-			const uint16_t elementType = tds.types[typeIndex + 1].rawWord(0);
-			return tds.types[elementType].size;
-		}
+		case TDS::TYPE_PASCAL_ARRAY:
+			return GetElementSize(tds, tds.elementTypeIndex(typeIndex));
 
 		default:
-			return -1;
+			return type.size;
 	}
 }
 
@@ -1249,14 +1336,14 @@ static void GenerateTypes(const TDS& tds, FILE* const output)
 	{
 		const TDS::Type& type = *i.type();
 
-		if (!type.isStruct() && !type.isEnum())
+		if (!type.isStruct() && !type.isPascalEnum())
 		{
 			continue;
 		}
 
 		const char* const typeName = tds.names[type.name].c_str();
 
-		const bool isEnum = type.isEnum(); // Otherwise, it's a struct
+		const bool isEnum = type.isPascalEnum(); // Otherwise, it's a struct
 
 		if (isEnum)
 		{

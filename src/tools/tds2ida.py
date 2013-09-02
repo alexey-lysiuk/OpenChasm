@@ -31,10 +31,11 @@ def make_struc_member(struc, name, offset, type, size, element_size, flags):
 	typeid  = -1
 	comment = type
 
- 	if -1 != element_size:
+ 	if size != element_size:
 		comment += '[' + str(size / element_size) + ']'
 
 	if isASCII(flags):
+		# Specific to PS10.EXE: all strings are in Pascal format
 		typeid   = ASCSTR_PASCAL
 		comment += ' // Pascal string'
 	elif isStruct(flags):
