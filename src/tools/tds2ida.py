@@ -20,13 +20,7 @@
 from idaapi import *
 
 
-def make_struc(name):
-	return get_struc(add_struc(BADADDR, name))
-
-def make_struc_member(struc, name, offset, type, size, element_size, flags):
-	if not struc:
-		return
-
+def prepare_data_definition(type, size, element_size, flags):
 	flags  |= FF_DATA
 	typeid  = -1
 	comment = type
@@ -41,6 +35,17 @@ def make_struc_member(struc, name, offset, type, size, element_size, flags):
 	elif isStruct(flags):
 		typeid  = get_struc_id(type)
 		comment = 'struct ' + comment
+
+	return typeid, flags, comment
+
+def make_struc(name):
+	return get_struc(add_struc(BADADDR, name))
+
+def make_struc_member(struc, name, offset, type, size, element_size, flags):
+	if not struc:
+		return
+
+	typeid, flags, comment = prepare_data_definition(type, size, element_size, flags)
 
 	Eval('AddStrucMember(%d, "%s", %d, %d, %d, %d);' % (struc.id, name, offset, flags, typeid, size))
 
@@ -67,19 +72,15 @@ def make_func(segment, offset, name, type):
 	set_func_cmt(func, cmt, 1)
 	return func
 
-def make_data(segment, offset, name, type, size):
+def make_data(segment, offset, name, type, size, element_size, flags):
+	typeid, flags, comment = prepare_data_definition(type, size, element_size, flags)
+
 	ea = make_ea(segment, offset)
-	set_name(ea, name, SN_CHECK)
-	set_cmt(ea, type, 1)
 	do_unknown_range(ea, size, DOUNK_SIMPLE)
-	if 1 == size:
-		doByte(ea, 1)
-	elif 2 == size:
-		doWord(ea, 2)
-	elif 4 == size:
-		doDwrd(ea, 4)
-	else:
-		do_data_ex(ea, FF_BYTE, size, BADADDR)
+	do_data_ex(ea, flags, size, typeid)
+
+	set_name(ea, name, SN_CHECK)
+	set_cmt(ea, comment, 1)
 
 def make_import(imported_name, name, type):
 	ea = get_name_ea(BADADDR, imported_name)

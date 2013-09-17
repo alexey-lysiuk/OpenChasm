@@ -629,13 +629,6 @@ struct TDS
 
 	bool isGlobalSymbol(const size_t symbolIndex) const;
 
-	uint16_t elementTypeIndex(const size_t arrayTypeIndex) const
-	{
-		return TYPE_PASCAL_ARRAY == types[arrayTypeIndex].id
-			? types[arrayTypeIndex + 1].rawWord(0)
-			: 0;
-	}
-
 	class TypeIterator
 	{
 	public:
@@ -1216,7 +1209,7 @@ static void GeneratePS10Specifics(FILE* output)
 }
 
 
-static const char* GetTypeName(const TDS& tds, const size_t typeIndex)
+static std::string GetTypeName(const TDS& tds, const size_t typeIndex)
 {
 	const TDS::Type& type = tds.types[typeIndex];
 
@@ -1266,8 +1259,32 @@ static const char* GetTypeName(const TDS& tds, const size_t typeIndex)
 
 		// TODO...
 
+    case TDS::TYPE_NEAR_POINTER:
+		case TDS::TYPE_FAR_POINTER:
+		{
+			const TDS::Type& pointedType = tds.types[type.recordWord];
+
+			if (TDS::TYPE_FUNCTION == pointedType.id)
+			{
+				const std::string typeName = GetTypeName(tds, pointedType.recordWord);
+				return typeName.empty()
+					? "void (*)()"
+					: typeName + " (*)()";
+			}
+			else
+			{
+				const std::string typeName = GetTypeName(tds, type.recordWord);
+				return typeName.empty()
+					? "void*"
+					: typeName + '*';
+			}
+		}
+
 	case TDS::TYPE_PASCAL_ARRAY:
-		return GetTypeName(tds, tds.elementTypeIndex(typeIndex));
+		return GetTypeName(tds, type.recordWord);
+
+	case TDS::TYPE_PASCAL_BOOLEAN:
+		return "bool";
 
 	default: 
 		return tds.names[type.name].c_str();
@@ -1286,6 +1303,7 @@ static const char* GetTypeFlags(const TDS& tds, const size_t typeIndex)
 	case TDS::TYPE_SIGNED_CHAR:
 	case TDS::TYPE_UNSIGNED_CHAR:
 	case TDS::TYPE_PASCAL_CHARACTER:
+	case TDS::TYPE_PASCAL_BOOLEAN:
 		return "FF_BYTE";
 
 	case TDS::TYPE_SIGNED_INT:
@@ -1294,6 +1312,7 @@ static const char* GetTypeFlags(const TDS& tds, const size_t typeIndex)
 
 	case TDS::TYPE_SIGNED_LONG:
 	case TDS::TYPE_UNSIGNED_LONG:
+	case TDS::TYPE_FAR_POINTER:
 		return "FF_DWRD";
 
 	case TDS::TYPE_SIGNED_QUAD:
@@ -1303,7 +1322,7 @@ static const char* GetTypeFlags(const TDS& tds, const size_t typeIndex)
 		// TODO...
 
 	case TDS::TYPE_PASCAL_ARRAY:
-		return GetTypeFlags(tds, tds.elementTypeIndex(typeIndex));
+		return GetTypeFlags(tds, type.recordWord);
 
 	case TDS::TYPE_STRUCT:
 		return "FF_STRU";
@@ -1313,7 +1332,7 @@ static const char* GetTypeFlags(const TDS& tds, const size_t typeIndex)
 	}
 }
 
-static int32_t GetElementSize(const TDS& tds, const size_t typeIndex)
+static uint16_t GetElementSize(const TDS& tds, const size_t typeIndex)
 {
 	const TDS::Type& type = tds.types[typeIndex];
 
@@ -1323,7 +1342,7 @@ static int32_t GetElementSize(const TDS& tds, const size_t typeIndex)
 			return 1;
 
 		case TDS::TYPE_PASCAL_ARRAY:
-			return GetElementSize(tds, tds.elementTypeIndex(typeIndex));
+			return GetElementSize(tds, type.recordWord);
 
 		default:
 			return type.size;
@@ -1384,8 +1403,8 @@ static void GenerateTypes(const TDS& tds, FILE* const output)
 			}
 			else
 			{
-				fprintf(output, "make_struc_member(struc, '%s', %hu, '%s', %hu, %i, %s)\n",
-					memberName, offset, GetTypeName(tds, member.type), memberSize,
+				fprintf(output, "make_struc_member(struc, '%s', %hu, '%s', %hu, %hu, %s)\n",
+					memberName, offset, GetTypeName(tds, member.type).c_str(), memberSize,
 					GetElementSize(tds, member.type), GetTypeFlags(tds, member.type));
 			}
 
@@ -1431,8 +1450,11 @@ static void GenerateSymbols(const TDS& tds, FILE* const output)
 		}
 		else if (tds.executable.segments[symbol.segment].flags & Executable::SEGMENT_DATA)
 		{
-			fprintf(output, "make_data(%hu, 0x%04hx, \"%s\", \"%s\", %hu)\n",
-				symbol.segment, symbol.offset, name, type, tds.types[symbol.type].size);
+			fprintf(output, "make_data(%hu, 0x%04hx, '%s', '%s', %hu, %hu, %s)\n",
+				symbol.segment, symbol.offset, 
+				name, GetTypeName(tds, symbol.type).c_str(),
+				tds.types[symbol.type].size, GetElementSize(tds, symbol.type),
+				GetTypeFlags(tds, symbol.type));
 		}
 		else
 		{
