@@ -37,6 +37,8 @@
 		8A2E439217B7633300EEC482 /* OpenChasm.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OpenChasm.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A2E439517B7633300EEC482 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		8A3ACEEC17F829C1002E550F /* ps10.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ps10.h; sourceTree = "<group>"; };
+		8A3ACEF617F841C5002E550F /* precomp.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = precomp.cpp; sourceTree = "<group>"; };
+		8A3ACEF717F841C5002E550F /* precomp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = precomp.h; sourceTree = "<group>"; };
 		8ACD55B117B763C500C2640A /* OpenChasm-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "OpenChasm-Info.plist"; sourceTree = "<group>"; };
 		8ACD55E617B76C3000C2640A /* cs3dm2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cs3dm2.cpp; sourceTree = "<group>"; };
 		8ACD55E717B76C3000C2640A /* cs3dm2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cs3dm2.h; sourceTree = "<group>"; };
@@ -178,6 +180,8 @@
 				8ACD55FB17B76C3100C2640A /* csrtla.h */,
 				8ACD55FC17B76C3100C2640A /* csvesa.cpp */,
 				8ACD55FD17B76C3100C2640A /* csvesa.h */,
+				8A3ACEF617F841C5002E550F /* precomp.cpp */,
+				8A3ACEF717F841C5002E550F /* precomp.h */,
 				8ACD55FE17B76C3100C2640A /* ps10.cpp */,
 				8A3ACEEC17F829C1002E550F /* ps10.h */,
 			);
@@ -423,6 +427,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = src/chasm/precomp.h;
 				HEADER_SEARCH_PATHS = src/chasm;
 				INFOPLIST_FILE = "res/OpenChasm-Info.plist";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -434,6 +440,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = src/chasm/precomp.h;
 				HEADER_SEARCH_PATHS = src/chasm;
 				INFOPLIST_FILE = "res/OpenChasm-Info.plist";
 				PRODUCT_NAME = "$(TARGET_NAME)";
