@@ -87,17 +87,24 @@ def make_import(imported_name, name, type):
 	set_name(ea, name, SN_CHECK)
 	set_cmt(ea, type, 1)
 
-def make_local(func, offset, name, type):
+def make_local(func, offset, name, type, size, element_size, flags):
 	offset += func.frsize
+
 	frame = get_frame(func)
 	set_member_name(frame, offset, name)
+
 	member = None
+	typeid = -1
+	comment = ''
+
 	try:
 		member = get_member(frame, offset)
+		typeid, flags, comment = prepare_data_definition(type, size, element_size, flags)
 	except OverflowError:
-		pass
+		print 'Failed to make local', name, 'of type', type
+
 	if member:
-		set_member_cmt(member, type, 1)
+		set_member_cmt(member, comment, 1)
 
 def make_src_file(segment, start_offset, end_offset, filename):
 	start_addr = make_ea(segment, start_offset)

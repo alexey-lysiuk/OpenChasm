@@ -1480,11 +1480,11 @@ static void GenerateSymbols(const TDS& tds, FILE* const output)
 						continue;
 					}
 
-					const std::string localType = tds.typeString(local.type);
-
-					fprintf(output, "make_local(func, %hi, \"%s\", \"%s\")\n",
-						static_cast<int16_t>(local.offset),
-						tds.names[local.name].c_str(), localType.c_str());
+					fprintf(output, "make_local(func, %hi, '%s', '%s', %hu, %hu, %s)\n",
+							static_cast<int16_t>(local.offset),
+							tds.names[local.name].c_str(), GetTypeName(tds, local.type).c_str(),
+							tds.types[local.type].size, GetElementSize(tds, local.type),
+							GetTypeFlags(tds, local.type));
 				}
 			}
 		}
