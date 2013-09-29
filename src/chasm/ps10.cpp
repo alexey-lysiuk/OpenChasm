@@ -21,6 +21,8 @@
 
 #include "ps10.h"
 
+#include "cspbio.h"
+
 //@ ; #line	"PS10.PAS" 43
 //@ 
 //@ ; =============== S U B	R O U T	I N E =======================================
@@ -22101,16 +22103,16 @@
 //@ aLevel01Script_	db 17,'LEVEL01\script.01' ; DATA XREF: PROGRAM+DE8o
 //@ aIntro		db 5,'Intro'            ; DATA XREF: PROGRAM+E3Ao
 //@ aGameLoaded_	db 12,'Game Loaded.'    ; DATA XREF: PROGRAM+E66o
-//@ 		assume ss:dseg12
-//@ ; #line	"PS10.PAS" 4306
-//@ 
-//@ ; =============== S U B	R O U T	I N E =======================================
-//@ 
-//@ ; Attributes: bp-based frame
-//@ 
-//@ 		public PROGRAM
-//@ PROGRAM		proc near
-//@
+//! 		assume ss:dseg12
+//! ; #line	"PS10.PAS" 4306
+//!
+//! ; =============== S U B	R O U T	I N E =======================================
+//!
+//! ; Attributes: bp-based frame
+//!
+//! 		public PROGRAM
+//! PROGRAM		proc near
+//!
 int main(int argc, char** argv)
 {
 //@ var_500		= byte ptr -500h
@@ -22126,11 +22128,12 @@ int main(int argc, char** argv)
 //@ var_100		= byte ptr -100h
 //@ var_4		= dword	ptr -4
 //@ 
-//@ 		call	KERNEL_91	; Call Procedure
-//@ 		call	@__SystemInit$qv ; Initialize run-time library
-//@ 		call	@__CrtInit$qv	; __CrtInit(void)
+//! 		call	KERNEL_91	; Call Procedure
+//! 		call	@__SystemInit$qv ; Initialize run-time library
+//! 		call	@__CrtInit$qv	; __CrtInit(void)
 //@ 		call	$SoundIPInit	; Call Procedure
-//@ 		call	$CspBioInit	; Call Procedure
+//! 		call	$CspBioInit	; Call Procedure
+	CspBioInit();
 //@ 		call	$CspRndrInit	; Call Procedure
 //@ 		call	$CsMenuInit	; Call Procedure
 //@ 		call	$CspUtlInit	; Call Procedure

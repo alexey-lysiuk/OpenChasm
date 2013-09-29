@@ -587,6 +587,8 @@
 //@ 
 //@ InitVideo	proc near		; CODE XREF: $CspBioInit+3p
 //@ 
+void InitVideo()
+{
 //@ DOSBuf		= dword	ptr -312h	; struct XRPointer
 //@ VESAMode	= byte ptr -30Ah	; struct ModeInfoBlock
 //@ var_306		= word ptr -306h
@@ -623,7 +625,7 @@
 //@ ; #line	"CSVESA.PAS" 171
 //@ 		push	0
 //@ 		push	140h
-//@ 		push	0C8h ; 'È'
+//@ 		push	0C8h ; 'ï¿ˆ'
 //@ 		push	140h
 //@ 		push	1
 //@ 		push	bp
@@ -903,6 +905,7 @@
 //@ locret_2B175:				; CODE XREF: InitVideo+A6j
 //@ 		leave			; High Level Procedure Exit
 //@ 		retn			; Return Near from Procedure
+}
 //@ InitVideo	endp
 //@ 
 //@ ; #line	"CSVESA.PAS" 257
@@ -1405,7 +1408,7 @@
 //@ 		add	ax, 12Fh	; Add
 //@ 		push	ax
 //@ 		mov	ax, es:[di+2]
-//@ 		add	ax, 95h	; '•'   ; Add
+//@ 		add	ax, 95h	; 'ï¾•'   ; Add
 //@ 		push	ax
 //@ 		push	3
 //@ 		push	1
@@ -1847,7 +1850,7 @@
 //@ 		mov	word ptr VideoW, 140h ;	int32_t
 //@ 		mov	word ptr VideoW+2, 0 ; int32_t
 //@ ; #line	"CSVESA.PAS" 643
-//@ 		mov	word ptr VideoH, 0C8h ;	'È' ; int32_t
+//@ 		mov	word ptr VideoH, 0C8h ;	'ï¿ˆ' ; int32_t
 //@ 		mov	word ptr VideoH+2, 0 ; int32_t
 //@ ; #line	"CSVESA.PAS" 644
 //@ 		mov	word ptr VideoBPL, 140h	; int32_t
@@ -2032,7 +2035,7 @@
 //@ ; #line	"CSVESA.PAS" 680
 //@ 		call	SetPalette	; function far PASCAL returns void
 //@ ; #line	"CSVESA.PAS" 681
-//@ 		push	0C8h ; 'È'
+//@ 		push	0C8h ; 'ï¿ˆ'
 //@ 		call	@Delay$q4Word	; function far PASCAL returns void
 //@ ; #line	"CSVESA.PAS" 682
 //@ 		lea	di, [bp+var_204] ; Load	Effective Address

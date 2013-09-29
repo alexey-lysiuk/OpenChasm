@@ -21,6 +21,37 @@
 
 #include "cspbio.h"
 
+#include "csvesa.h"
+
+
+uint16_t CurVideoMode;
+
+bool Internal;
+
+FILE* F;
+int32_t Ll;
+
+
+static char BaseFile[81]; // TODO: filesystem
+
+static const size_t FILE_NAME_SIZE = 13;
+
+#pragma pack(push, 1)
+
+struct TFileTableElement
+{
+	char    FName[FILE_NAME_SIZE];
+	int32_t FSize;
+	int32_t FBase;
+};
+
+#pragma pack(pop)
+
+TFileTableElement FileTable[2048];
+
+static uint16_t intFCnt;
+
+
 //@ ; #line	"CSPBIO.PAS" 1162
 //@ 
 //@ ; =============== S U B	R O U T	I N E =======================================
@@ -351,92 +382,97 @@
 //@ 		retf	0Ah		; Return Far from Procedure
 //@ movsw		endp
 //@ 
-//@ ; #line	"CSPBIO.PAS" 1308
-//@ 
-//@ ; =============== S U B	R O U T	I N E =======================================
-//@ 
-//@ ; function far PASCAL returns PASCAL boolean 'Boolean'
-//@ ; Attributes: bp-based frame
-//@ 
-//@ ExistFile	proc far		; CODE XREF: ScanSavedNames+65P
-//@ 					; FOpen+53P ...
-//@ 
-//@ Regs		= word ptr -116h	; struct Registers
-//@ var_110		= word ptr -110h
-//@ var_108		= word ptr -108h
-//@ var_104		= byte ptr -104h
-//@ FLen		= byte ptr -102h	; uint8_t
-//@ var_101		= byte ptr -101h
-//@ ExistFile	= byte ptr -1		; bool
-//@ arg_0		= dword	ptr  6
-//@ 
-//@ 		enter	116h, 0		; Make Stack Frame for Procedure Parameters
-//@ 		mov	bx, ss
-//@ 		mov	es, bx
-//@ 		mov	bx, ds
-//@ 		cld			; Clear	Direction Flag
-//@ 		lea	di, [bp+FLen]	; uint8_t
-//@ 		lds	si, [bp+arg_0]	; Load Full Pointer to DS:xx
-//@ 		lodsb			; Load String
-//@ 		stosb			; Store	String
-//@ 		xchg	ax, cx		; Exchange Register/Memory with	Register
-//@ 		xor	ch, ch		; Logical Exclusive OR
-//@ 		rep movsb		; Move Byte(s) from String to String
-//@ 		mov	ds, bx
-//@ ; #line	"CSPBIO.PAS" 1309
-//@ 		cmp	[bp+FLen], 0	; uint8_t
-//@ 		jnz	short loc_2B9EA	; Jump if Not Zero (ZF=0)
-//@ 		mov	[bp+ExistFile],	0 ; bool
-//@ 		jmp	short loc_2BA34	; Jump
-//@ ; ---------------------------------------------------------------------------
-//@ ; #line	"CSPBIO.PAS" 1311
-//@ 
-//@ loc_2B9EA:				; CODE XREF: ExistFile+20j
-//@ 		inc	[bp+FLen]	; uint8_t
-//@ ; #line	"CSPBIO.PAS" 1312
-//@ 		mov	al, [bp+FLen]	; uint8_t
-//@ 		xor	ah, ah		; Logical Exclusive OR
-//@ 		mov	di, ax
-//@ 		mov	[bp+di+FLen], 0	; uint8_t
-//@ ; #line	"CSPBIO.PAS" 1313
-//@ 		mov	[bp+Regs], 4300h ; struct Registers
-//@ ; #line	"CSPBIO.PAS" 1314
-//@ 		mov	ax, ss
-//@ 		mov	[bp+var_108], ax
-//@ ; #line	"CSPBIO.PAS" 1315
-//@ 		lea	ax, [bp+var_101] ; Load	Effective Address
-//@ 		mov	[bp+var_110], ax
-//@ ; #line	"CSPBIO.PAS" 1316
-//@ 		lea	di, [bp+Regs]	; struct Registers
-//@ 		push	ss
-//@ 		push	di
-//@ 		call	@MsDos$qm9Registers ; function far PASCAL returns void\nfunction far PASCAL returns void
-//@ ; #line	"CSPBIO.PAS" 1317
-//@ 		mov	al, [bp+var_104]
-//@ 		shr	al, 1		; Shift	Logical	Right
-//@ 		jb	short loc_2BA2B	; Jump if Below	(CF=1)
-//@ 		call	@IOResult$qv	; IOResult: Word{AX}
-//@ 		or	ax, ax		; Logical Inclusive OR
-//@ 		jz	short loc_2BA2F	; Jump if Zero (ZF=1)
-//@ 
-//@ loc_2BA2B:				; CODE XREF: ExistFile+5Ej
-//@ 		mov	al, 0
-//@ 		jmp	short loc_2BA31	; Jump
-//@ ; ---------------------------------------------------------------------------
-//@ 
-//@ loc_2BA2F:				; CODE XREF: ExistFile+67j
-//@ 		mov	al, 1
-//@ 
-//@ loc_2BA31:				; CODE XREF: ExistFile+6Bj
-//@ 		mov	[bp+ExistFile],	al ; bool
-//@ ; #line	"CSPBIO.PAS" 1319
-//@ 
-//@ loc_2BA34:				; CODE XREF: ExistFile+26j
-//@ 		mov	al, [bp+ExistFile] ; bool
-//@ 		leave			; High Level Procedure Exit
-//@ 		retf	4		; Return Far from Procedure
-//@ ExistFile	endp
-//@ 
+//! ; #line	"CSPBIO.PAS" 1308
+//! 
+//! ; =============== S U B	R O U T	I N E =======================================
+//! 
+//! ; function far PASCAL returns PASCAL boolean 'Boolean'
+//! ; Attributes: bp-based frame
+//! 
+//! ExistFile	proc far		; CODE XREF: ScanSavedNames+65P
+//! 					; FOpen+53P ...
+//!
+bool ExistFile(const char* const filename)
+{
+//! Regs		= word ptr -116h	; struct Registers
+//! var_110		= word ptr -110h
+//! var_108		= word ptr -108h
+//! var_104		= byte ptr -104h
+//! FLen		= byte ptr -102h	; uint8_t
+//! var_101		= byte ptr -101h
+//! ExistFile	= byte ptr -1		; bool
+//! arg_0		= dword	ptr  6
+//!
+	struct stat dummy;
+	return 0 == stat(filename, &dummy);
+//! 		enter	116h, 0		; Make Stack Frame for Procedure Parameters
+//! 		mov	bx, ss
+//! 		mov	es, bx
+//! 		mov	bx, ds
+//! 		cld			; Clear	Direction Flag
+//! 		lea	di, [bp+FLen]	; uint8_t
+//! 		lds	si, [bp+arg_0]	; Load Full Pointer to DS:xx
+//! 		lodsb			; Load String
+//! 		stosb			; Store	String
+//! 		xchg	ax, cx		; Exchange Register/Memory with	Register
+//! 		xor	ch, ch		; Logical Exclusive OR
+//! 		rep movsb		; Move Byte(s) from String to String
+//! 		mov	ds, bx
+//! ; #line	"CSPBIO.PAS" 1309
+//! 		cmp	[bp+FLen], 0	; uint8_t
+//! 		jnz	short loc_2B9EA	; Jump if Not Zero (ZF=0)
+//! 		mov	[bp+ExistFile],	0 ; bool
+//! 		jmp	short loc_2BA34	; Jump
+//! ; ---------------------------------------------------------------------------
+//! ; #line	"CSPBIO.PAS" 1311
+//! 
+//! loc_2B9EA:				; CODE XREF: ExistFile+20j
+//! 		inc	[bp+FLen]	; uint8_t
+//! ; #line	"CSPBIO.PAS" 1312
+//! 		mov	al, [bp+FLen]	; uint8_t
+//! 		xor	ah, ah		; Logical Exclusive OR
+//! 		mov	di, ax
+//! 		mov	[bp+di+FLen], 0	; uint8_t
+//! ; #line	"CSPBIO.PAS" 1313
+//! 		mov	[bp+Regs], 4300h ; struct Registers
+//! ; #line	"CSPBIO.PAS" 1314
+//! 		mov	ax, ss
+//! 		mov	[bp+var_108], ax
+//! ; #line	"CSPBIO.PAS" 1315
+//! 		lea	ax, [bp+var_101] ; Load	Effective Address
+//! 		mov	[bp+var_110], ax
+//! ; #line	"CSPBIO.PAS" 1316
+//! 		lea	di, [bp+Regs]	; struct Registers
+//! 		push	ss
+//! 		push	di
+//! 		call	@MsDos$qm9Registers ; function far PASCAL returns void\nfunction far PASCAL returns void
+//! ; #line	"CSPBIO.PAS" 1317
+//! 		mov	al, [bp+var_104]
+//! 		shr	al, 1		; Shift	Logical	Right
+//! 		jb	short loc_2BA2B	; Jump if Below	(CF=1)
+//! 		call	@IOResult$qv	; IOResult: Word{AX}
+//! 		or	ax, ax		; Logical Inclusive OR
+//! 		jz	short loc_2BA2F	; Jump if Zero (ZF=1)
+//! 
+//! loc_2BA2B:				; CODE XREF: ExistFile+5Ej
+//! 		mov	al, 0
+//! 		jmp	short loc_2BA31	; Jump
+//! ; ---------------------------------------------------------------------------
+//! 
+//! loc_2BA2F:				; CODE XREF: ExistFile+67j
+//! 		mov	al, 1
+//! 
+//! loc_2BA31:				; CODE XREF: ExistFile+6Bj
+//! 		mov	[bp+ExistFile],	al ; bool
+//! ; #line	"CSPBIO.PAS" 1319
+//! 
+//! loc_2BA34:				; CODE XREF: ExistFile+26j
+//! 		mov	al, [bp+ExistFile] ; bool
+//! 		leave			; High Level Procedure Exit
+//! 		retf	4		; Return Far from Procedure
+}
+//! ExistFile	endp
+//!
 //@ ; #line	"CSPBIO.PAS" 1325
 //@ 
 //@ ; =============== S U B	R O U T	I N E =======================================
@@ -764,7 +800,8 @@
 //@ asc_2BBF8	db 1,')'                ; DATA XREF: FOpen+109o FOpen+27Eo ...
 //@ aFseekErrorInFi	db 20,'FSeek error in file '
 //@ aCsm_binOpenErr	db 26,'CSM.BIN Open Error. (File:' ; DATA XREF: FOpen+26Ao
-//@ aChasmdat	db 9,'CHASMDAT\'        ; DATA XREF: FOpen+2AEo
+//! aChasmdat	db 9,'CHASMDAT\'        ; DATA XREF: FOpen+2AEo
+static const char* const CHASM_DATA_DIRECTORY = "CHASMDAT/";
 //@ ; #line	"CSPBIO.PAS" 1417
 //@ 
 //@ ; =============== S U B	R O U T	I N E =======================================
@@ -1022,53 +1059,53 @@
 //@ 		jmp	short loc_2BE91	; Jump
 //@ ; ---------------------------------------------------------------------------
 //@ ; #line	"CSPBIO.PAS" 1441
-//@ 		db 0C4h	; Ä
+//@ 		db 0C4h	; ï¿„
 //@ 		db  7Eh	; ~
 //@ 		db  0Ah
 //@ 		db    6
 //@ 		db  57h	; W
-//@ 		db  9Ah	; š
+//@ 		db  9Ah	; ï¾š
 //@ 		dd @FilePos$qm4File	; FilePos(var f): Longint{DX:AX}
-//@ 		db 0C4h	; Ä
+//@ 		db 0C4h	; ï¿„
 //@ 		db  7Eh	; ~
 //@ 		db  0Ah
 //@ 		db  26h	; &
 //@ 		db  3Bh	; ;
-//@ 		db  95h	; •
-//@ 		db  82h	; ‚
+//@ 		db  95h	; ï¾•
+//@ 		db  82h	; ï¾‚
 //@ 		db    0
 //@ 		db  75h	; u
 //@ 		db    7
 //@ 		db  26h	; &
 //@ 		db  3Bh	; ;
-//@ 		db  85h	; …
-//@ 		db  80h	; €
+//@ 		db  85h	; ï¾…
+//@ 		db  80h	; ï¾€
 //@ 		db    0
 //@ 		db  74h	; t
 //@ 		db  20h
 //@ ; #line	"CSPBIO.PAS" 1442
-//@ 		db  8Dh	; 
-//@ 		db 0BEh	; ¾
-//@ 		db 0FAh	; ú
-//@ 		db 0FDh	; ý
+//@ 		db  8Dh	; ï¾
+//@ 		db 0BEh	; ï¾¾
+//@ 		db 0FAh	; ï¿º
+//@ 		db 0FDh	; ï¿½
 //@ 		db  16h
 //@ 		db  57h	; W
-//@ 		db 0BFh	; ¿
+//@ 		db 0BFh	; ï¾¿
 //@ 		db  7Ah	; z
 //@ 		db  0Fh
 //@ 		db  0Eh
 //@ 		db  57h	; W
-//@ 		db  9Ah	; š
+//@ 		db  9Ah	; ï¾š
 //@ 		dd @$basg$qm6Stringt1	; Load string
-//@ 		db  8Dh	; 
-//@ 		db 0BEh	; ¾
+//@ 		db  8Dh	; ï¾
+//@ 		db 0BEh	; ï¾¾
 //@ 		db    0
 //@ 		db 0FFh
 //@ 		db  16h
 //@ 		db  57h	; W
-//@ 		db  9Ah	; š
+//@ 		db  9Ah	; ï¾š
 //@ 		dd @Concat$qm6Stringt1	; Concat(dst, src: String): String
-//@ 		db  9Ah	; š
+//@ 		db  9Ah	; ï¾š
 //@ 		dd DoHalt		; function far PASCAL returns void
 //@ ; ---------------------------------------------------------------------------
 //@ ; #line	"CSPBIO.PAS" 1443
@@ -1739,10 +1776,10 @@
 //@ 					; DATA XREF: ShowFinalScreen+45o
 //@ aDevelopedByAct	db 39,'         Developed by Action Forms Ltd.'
 //@ 					; DATA XREF: ShowFinalScreen+52o
-//@ asc_2C451	db 73,'ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ'
+//@ asc_2C451	db 73,'ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„'
 //@ 					; DATA XREF: ShowFinalScreen+5Fo
 //@ 					; ShowFinalScreen+E1o
-//@ 		db 'ÄÄÄÄÄÄÄÄÄÄÄ'
+//@ 		db 'ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„'
 //@ aProgrammingOle	db 32,' Programming      :  Oleg Slusar' ; DATA XREF: ShowFinalScreen+6Co
 //@ aArtworkYarosla	db 41,' Artwork          :  Yaroslav Kravchenko,'
 //@ 					; DATA XREF: ShowFinalScreen+79o
@@ -1819,7 +1856,7 @@
 //@ ; #line	"CSPBIO.PAS" 1532
 //@ 		push	4
 //@ 		push	8
-//@ 		mov	di, offset asc_2C451 ; "ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ"...
+//@ 		mov	di, offset asc_2C451 ; "ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„"...
 //@ 		push	cs
 //@ 		push	di
 //@ 		push	bp
@@ -1899,7 +1936,7 @@
 //@ ; #line	"CSPBIO.PAS" 1542
 //@ 		push	4
 //@ 		push	12h
-//@ 		mov	di, offset asc_2C451 ; "ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ"...
+//@ 		mov	di, offset asc_2C451 ; "ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„ï¿„"...
 //@ 		push	cs
 //@ 		push	di
 //@ 		push	bp
@@ -2158,14 +2195,16 @@
 //@ aNquit_0	db 5,'NQUIT'            ; DATA XREF: DoHalt+71o
 //@ ; #line	"CSPBIO.PAS" 1611
 //@ 
-//@ ; =============== S U B	R O U T	I N E =======================================
-//@ 
-//@ ; function far PASCAL returns void
-//@ ; Attributes: noreturn bp-based	frame
-//@ 
-//@ DoHalt		proc near		; CODE XREF: AnimateSwitches+69P
-//@ 					; CheckQuit+244P ...
-//@ 
+//! ; =============== S U B	R O U T	I N E =======================================
+//!
+//! ; function far PASCAL returns void
+//! ; Attributes: noreturn bp-based	frame
+//!
+//! DoHalt		proc near		; CODE XREF: AnimateSwitches+69P
+//! 					; CheckQuit+244P ...
+//!
+void DoHalt(const char* const message)
+{
 //@ Mess		= byte ptr -100h	; char[256] // Pascal string
 //@ arg_2		= dword	ptr  6
 //@ 
@@ -2244,6 +2283,7 @@
 //@ 		push	0
 //@ 		call	@Write$qm4Textm6String4Word ; Write(var	f; s: String; width: Word)
 //@ 		call	@WriteLn$qm4Text ; WriteLn(var f: Text)
+	puts(message);
 //@ ; #line	"CSPBIO.PAS" 1625
 //@ 
 //@ loc_2C941:				; CODE XREF: DoHalt+80j DoHalt+A7j
@@ -2258,12 +2298,14 @@
 //@ loc_2C951:				; CODE XREF: DoHalt+A0j
 //@ 		xor	ax, ax		; Logical Exclusive OR
 //@ 		call	far ptr	@Halt$q4Word ; Halt(exitcode: Word{AX})
-//@ DoHalt		endp
-//@ 
+	exit(EXIT_SUCCESS);
+}
+//! DoHalt		endp
+//!
 //@ ; ---------------------------------------------------------------------------
 //@ ; #line	"CSPBIO.PAS" 1627
-//@ 		db 0C9h	; É
-//@ 		db 0CAh	; Ê
+//@ 		db 0C9h	; ï¿‰
+//@ 		db 0CAh	; ï¿Š
 //@ 		db    4
 //@ 		db    0
 //@ a@_23		db 3,'@##'              ; DATA XREF: ChI+28o
@@ -2333,23 +2375,25 @@
 //@ 		retf			; Return Far from Procedure
 //@ ChI		endp
 //@ 
-//@ ; ---------------------------------------------------------------------------
-//@ a@_24		db 2,'@#'               ; DATA XREF: GetMem16+4Eo GetMem16+7Do ...
-//@ aMemoryAllocati	db 36,'Memory allocation error.  (Request: ' ; DATA XREF: GetMem16+3Eo
-//@ aAvailable	db 12,' Available: '    ; DATA XREF: GetMem16+6Do
-//@ asc_2CA13	db 1,'('                ; DATA XREF: GetMem16+A3o
-//@ asc_2CA15	db 1,')'                ; DATA XREF: GetMem16+D9o
-//@ aInternalMemory	db 33,'Internal memory allocation error.' ; DATA XREF: GetMem16+103o
-//@ ; #line	"CSPBIO.PAS" 1639
-//@ 
-//@ ; =============== S U B	R O U T	I N E =======================================
-//@ 
-//@ ; function far PASCAL returns void
-//@ ; Attributes: bp-based frame
-//@ 
-//@ GetMem16	proc far		; CODE XREF: ConnectIPXProcessor+91P
-//@ 					; LoadVoice+178P ...
-//@ 
+//! ; ---------------------------------------------------------------------------
+//! a@_24		db 2,'@#'               ; DATA XREF: GetMem16+4Eo GetMem16+7Do ...
+//! aMemoryAllocati	db 36,'Memory allocation error.  (Request: ' ; DATA XREF: GetMem16+3Eo
+//! aAvailable	db 12,' Available: '    ; DATA XREF: GetMem16+6Do
+//! asc_2CA13	db 1,'('                ; DATA XREF: GetMem16+A3o
+//! asc_2CA15	db 1,')'                ; DATA XREF: GetMem16+D9o
+//! aInternalMemory	db 33,'Internal memory allocation error.' ; DATA XREF: GetMem16+103o
+//! ; #line	"CSPBIO.PAS" 1639
+//!
+//! ; =============== S U B	R O U T	I N E =======================================
+//!
+//! ; function far PASCAL returns void
+//! ; Attributes: bp-based frame
+//!
+//! GetMem16	proc far		; CODE XREF: ConnectIPXProcessor+91P
+//! 					; LoadVoice+178P ...
+//!
+void* GetMem16(const uint16_t size)
+{
 //@ var_400		= byte ptr -400h
 //@ var_300		= byte ptr -300h
 //@ var_200		= byte ptr -200h
@@ -2478,8 +2522,18 @@
 //@ locret_2CB46:				; CODE XREF: GetMem16+101j
 //@ 		leave			; High Level Procedure Exit
 //@ 		retf	6		; Return Far from Procedure
-//@ GetMem16	endp
-//@ 
+
+	void* const result = malloc(size);
+
+	if (NULL == result)
+	{
+		DoHalt("Internal memory allocation error.");
+	}
+
+	return result;
+}
+//! GetMem16	endp
+//! 
 //@ ; #line	"CSPBIO.PAS" 1662
 //@ 
 //@ ; =============== S U B	R O U T	I N E =======================================
@@ -2543,11 +2597,11 @@
 //@ 		mov	si, 0DAA2h
 //@ 		mov	di, 490Fh
 //@ 		call	@$brmul$q4Realt1 ; Real(AX:BX:DX)*=Real(CX:SI:DI)
-//@ 		mov	cx, 82h	; '‚'
+//@ 		mov	cx, 82h	; 'ï¾‚'
 //@ 		xor	si, si		; Logical Exclusive OR
 //@ 		xor	di, di		; Logical Exclusive OR
 //@ 		call	@$brmul$q4Realt1 ; Real(AX:BX:DX)*=Real(CX:SI:DI)
-//@ 		mov	cx, 91h	; '‘'
+//@ 		mov	cx, 91h	; 'ï¾‘'
 //@ 		xor	si, si		; Logical Exclusive OR
 //@ 		xor	di, di		; Logical Exclusive OR
 //@ 		call	@$brdiv$q4Realt1 ; Real(AX:BX:DX)/=Real(CX:SI:DI)
@@ -2564,11 +2618,11 @@
 //@ 		mov	si, 0DAA2h
 //@ 		mov	di, 490Fh
 //@ 		call	@$brmul$q4Realt1 ; Real(AX:BX:DX)*=Real(CX:SI:DI)
-//@ 		mov	cx, 82h	; '‚'
+//@ 		mov	cx, 82h	; 'ï¾‚'
 //@ 		xor	si, si		; Logical Exclusive OR
 //@ 		xor	di, di		; Logical Exclusive OR
 //@ 		call	@$brmul$q4Realt1 ; Real(AX:BX:DX)*=Real(CX:SI:DI)
-//@ 		mov	cx, 91h	; '‘'
+//@ 		mov	cx, 91h	; 'ï¾‘'
 //@ 		xor	si, si		; Logical Exclusive OR
 //@ 		xor	di, di		; Logical Exclusive OR
 //@ 		call	@$brdiv$q4Realt1 ; Real(AX:BX:DX)/=Real(CX:SI:DI)
@@ -3482,7 +3536,7 @@
 //@ 		add	di, ax		; Add
 //@ 		mov	ax, es:[di+8]
 //@ 		shl	ax, 8		; Shift	Logical	Left
-//@ 		add	ax, 80h	; '€'   ; Add
+//@ 		add	ax, 80h	; 'ï¾€'   ; Add
 //@ 		mov	dx, ax
 //@ 		mov	ax, i$0		; int16_t
 //@ 		shl	ax, 1		; Shift	Logical	Left
@@ -5153,7 +5207,7 @@
 //@ ; #line	"CSPBIO.PAS" 2049
 //@ 
 //@ loc_2DF6E:				; CODE XREF: LoadSound+1ABj
-//@ 		sub	byte ptr es:[di], 80h ;	'€' ; Integer Subtraction
+//@ 		sub	byte ptr es:[di], 80h ;	'ï¾€' ; Integer Subtraction
 //@ ; #line	"CSPBIO.PAS" 2050
 //@ 		inc	di		; Increment by 1
 //@ ; #line	"CSPBIO.PAS" 2051
@@ -5451,7 +5505,7 @@
 //@ ; #line	"CSPBIO.PAS" 2094
 //@ 
 //@ loc_2E1C9:				; CODE XREF: LoadAmb+240j
-//@ 		sub	byte ptr es:[di], 80h ;	'€' ; Integer Subtraction
+//@ 		sub	byte ptr es:[di], 80h ;	'ï¾€' ; Integer Subtraction
 //@ ; #line	"CSPBIO.PAS" 2095
 //@ 		inc	di		; Increment by 1
 //@ ; #line	"CSPBIO.PAS" 2096
@@ -5975,17 +6029,17 @@
 //@ 		mov	si, 0DAA2h
 //@ 		mov	di, 490Fh
 //@ 		call	@$brmul$q4Realt1 ; Real(AX:BX:DX)*=Real(CX:SI:DI)
-//@ 		mov	cx, 82h	; '‚'
+//@ 		mov	cx, 82h	; 'ï¾‚'
 //@ 		xor	si, si		; Logical Exclusive OR
 //@ 		xor	di, di		; Logical Exclusive OR
 //@ 		call	@$brmul$q4Realt1 ; Real(AX:BX:DX)*=Real(CX:SI:DI)
-//@ 		mov	cx, 8Bh	; '‹'
+//@ 		mov	cx, 8Bh	; 'ï¾‹'
 //@ 		xor	si, si		; Logical Exclusive OR
 //@ 		xor	di, di		; Logical Exclusive OR
 //@ 		call	@$brdiv$q4Realt1 ; Real(AX:BX:DX)/=Real(CX:SI:DI)
 //@ 					; Real(CX:SI:DI)=Real(AX:BX:DX)%Real(CX:SI:DI)
 //@ 		call	@Cos$q4Real	; Cos(x: Real):	Real
-//@ 		mov	cx, 8Dh	; ''
+//@ 		mov	cx, 8Dh	; 'ï¾'
 //@ 		xor	si, si		; Logical Exclusive OR
 //@ 		xor	di, di		; Logical Exclusive OR
 //@ 		call	@$brmul$q4Realt1 ; Real(AX:BX:DX)*=Real(CX:SI:DI)
@@ -6140,7 +6194,7 @@
 //@ 		mov	di, [bp+w]	; uint16_t
 //@ 		pop	es
 //@ 		mov	es:[di], dl
-//@ 		cmp	[bp+w],	0FEh ; 'þ' ; uint16_t
+//@ 		cmp	[bp+w],	0FEh ; 'ï¿¾' ; uint16_t
 //@ 		jnz	short loc_2E79F	; Jump if Not Zero (ZF=0)
 //@ ; #line	"CSPBIO.PAS" 2229
 //@ 		xor	ax, ax		; Logical Exclusive OR
@@ -6158,7 +6212,7 @@
 //@ 		mov	di, [bp+w]	; uint16_t
 //@ 		pop	es
 //@ 		mov	es:[di], dl
-//@ 		cmp	[bp+w],	0FEh ; 'þ' ; uint16_t
+//@ 		cmp	[bp+w],	0FEh ; 'ï¿¾' ; uint16_t
 //@ 		jnz	short loc_2E7BE	; Jump if Not Zero (ZF=0)
 //@ ; #line	"CSPBIO.PAS" 2232
 //@ 		mov	di, offset F	; struct BFile
@@ -6554,7 +6608,7 @@
 //@ 		mov	ax, [bp+p]	; int16_t
 //@ 		inc	ax		; Increment by 1
 //@ 		push	ax
-//@ 		push	88h ; 'ˆ'
+//@ 		push	88h ; 'ï¾ˆ'
 //@ 		call	@Copy$qm6Stringt17Integert3 ; Copy(s: String, index: Integer, count: Integer): String
 //@ 		les	di, [bp+s]	; char[256] // Pascal string
 //@ 		push	es
@@ -8420,7 +8474,7 @@
 //@ 		push	ss
 //@ 		push	di
 //@ 		call	CalcStringLen	; function far PASCAL returns unsigned int 'Word'
-//@ 		cmp	ax, 84h	; '„'   ; Compare Two Operands
+//@ 		cmp	ax, 84h	; 'ï¾„'   ; Compare Two Operands
 //@ 		jbe	short loc_2FA8C	; Jump if Below	or Equal (CF=1 | ZF=1)
 //@ ; #line	"CSPBIO.PAS" 2543
 //@ 
@@ -8519,7 +8573,7 @@
 //@ ; #line	"CSPBIO.PAS" 2559
 //@ 
 //@ loc_2FAED:				; CODE XREF: FindNextLevel+32j
-//@ 		cmp	n$0, 80h ; '€'  ; int16_t
+//@ 		cmp	n$0, 80h ; 'ï¾€'  ; int16_t
 //@ 		jnz	short loc_2FAC3	; Jump if Not Zero (ZF=0)
 //@ ; #line	"CSPBIO.PAS" 2560
 //@ 
@@ -9880,7 +9934,7 @@
 //@ 		mov	ax, [bp+b]	; int16_t
 //@ 		cwd			; AX ->	DX:AX (with sign)
 //@ 		call	@Real$q7Longint	; Real(x: Longint{DX:AX}): Real
-//@ 		mov	cx, 86h	; '†'
+//@ 		mov	cx, 86h	; 'ï¾†'
 //@ 		xor	si, si		; Logical Exclusive OR
 //@ 		mov	di, 7C00h
 //@ 		call	@$brdiv$q4Realt1 ; Real(AX:BX:DX)/=Real(CX:SI:DI)
@@ -9911,7 +9965,7 @@
 //@ 		mov	ax, [bp+br]	; real_t
 //@ 		mov	bx, [bp+var_E]
 //@ 		mov	dx, [bp+var_C]
-//@ 		mov	cx, 85h	; '…'
+//@ 		mov	cx, 85h	; 'ï¾…'
 //@ 		xor	si, si		; Logical Exclusive OR
 //@ 		xor	di, di		; Logical Exclusive OR
 //@ 		call	@$brmul$q4Realt1 ; Real(AX:BX:DX)*=Real(CX:SI:DI)
@@ -9940,7 +9994,7 @@
 //@ 		mul	[bp+bk]		; int16_t
 //@ 		mul	cx		; Unsigned Multiplication of AL	or AX
 //@ 		cwd			; AX ->	DX:AX (with sign)
-//@ 		mov	cx, 80h	; '€'
+//@ 		mov	cx, 80h	; 'ï¾€'
 //@ 		idiv	cx		; Signed Divide
 //@ 		mov	dx, ax
 //@ 		mov	ax, i$0		; int16_t
@@ -9976,7 +10030,7 @@
 //@ 		mov	ax, [bp+bk]	; int16_t
 //@ 		cwd			; AX ->	DX:AX (with sign)
 //@ 		call	@Real$q7Longint	; Real(x: Longint{DX:AX}): Real
-//@ 		mov	cx, 84h	; '„'
+//@ 		mov	cx, 84h	; 'ï¾„'
 //@ 		xor	si, si		; Logical Exclusive OR
 //@ 		xor	di, di		; Logical Exclusive OR
 //@ 		call	@$brdiv$q4Realt1 ; Real(AX:BX:DX)/=Real(CX:SI:DI)
@@ -10102,7 +10156,7 @@
 //@ 		mov	ax, [bp+bk]	; int16_t
 //@ 		cwd			; AX ->	DX:AX (with sign)
 //@ 		call	@Real$q7Longint	; Real(x: Longint{DX:AX}): Real
-//@ 		mov	cx, 88h	; 'ˆ'
+//@ 		mov	cx, 88h	; 'ï¾ˆ'
 //@ 		xor	si, si		; Logical Exclusive OR
 //@ 		mov	di, 4400h
 //@ 		call	@$brdiv$q4Realt1 ; Real(AX:BX:DX)/=Real(CX:SI:DI)
@@ -10110,7 +10164,7 @@
 //@ 		push	dx
 //@ 		push	bx
 //@ 		push	ax
-//@ 		mov	ax, 81h	; ''
+//@ 		mov	ax, 81h	; 'ï¾'
 //@ 		xor	bx, bx		; Logical Exclusive OR
 //@ 		xor	dx, dx		; Logical Exclusive OR
 //@ 		pop	cx
@@ -11353,7 +11407,7 @@
 //@ 		mov	cx, 78h	; 'x'
 //@ 		xor	bx, bx		; Logical Exclusive OR
 //@ 		call	@$brmul$q7Longintt1 ; X1{DX:AX}*=X2{BX:CX}
-//@ 		mov	cx, 0C8h ; 'È'
+//@ 		mov	cx, 0C8h ; 'ï¿ˆ'
 //@ 		xor	bx, bx		; Logical Exclusive OR
 //@ 		call	@$brdiv$q7Longintt1 ; X1{DX:AX}/=X2{BX:CX}
 //@ 					; X2=X1%X2
@@ -11436,7 +11490,7 @@
 //@ ; #line	"CSPBIO.PAS" 3164
 //@ 		mov	ObjectW, 21Ch	; uint16_t
 //@ ; #line	"CSPBIO.PAS" 3165
-//@ 		mov	WallW, 98h ; '˜' ; uint16_t
+//@ 		mov	WallW, 98h ; 'ï¾˜' ; uint16_t
 //@ ; #line	"CSPBIO.PAS" 3166
 //@ 		mov	WallH, 1F4h	; uint16_t
 //@ ; #line	"CSPBIO.PAS" 3168
@@ -11509,12 +11563,12 @@
 //@ 		shl	ax, 4		; Shift	Logical	Left
 //@ 		mov	WinE3, ax	; uint16_t
 //@ ; #line	"CSPBIO.PAS" 3184
-//@ 		mov	ax, 0A0h ; ' '
+//@ 		mov	ax, 0A0h ; 'ï¾ '
 //@ 		sub	ax, WinW2	; uint16_t
 //@ 		mov	WinSX, ax	; uint16_t
 //@ ; #line	"CSPBIO.PAS" 3185
 //@ 		mov	ax, WinW2	; uint16_t
-//@ 		add	ax, 0A0h ; ' '  ; Add
+//@ 		add	ax, 0A0h ; 'ï¾ '  ; Add
 //@ 		dec	ax		; Decrement by 1
 //@ 		mov	WinEX, ax	; uint16_t
 //@ ; #line	"CSPBIO.PAS" 3186
@@ -11804,7 +11858,7 @@
 //@ 		shl	ax, 2		; Shift	Logical	Left
 //@ 		mov	es:[di+6], ax
 //@ ; #line	"CSPBIO.PAS" 3233
-//@ 		cmp	[bp+TT], 0FEh ;	'þ' ; uint16_t
+//@ 		cmp	[bp+TT], 0FEh ;	'ï¿¾' ; uint16_t
 //@ 		jnz	short loc_3117E	; Jump if Not Zero (ZF=0)
 //@ 		mov	[bp+TT], 0FFh	; uint16_t
 //@ ; #line	"CSPBIO.PAS" 3234
@@ -11848,7 +11902,7 @@
 //@ 
 //@ 		enter	4, 0		; Make Stack Frame for Procedure Parameters
 //@ ; #line	"CSPBIO.PAS" 3242
-//@ 		cmp	BCount,	0C4h ; 'Ä' ; uint16_t
+//@ 		cmp	BCount,	0C4h ; 'ï¿„' ; uint16_t
 //@ 		jbe	short loc_311AF	; Jump if Below	or Equal (CF=1 | ZF=1)
 //@ 		jmp	locret_31248	; Jump
 //@ ; ---------------------------------------------------------------------------
@@ -11996,7 +12050,7 @@
 //@ loc_312A0:				; CODE XREF: BlowSpark+3Cj
 //@ 		mov	[bp+vz0], 8	; int16_t
 //@ 		mov	[bp+vx0], 0Ah	; int16_t
-//@ 		mov	[bp+vz], 0A0h ;	' ' ; int16_t
+//@ 		mov	[bp+vz], 0A0h ;	'ï¾ ' ; int16_t
 //@ 		mov	[bp+RMask], 1	; int16_t
 //@ ; #line	"CSPBIO.PAS" 3270
 //@ 
@@ -12037,7 +12091,7 @@
 //@ 		inc	[bp+j]		; int16_t
 //@ 
 //@ loc_312F7:				; CODE XREF: BlowSpark+A6j
-//@ 		cmp	BCount,	8Ch ; 'Œ' ; uint16_t
+//@ 		cmp	BCount,	8Ch ; 'ï¾Œ' ; uint16_t
 //@ 		jb	short loc_31302	; Jump if Below	(CF=1)
 //@ 		jmp	loc_313DB	; Jump
 //@ ; ---------------------------------------------------------------------------
@@ -12097,7 +12151,7 @@
 //@ 		cwd			; AX ->	DX:AX (with sign)
 //@ 		add	ax, cx		; Add
 //@ 		adc	dx, bx		; Add with Carry
-//@ 		sub	ax, 0A0h ; ' '  ; Integer Subtraction
+//@ 		sub	ax, 0A0h ; 'ï¾ '  ; Integer Subtraction
 //@ 		sbb	dx, 0		; Integer Subtraction with Borrow
 //@ 		push	ax
 //@ 		mov	ax, [bp+vz0]	; int16_t
@@ -12602,7 +12656,7 @@
 //@ 		mov	di, offset MessageRec ;	struct MessageRec$Element[4]
 //@ 		push	ds
 //@ 		push	di
-//@ 		push	0BDh ; '½'
+//@ 		push	0BDh ; 'ï¾½'
 //@ 		call	@Move$qm3Anyt14Word ; Move(var source, dest; count: Word)
 //@ ; #line	"CSPBIO.PAS" 3343
 //@ 		xor	ax, ax		; Logical Exclusive OR
@@ -12693,158 +12747,188 @@
 //@ 		retf	4		; Return Far from Procedure
 //@ PutConsMessage3	endp
 //@ 
-//@ ; ---------------------------------------------------------------------------
-//@ aChasmdat_2	db 9,'CHASMDAT\'        ; DATA XREF: $CspBioInit+Co
-//@ aCsm_bin	db 7,'csm.bin'          ; DATA XREF: $CspBioInit+1Do
-//@ 					; $CspBioInit+33o ...
-//@ aBadCsm_binHead	db 19,'Bad csm.bin header.' ; DATA XREF: $CspBioInit:loc_31870o
+//! ; ---------------------------------------------------------------------------
+//! aChasmdat_2	db 9,'CHASMDAT\'        ; DATA XREF: $CspBioInit+Co
+//! aCsm_bin	db 7,'csm.bin'          ; DATA XREF: $CspBioInit+1Do
+//! 					; $CspBioInit+33o ...
+static const char* const CHASM_DATA_FILENAME = "csm.bin";
+//! aBadCsm_binHead	db 19,'Bad csm.bin header.' ; DATA XREF: $CspBioInit:loc_31870o
 //@ aLoadingFrom	db 14,'Loading from: '  ; DATA XREF: $CspBioInit+E4o
-//@ ; #line	"CSPBIO.PAS" 3357
-//@ 
-//@ ; =============== S U B	R O U T	I N E =======================================
-//@ 
-//@ ; Attributes: bp-based frame
-//@ 
+//! ; #line	"CSPBIO.PAS" 3357
+//!
+//! ; =============== S U B	R O U T	I N E =======================================
+//!
+//! ; Attributes: bp-based frame
+//!
 //@ $CspBioInit	proc far		; CODE XREF: PROGRAM+14P
-//@ 		push	bp
-//@ 		mov	bp, sp
-//@ ; #line	"CSPBIO.PAS" 3358
-//@ 		call	InitVideo	; function near	PASCAL returns void
-//@ ; #line	"CSPBIO.PAS" 3359
-//@ 		mov	CurVideoMode, 1	; uint16_t
-//@ ; #line	"CSPBIO.PAS" 3360
-//@ 		mov	di, offset aChasmdat_2 ; "CHASMDAT\\"
-//@ 		push	cs
-//@ 		push	di
-//@ 		mov	di, offset BaseFile ; char[81] // Pascal string
-//@ 		push	ds
-//@ 		push	di
-//@ 		push	50h ; 'P'
-//@ 		call	@$basg$qm6Stringt14Byte	; Store	string
-//@ ; #line	"CSPBIO.PAS" 3361
-//@ 		mov	di, offset aCsm_bin ; "csm.bin"
-//@ 		push	cs
-//@ 		push	di
-//@ 		call	ExistFile	; function far PASCAL returns PASCAL boolean 'Boolean'
-//@ 		or	al, al		; Logical Inclusive OR
-//@ 		jnz	short loc_317F1	; Jump if Not Zero (ZF=0)
-//@ 		jmp	loc_3189B	; Jump
-//@ ; ---------------------------------------------------------------------------
-//@ ; #line	"CSPBIO.PAS" 3363
-//@ 
-//@ loc_317F1:				; CODE XREF: $CspBioInit+29j
-//@ 		mov	Internal, 1	; bool
-//@ 		mov	di, offset aCsm_bin ; "csm.bin"
-//@ 		push	cs
-//@ 		push	di
-//@ 		mov	di, offset BaseFile ; char[81] // Pascal string
-//@ 		push	ds
-//@ 		push	di
-//@ 		push	50h ; 'P'
-//@ 		call	@$basg$qm6Stringt14Byte	; Store	string
-//@ ; #line	"CSPBIO.PAS" 3364
-//@ 		mov	di, offset FileTable ; TFileTable$Element*
-//@ 		push	ds
-//@ 		push	di
-//@ 		push	0A800h
-//@ 		call	GetMem16	; function far PASCAL returns void
-//@ ; #line	"CSPBIO.PAS" 3365
-//@ 		mov	di, offset F	; struct BFile
-//@ 		push	ds
-//@ 		push	di
-//@ 		mov	di, offset aCsm_bin ; "csm.bin"
-//@ 		push	cs
-//@ 		push	di
-//@ 		call	@Assign$qm4Filem6String	; Assign(var f:	File; name: String)
-//@ 		mov	di, offset F	; struct BFile
-//@ 		push	ds
-//@ 		push	di
-//@ 		push	1
-//@ 		call	@Reset$qm4File4Word ; Reset(var	f: File; recsize: Word)
-//@ ; #line	"CSPBIO.PAS" 3366
-//@ 		mov	di, offset F	; struct BFile
-//@ 		push	ds
-//@ 		push	di
-//@ 		mov	di, offset Ll	; int32_t
-//@ 		push	ds
-//@ 		push	di
-//@ 		push	4
-//@ 		xor	ax, ax		; Logical Exclusive OR
-//@ 		push	ax
-//@ 		push	ax
-//@ 		call	@BlockRead$qm4Filem3Any4Wordm4Word ; BlockRead(var f: File; var	buf; count: Word;var result: Word)
-//@ ; #line	"CSPBIO.PAS" 3367
-//@ 		mov	di, offset F	; struct BFile
-//@ 		push	ds
-//@ 		push	di
-//@ 		mov	di, offset intFCnt ; uint16_t
-//@ 		push	ds
-//@ 		push	di
-//@ 		push	2
-//@ 		xor	ax, ax		; Logical Exclusive OR
-//@ 		push	ax
-//@ 		push	ax
-//@ 		call	@BlockRead$qm4Filem3Any4Wordm4Word ; BlockRead(var f: File; var	buf; count: Word;var result: Word)
-//@ 		dec	intFCnt		; uint16_t
-//@ ; #line	"CSPBIO.PAS" 3368
-//@ 		mov	ax, word ptr Ll	; int32_t
-//@ 		mov	dx, word ptr Ll+2 ; int32_t
-//@ 		cmp	dx, word ptr CSMid+2 ; int32_t
-//@ 		jnz	short loc_31870	; Jump if Not Zero (ZF=0)
-//@ 		cmp	ax, word ptr CSMid ; int32_t
-//@ 		jz	short loc_3187A	; Jump if Zero (ZF=1)
-//@ 
-//@ loc_31870:				; CODE XREF: $CspBioInit+A5j
-//@ 		mov	di, offset aBadCsm_binHead ; "Bad csm.bin header."
-//@ 		push	cs
-//@ 		push	di
-//@ 		call	far ptr	DoHalt	; function far PASCAL returns void
-//@ ; ---------------------------------------------------------------------------
-//@ ; #line	"CSPBIO.PAS" 3369
-//@ 
-//@ loc_3187A:				; CODE XREF: $CspBioInit+ABj
-//@ 		mov	di, offset F	; struct BFile
-//@ 		push	ds
-//@ 		push	di
-//@ 		les	di, FileTable	; TFileTable$Element*
-//@ 		push	es
-//@ 		push	di
-//@ 		push	0A800h
-//@ 		xor	ax, ax		; Logical Exclusive OR
-//@ 		push	ax
-//@ 		push	ax
-//@ 		call	@BlockRead$qm4Filem3Any4Wordm4Word ; BlockRead(var f: File; var	buf; count: Word;var result: Word)
-//@ ; #line	"CSPBIO.PAS" 3370
-//@ 		mov	di, offset F	; struct BFile
-//@ 		push	ds
-//@ 		push	di
-//@ 		call	@Close$qm4File	; Close(var f: File)
-//@ ; #line	"CSPBIO.PAS" 3373
-//@ 
-//@ loc_3189B:				; CODE XREF: $CspBioInit+2Bj
-//@ 		cmp	byte ptr BaseFile, 0 ; char[81]	// Pascal string
-//@ 		jz	short locret_318C4 ; Jump if Zero (ZF=1)
-//@ ; #line	"CSPBIO.PAS" 3374
-//@ 		mov	di, offset Output ; Text
-//@ 		push	ds
-//@ 		push	di
-//@ 		mov	di, offset aLoadingFrom	; "Loading from: "
-//@ 		push	cs
-//@ 		push	di
-//@ 		push	0
-//@ 		call	@Write$qm4Textm6String4Word ; Write(var	f; s: String; width: Word)
-//@ 		mov	di, offset BaseFile ; char[81] // Pascal string
-//@ 		push	ds
-//@ 		push	di
-//@ 		push	0
-//@ 		call	@Write$qm4Textm6String4Word ; Write(var	f; s: String; width: Word)
-//@ 		call	@WriteLn$qm4Text ; WriteLn(var f: Text)
-//@ ; #line	"CSPBIO.PAS" 3375
-//@ 
-//@ locret_318C4:				; CODE XREF: $CspBioInit+DDj
-//@ 		leave			; High Level Procedure Exit
-//@ 		retf			; Return Far from Procedure
+void CspBioInit()
+{
+//! 		push	bp
+//! 		mov	bp, sp
+//! ; #line	"CSPBIO.PAS" 3358
+//! 		call	InitVideo	; function near	PASCAL returns void
+	InitVideo();
+//! ; #line	"CSPBIO.PAS" 3359
+//! 		mov	CurVideoMode, 1	; uint16_t
+	CurVideoMode = 1;
+//! ; #line	"CSPBIO.PAS" 3360
+//! 		mov	di, offset aChasmdat_2 ; "CHASMDAT\\"
+//! 		push	cs
+//! 		push	di
+//! 		mov	di, offset BaseFile ; char[81] // Pascal string
+//! 		push	ds
+//! 		push	di
+//! 		push	50h ; 'P'
+//! 		call	@$basg$qm6Stringt14Byte	; Store	string
+	strncpy(BaseFile, CHASM_DATA_DIRECTORY, sizeof BaseFile - 1);
+//! ; #line	"CSPBIO.PAS" 3361
+//! 		mov	di, offset aCsm_bin ; "csm.bin"
+//! 		push	cs
+//! 		push	di
+//! 		call	ExistFile	; function far PASCAL returns PASCAL boolean 'Boolean'
+//! 		or	al, al		; Logical Inclusive OR
+//! 		jnz	short loc_317F1	; Jump if Not Zero (ZF=0)
+//! 		jmp	loc_3189B	; Jump
+	if (ExistFile(CHASM_DATA_FILENAME))
+	{
+//! ; ---------------------------------------------------------------------------
+//! ; #line	"CSPBIO.PAS" 3363
+//!
+//! loc_317F1:				; CODE XREF: $CspBioInit+29j
+//! 		mov	Internal, 1	; bool
+		Internal = 1;
+//! 		mov	di, offset aCsm_bin ; "csm.bin"
+//! 		push	cs
+//! 		push	di
+//! 		mov	di, offset BaseFile ; char[81] // Pascal string
+//! 		push	ds
+//! 		push	di
+//! 		push	50h ; 'P'
+//! 		call	@$basg$qm6Stringt14Byte	; Store	string
+		strncpy(BaseFile, CHASM_DATA_FILENAME, sizeof BaseFile - 1);
+//! ; #line	"CSPBIO.PAS" 3364
+//! 		mov	di, offset FileTable ; TFileTable$Element*
+//! 		push	ds
+//! 		push	di
+//! 		push	0A800h
+//! 		call	GetMem16	; function far PASCAL returns void
+//! ; #line	"CSPBIO.PAS" 3365
+//! 		mov	di, offset F	; struct BFile
+//! 		push	ds
+//! 		push	di
+//! 		mov	di, offset aCsm_bin ; "csm.bin"
+//! 		push	cs
+//! 		push	di
+//! 		call	@Assign$qm4Filem6String	; Assign(var f:	File; name: String)
+//! 		mov	di, offset F	; struct BFile
+//! 		push	ds
+//! 		push	di
+//! 		push	1
+//! 		call	@Reset$qm4File4Word ; Reset(var	f: File; recsize: Word)
+		F = fopen(CHASM_DATA_FILENAME, "rb");
+//! ; #line	"CSPBIO.PAS" 3366
+//! 		mov	di, offset F	; struct BFile
+//! 		push	ds
+//! 		push	di
+//! 		mov	di, offset Ll	; int32_t
+//! 		push	ds
+//! 		push	di
+//! 		push	4
+//! 		xor	ax, ax		; Logical Exclusive OR
+//! 		push	ax
+//! 		push	ax
+//! 		call	@BlockRead$qm4Filem3Any4Wordm4Word ; BlockRead(var f: File; var	buf; count: Word;var result: Word)
+		fread(&Ll, sizeof Ll, 1, F);
+//! ; #line	"CSPBIO.PAS" 3367
+//! 		mov	di, offset F	; struct BFile
+//! 		push	ds
+//! 		push	di
+//! 		mov	di, offset intFCnt ; uint16_t
+//! 		push	ds
+//! 		push	di
+//! 		push	2
+//! 		xor	ax, ax		; Logical Exclusive OR
+//! 		push	ax
+//! 		push	ax
+//! 		call	@BlockRead$qm4Filem3Any4Wordm4Word ; BlockRead(var f: File; var	buf; count: Word;var result: Word)
+		fread(&intFCnt, sizeof intFCnt, 1, F);
+//? 		dec	intFCnt		; uint16_t
+//		--intFCnt;
+//! ; #line	"CSPBIO.PAS" 3368
+		static const int32_t CSMid = 0x64695343; // "CSid"
+//! 		mov	ax, word ptr Ll	; int32_t
+//! 		mov	dx, word ptr Ll+2 ; int32_t
+//! 		cmp	dx, word ptr CSMid+2 ; int32_t
+//! 		jnz	short loc_31870	; Jump if Not Zero (ZF=0)
+//! 		cmp	ax, word ptr CSMid ; int32_t
+//! 		jz	short loc_3187A	; Jump if Zero (ZF=1)
+		if (CSMid != Ll)
+		{
+//!
+//! loc_31870:				; CODE XREF: $CspBioInit+A5j
+//! 		mov	di, offset aBadCsm_binHead ; "Bad csm.bin header."
+//! 		push	cs
+//! 		push	di
+//! 		call	far ptr	DoHalt	; function far PASCAL returns void
+			DoHalt("Bad csm.bin header.");
+		}
+//! ; ---------------------------------------------------------------------------
+//! ; #line	"CSPBIO.PAS" 3369
+//!
+//! loc_3187A:				; CODE XREF: $CspBioInit+ABj
+//! 		mov	di, offset F	; struct BFile
+//! 		push	ds
+//! 		push	di
+//! 		les	di, FileTable	; TFileTable$Element*
+//! 		push	es
+//! 		push	di
+//! 		push	0A800h
+//! 		xor	ax, ax		; Logical Exclusive OR
+//! 		push	ax
+//! 		push	ax
+//! 		call	@BlockRead$qm4Filem3Any4Wordm4Word ; BlockRead(var f: File; var	buf; count: Word;var result: Word)
+		fread(FileTable, sizeof FileTable, 1, F);
+
+		for (uint16_t i = 0; i < intFCnt; ++i)
+		{
+			PascalToCString(FileTable[i].FName);
+		}
+
+//! ; #line	"CSPBIO.PAS" 3370
+//! 		mov	di, offset F	; struct BFile
+//! 		push	ds
+//! 		push	di
+//! 		call	@Close$qm4File	; Close(var f: File)
+//! ; #line	"CSPBIO.PAS" 3373
+		fclose(F);
+	}
+//!
+//! loc_3189B:				; CODE XREF: $CspBioInit+2Bj
+//! 		cmp	byte ptr BaseFile, 0 ; char[81]	// Pascal string
+//! 		jz	short locret_318C4 ; Jump if Zero (ZF=1)
+	if ('\0' != BaseFile)
+	{
+//! ; #line	"CSPBIO.PAS" 3374
+//! 		mov	di, offset Output ; Text
+//! 		push	ds
+//! 		push	di
+//! 		mov	di, offset aLoadingFrom	; "Loading from: "
+//! 		push	cs
+//! 		push	di
+//! 		push	0
+//! 		call	@Write$qm4Textm6String4Word ; Write(var	f; s: String; width: Word)
+//! 		mov	di, offset BaseFile ; char[81] // Pascal string
+//! 		push	ds
+//! 		push	di
+//! 		push	0
+//! 		call	@Write$qm4Textm6String4Word ; Write(var	f; s: String; width: Word)
+//! 		call	@WriteLn$qm4Text ; WriteLn(var f: Text)
+		printf("Loading from: %s\n", BaseFile);
+	}
+//! ; #line	"CSPBIO.PAS" 3375
+//!
+//! locret_318C4:				; CODE XREF: $CspBioInit+DDj
+//! 		leave			; High Level Procedure Exit
+//! 		retf			; Return Far from Procedure
+}
 //@ $CspBioInit	endp
-//@ 
-//@ ; ---------------------------------------------------------------------------
-//@ 		align 10h
