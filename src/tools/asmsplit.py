@@ -44,7 +44,7 @@ def writeheader(file):
 
 #include "%s"
 
-""" % file.name.replace('.cpp', '.h'))
+""" % file.name.replace('.cpp', '.h').replace('\\', '/'))
 
 def finish(file):
 	if file:
