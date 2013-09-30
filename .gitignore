@@ -18,6 +18,7 @@ xcuserdata/
 *.xccheckout
 
 # IDA Pro
+*.idb
 *.id0
 *.id1
 *.nam
