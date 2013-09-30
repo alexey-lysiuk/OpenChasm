@@ -21,56 +21,76 @@
 
 #include "csprndr.h"
 
-//@ ; #line	"CSPRNDR.PAS" 25
-//@ 
-//@ ; =============== S U B	R O U T	I N E =======================================
-//@ 
-//@ ; function near	PASCAL returns unsigned	int 'Word'
-//@ ; Attributes: bp-based frame
-//@ 
-//@ QPifagorP16	proc near		; CODE XREF: $CspRndrInit+27p
-//@ 
-//@ YY		= word ptr  4		; int16_t
-//@ XX		= word ptr  6		; int16_t
-//@ 
-//@ 		push	bp
-//@ 		mov	bp, sp
-//@ ; #line	"CSPRNDR.PAS" 26
-//@ 		mov	si, [bp+XX]	; int16_t
-//@ 		mov	di, [bp+YY]	; int16_t
-//@ ; #line	"CSPRNDR.PAS" 27
-//@ 		mov	cx, si
-//@ 		add	cx, di		; Add
-//@ 		push	cx
-//@ ; #line	"CSPRNDR.PAS" 29
-//@ 		mov	ax, si
-//@ 		imul	di		; Signed Multiply
-//@ 		jz	short loc_1055A	; Jump if Zero (ZF=1)
-//@ ; #line	"CSPRNDR.PAS" 30
-//@ 		mov	dx, ax
-//@ 		shl	ax, 3		; Shift	Logical	Left
-//@ 		sub	ax, dx		; Integer Subtraction
-//@ ; #line	"CSPRNDR.PAS" 32
-//@ 		mov	bx, cx
-//@ 		shl	bx, 2		; Shift	Logical	Left
-//@ 		add	bx, cx		; Add
-//@ 		add	bx, cx		; Add
-//@ ; #line	"CSPRNDR.PAS" 33
-//@ 		xor	dx, dx		; Logical Exclusive OR
-//@ 		div	bx		; Unsigned Divide
-//@ ; #line	"CSPRNDR.PAS" 34
-//@ 		pop	bx
-//@ 		sub	bx, ax		; Integer Subtraction
-//@ 		push	bx
-//@ ; #line	"CSPRNDR.PAS" 35
-//@ 
-//@ loc_1055A:				; CODE XREF: QPifagorP16+12j
-//@ 		pop	ax
-//@ ; #line	"CSPRNDR.PAS" 36
-//@ 		leave			; High Level Procedure Exit
-//@ 		retn	4		; Return Near from Procedure
-//@ QPifagorP16	endp
-//@ 
+
+static int16_t Wx, Wy;
+static uint8_t PifTab[32][32];
+
+
+//! ; #line	"CSPRNDR.PAS" 25
+//! 
+//! ; =============== S U B	R O U T	I N E =======================================
+//! 
+//! ; function near	PASCAL returns unsigned	int 'Word'
+//! ; Attributes: bp-based frame
+//! 
+//! QPifagorP16	proc near		; CODE XREF: $CspRndrInit+27p
+int8_t QPifagorP16(const int16_t XX, const int16_t YY)
+{
+//! 
+//! YY		= word ptr  4		; int16_t
+//! XX		= word ptr  6		; int16_t
+//! 
+//! 		push	bp
+//! 		mov	bp, sp
+//! ; #line	"CSPRNDR.PAS" 26
+//! 		mov	si, [bp+XX]	; int16_t
+//! 		mov	di, [bp+YY]	; int16_t
+//! ; #line	"CSPRNDR.PAS" 27
+//! 		mov	cx, si
+//! 		add	cx, di		; Add
+//! 		push	cx
+//! ; #line	"CSPRNDR.PAS" 29
+//! 		mov	ax, si
+//! 		imul	di		; Signed Multiply
+//! 		jz	short loc_1055A	; Jump if Zero (ZF=1)
+//! ; #line	"CSPRNDR.PAS" 30
+//! 		mov	dx, ax
+//! 		shl	ax, 3		; Shift	Logical	Left
+//! 		sub	ax, dx		; Integer Subtraction
+//! ; #line	"CSPRNDR.PAS" 32
+//! 		mov	bx, cx
+//! 		shl	bx, 2		; Shift	Logical	Left
+//! 		add	bx, cx		; Add
+//! 		add	bx, cx		; Add
+//! ; #line	"CSPRNDR.PAS" 33
+//! 		xor	dx, dx		; Logical Exclusive OR
+//! 		div	bx		; Unsigned Divide
+//! ; #line	"CSPRNDR.PAS" 34
+//! 		pop	bx
+//! 		sub	bx, ax		; Integer Subtraction
+//! 		push	bx
+//! ; #line	"CSPRNDR.PAS" 35
+//! 
+//! loc_1055A:				; CODE XREF: QPifagorP16+12j
+//! 		pop	ax
+//! ; #line	"CSPRNDR.PAS" 36
+//! 		leave			; High Level Procedure Exit
+//! 		retn	4		; Return Near from Procedure
+//! QPifagorP16	endp
+
+    int16_t result = XX + YY;
+
+    if (0 != XX && 0 != YY)
+    {
+        // TODO: integer overflow in original code, bug or feature?
+        //result -= static_cast<uint16_t>(7 * XX * YY) / (6 * result);
+
+        result -= 7 * XX * YY / (6 * result);
+    }
+
+    return static_cast<uint8_t>(result);
+}
+//! 
 //@ ; #line	"CSPRNDR.PAS" 62
 //@ 
 //@ ; =============== S U B	R O U T	I N E =======================================
@@ -537,9 +557,9 @@
 //@ 		add	ax, 2		; Add
 //@ 		adc	dx, 0		; Add with Carry
 //@ 		mov	Wx2, ax		; uint16_t
-//@ 		cmp	Wx2, 3Fh ; '?'  ; uint16_t
+//@ 		cmp	Wx2, 63		; uint16_t
 //@ 		jbe	short loc_10867	; Jump if Below	or Equal (CF=1 | ZF=1)
-//@ 		mov	Wx2, 3Fh ; '?'  ; uint16_t
+//@ 		mov	Wx2, 63		; uint16_t
 //@ ; #line	"CSPRNDR.PAS" 153
 //@ 
 //@ loc_10867:				; CODE XREF: RenderLightOnMap+B3j
@@ -559,9 +579,9 @@
 //@ 		add	ax, 2		; Add
 //@ 		adc	dx, 0		; Add with Carry
 //@ 		mov	Wy2, ax		; uint16_t
-//@ 		cmp	Wy2, 3Fh ; '?'  ; uint16_t
+//@ 		cmp	Wy2, 63		; uint16_t
 //@ 		jbe	short loc_1089E	; Jump if Below	or Equal (CF=1 | ZF=1)
-//@ 		mov	Wy2, 3Fh ; '?'  ; uint16_t
+//@ 		mov	Wy2, 63		; uint16_t
 //@ ; #line	"CSPRNDR.PAS" 155
 //@ 
 //@ loc_1089E:				; CODE XREF: RenderLightOnMap+EAj
@@ -622,7 +642,7 @@
 //@ ; ---------------------------------------------------------------------------
 //@ 
 //@ loc_108FF:				; CODE XREF: RenderLightOnMap+14Ej
-//@ 		cmp	al, 78h	; 'x'   ; Compare Two Operands
+//@ 		cmp	al, 120		; Compare Two Operands
 //@ 		jbe	short loc_10906	; Jump if Below	or Equal (CF=1 | ZF=1)
 //@ 		jmp	loc_109DD	; Jump
 //@ ; ---------------------------------------------------------------------------
@@ -682,7 +702,7 @@
 //@ 		sub	ax, dx		; Integer Subtraction
 //@ 		add	bx, ax		; Add
 //@ ; #line	"CSPRNDR.PAS" 175
-//@ 		mov	al, [bx+1480h]
+//@ 		mov	al, PifTab[bx]	; uint8_t[1024]
 //@ ; #line	"CSPRNDR.PAS" 176
 //@ 		mov	R$0, ax		; uint16_t
 //@ ; #line	"CSPRNDR.PAS" 178
@@ -808,7 +828,7 @@
 //@ 		shl	bx, 5		; Shift	Logical	Left
 //@ 		add	bx, ccy		; uint16_t
 //@ ; #line	"CSPRNDR.PAS" 216
-//@ 		mov	al, [bx+1480h]
+//@ 		mov	al, PifTab[bx]	; uint8_t[1024]
 //@ ; #line	"CSPRNDR.PAS" 217
 //@ 		mov	R$0, ax		; uint16_t
 //@ ; #line	"CSPRNDR.PAS" 219
@@ -1475,9 +1495,9 @@
 //@ 		inc	ax		; Increment by 1
 //@ 		inc	ax		; Increment by 1
 //@ 		mov	[bp+xx2], ax	; int16_t
-//@ 		cmp	[bp+xx2], 3Fh ;	'?' ; int16_t
+//@ 		cmp	[bp+xx2], 63	; int16_t
 //@ 		jle	short loc_10EE9	; Jump if Less or Equal	(ZF=1 |	SF!=OF)
-//@ 		mov	[bp+xx2], 3Fh ;	'?' ; int16_t
+//@ 		mov	[bp+xx2], 63	; int16_t
 //@ ; #line	"CSPRNDR.PAS" 332
 //@ 
 //@ loc_10EE9:				; CODE XREF: BackRender+158j
@@ -1486,15 +1506,15 @@
 //@ 		inc	ax		; Increment by 1
 //@ 		inc	ax		; Increment by 1
 //@ 		mov	[bp+yy2], ax	; int16_t
-//@ 		cmp	[bp+yy2], 3Fh ;	'?' ; int16_t
+//@ 		cmp	[bp+yy2], 63	; int16_t
 //@ 		jle	short loc_10EFF	; Jump if Less or Equal	(ZF=1 |	SF!=OF)
-//@ 		mov	[bp+yy2], 3Fh ;	'?' ; int16_t
+//@ 		mov	[bp+yy2], 63	; int16_t
 //@ ; #line	"CSPRNDR.PAS" 334
 //@ 
 //@ loc_10EFF:				; CODE XREF: BackRender+16Ej
 //@ 		mov	ax, [bp+LR]	; int16_t
 //@ 		shl	ax, 6		; Shift	Logical	Left
-//@ 		add	ax, 20h	; ' '   ; Add
+//@ 		add	ax, 32		; Add
 //@ 		mov	[bp+LR], ax	; int16_t
 //@ ; #line	"CSPRNDR.PAS" 335
 //@ 		mov	ax, [bp+MX]	; int16_t
@@ -1556,7 +1576,7 @@
 //@ ; ---------------------------------------------------------------------------
 //@ 
 //@ loc_10F72:				; CODE XREF: BackRender+1E3j
-//@ 		cmp	al, 78h	; 'x'   ; Compare Two Operands
+//@ 		cmp	al, 120		; Compare Two Operands
 //@ 		jbe	short loc_10F79	; Jump if Below	or Equal (CF=1 | ZF=1)
 //@ 		jmp	loc_1105E	; Jump
 //@ ; ---------------------------------------------------------------------------
@@ -1567,9 +1587,9 @@
 //@ 		jz	short loc_10FBA	; Jump if Zero (ZF=1)
 //@ ; #line	"CSPRNDR.PAS" 343
 //@ 		mov	al, es:[di]
-//@ 		cmp	al, 56h	; 'V'   ; Compare Two Operands
+//@ 		cmp	al, 86		; Compare Two Operands
 //@ 		jb	short loc_10F8A	; Jump if Below	(CF=1)
-//@ 		cmp	al, 78h	; 'x'   ; Compare Two Operands
+//@ 		cmp	al, 120		; Compare Two Operands
 //@ 		jbe	short loc_10FBA	; Jump if Below	or Equal (CF=1 | ZF=1)
 //@ ; #line	"CSPRNDR.PAS" 344
 //@ 
@@ -1718,99 +1738,75 @@
 //@ 
 //@ ; #line	"CSPRNDR.PAS" 365
 //@ 
-//@ ; =============== S U B	R O U T	I N E =======================================
-//@ 
-//@ ; Attributes: bp-based frame
-//@ 
-//@ $CspRndrInit	proc far		; CODE XREF: PROGRAM+19P
-//@ 		push	bp
-//@ 		mov	bp, sp
-//@ ; #line	"CSPRNDR.PAS" 366
-//@ 		xor	ax, ax		; Logical Exclusive OR
-//@ 		mov	Wx, ax		; int16_t
-//@ 		jmp	short loc_110AE	; Jump
-//@ ; ---------------------------------------------------------------------------
-//@ 
-//@ loc_110AA:				; CODE XREF: $CspRndrInit+48j
-//@ 		inc	Wx		; int16_t
-//@ ; #line	"CSPRNDR.PAS" 367
-//@ 
-//@ loc_110AE:				; CODE XREF: $CspRndrInit+8j
-//@ 		xor	ax, ax		; Logical Exclusive OR
-//@ 		mov	Wy, ax		; int16_t
-//@ 		jmp	short loc_110B9	; Jump
-//@ ; ---------------------------------------------------------------------------
-//@ 
-//@ loc_110B5:				; CODE XREF: $CspRndrInit+41j
-//@ 		inc	Wy		; int16_t
-//@ ; #line	"CSPRNDR.PAS" 368
-//@ 
-//@ loc_110B9:				; CODE XREF: $CspRndrInit+13j
-//@ 		mov	ax, Wx		; int16_t
-//@ 		shl	ax, 2		; Shift	Logical	Left
-//@ 		push	ax
-//@ 		mov	ax, Wy		; int16_t
-//@ 		shl	ax, 2		; Shift	Logical	Left
-//@ 		push	ax
-//@ 		call	QPifagorP16	; function near	PASCAL returns unsigned	int 'Word'
-//@ 		mov	dl, al
-//@ 		mov	ax, Wy		; int16_t
-//@ 		mov	di, Wx		; int16_t
-//@ 		shl	di, 5		; Shift	Logical	Left
-//@ 		add	di, ax		; Add
-//@ 		mov	[di+1480h], dl
-//@ 		cmp	Wy, 1Fh		; int16_t
-//@ 		jnz	short loc_110B5	; Jump if Not Zero (ZF=0)
-//@ 		cmp	Wx, 1Fh		; int16_t
-//@ 		jnz	short loc_110AA	; Jump if Not Zero (ZF=0)
-//@ ; #line	"CSPRNDR.PAS" 369
-//@ 		leave			; High Level Procedure Exit
-//@ 		retf			; Return Far from Procedure
-//@ $CspRndrInit	endp
-//@ 
+//! ; =============== S U B	R O U T	I N E =======================================
+//! 
+//! ; Attributes: bp-based frame
+//! 
+//! $CspRndrInit	proc far		; CODE XREF: PROGRAM+19P
+void CspRndrInit()
+{
+//! 		push	bp
+//! 		mov	bp, sp
+//! ; #line	"CSPRNDR.PAS" 366
+//! 		xor	ax, ax		; Logical Exclusive OR
+//! 		mov	Wx, ax		; int16_t
+//! 		jmp	short loc_110AE	; Jump
+//! ; ---------------------------------------------------------------------------
+//! 
+//! loc_110AA:				; CODE XREF: $CspRndrInit+48j
+//! 		inc	Wx		; int16_t
+//! ; #line	"CSPRNDR.PAS" 367
+//! 
+//! loc_110AE:				; CODE XREF: $CspRndrInit+8j
+//! 		xor	ax, ax		; Logical Exclusive OR
+//! 		mov	Wy, ax		; int16_t
+//! 		jmp	short loc_110B9	; Jump
+//! ; ---------------------------------------------------------------------------
+//! 
+//! loc_110B5:				; CODE XREF: $CspRndrInit+41j
+//! 		inc	Wy		; int16_t
+//! ; #line	"CSPRNDR.PAS" 368
+//! 
+//! loc_110B9:				; CODE XREF: $CspRndrInit+13j
+//! 		mov	ax, Wx		; int16_t
+//! 		shl	ax, 2		; Shift	Logical	Left
+//! 		push	ax
+//! 		mov	ax, Wy		; int16_t
+//! 		shl	ax, 2		; Shift	Logical	Left
+//! 		push	ax
+//! 		call	QPifagorP16	; function near	PASCAL returns unsigned	int 'Word'
+//! 		mov	dl, al
+//! 		mov	ax, Wy		; int16_t
+//! 		mov	di, Wx		; int16_t
+//! 		shl	di, 5		; Shift	Logical	Left
+//! 		add	di, ax		; Add
+//! 		mov	PifTab[di], dl	; uint8_t[1024]
+//! 		cmp	Wy, 1Fh		; int16_t
+//! 		jnz	short loc_110B5	; Jump if Not Zero (ZF=0)
+//! 		cmp	Wx, 1Fh		; int16_t
+//! 		jnz	short loc_110AA	; Jump if Not Zero (ZF=0)
+
+    for (Wy = 0; Wy < 32; ++Wy)
+    {
+        for (Wx = 0; Wx < 32; ++Wx)
+        {
+            PifTab[Wy][Wx] = QPifagorP16(Wx * 4, Wy * 4);
+        }
+    }
+
+//! ; #line	"CSPRNDR.PAS" 369
+//! 		leave			; High Level Procedure Exit
+//! 		retf			; Return Far from Procedure
+//! $CspRndrInit	endp
+}
+//! 
 //@ ; [0000000B BYTES: COLLAPSED FUNCTION unknown_libname_1. PRESS KEYPAD "+" TO EXPAND]
-//@ 		db 0C9h	; É
-//@ 		db 0C3h	; Ã
+//@ ; [00000002 BYTES: COLLAPSED FUNCTION sub_110F7. PRESS KEYPAD "+" TO EXPAND]
 //@ ; [00000030 BYTES: COLLAPSED FUNCTION __CrtInit(void). PRESS KEYPAD "+"	TO EXPAND]
 //@ ; [00000074 BYTES: COLLAPSED FUNCTION unknown_libname_2. PRESS KEYPAD "+" TO EXPAND]
 //@ ; [0000004D BYTES: COLLAPSED FUNCTION sub_1119D. PRESS KEYPAD "+" TO EXPAND]
 //@ ; [00000048 BYTES: COLLAPSED FUNCTION sub_111EA. PRESS KEYPAD "+" TO EXPAND]
-//@ 		db  26h	; &
-//@ 		db  80h	; €
-//@ 		db  3Eh	; >
-//@ 		db  42h	; B
-//@ 		db 0F9h	; ù
-//@ 		db    0
-//@ 		db  74h	; t
-//@ 		db    6
-//@ 		db  26h	; &
-//@ 		db 0C6h	; Æ
-//@ 		db    6
-//@ 		db  54h	; T
-//@ 		db 0F9h	; ù
-//@ 		db    1
-//@ 		db 0FCh	; ü
-//@ 		db 0ADh	; ­
-//@ 		db  26h	; &
-//@ 		db  89h	; ‰
-//@ 		db  45h	; E
-//@ 		db  2Ah	; *
-//@ 		db 0ADh	; ­
-//@ 		db  26h	; &
-//@ 		db  89h	; ‰
-//@ 		db  45h	; E
-//@ 		db  2Ch	; ,
-//@ 		db 0ADh	; ­
-//@ 		db  26h	; &
-//@ 		db  89h	; ‰
-//@ 		db  45h	; E
-//@ 		db  20h
-//@ 		db  26h	; &
-//@ 		db  83h	; ƒ
-//@ 		db  45h	; E
-//@ 		db  2Eh	; .
-//@ 		db    6
-//@ 		db 0CFh	; Ï
+//@ ; [00000024 BYTES: COLLAPSED FUNCTION sub_11232. PRESS KEYPAD "+" TO EXPAND]
 //@ ; [00000029 BYTES: COLLAPSED FUNCTION sub_11256. PRESS KEYPAD "+" TO EXPAND]
 //@ ; [00000015 BYTES: COLLAPSED FUNCTION TextMode(Integer). PRESS KEYPAD "+" TO EXPAND]
 //@ ; [00000040 BYTES: COLLAPSED FUNCTION Window(Byte,Byte,Byte,Byte). PRESS KEYPAD	"+" TO EXPAND]
@@ -1832,474 +1828,99 @@
 //@ ; [00000012 BYTES: COLLAPSED FUNCTION KeyPressed(void).	PRESS KEYPAD "+" TO EXPAND]
 //@ ; [00000022 BYTES: COLLAPSED FUNCTION ReadKey(void). PRESS KEYPAD "+" TO EXPAND]
 //@ ; [0000002B BYTES: COLLAPSED FUNCTION AssignCrt(Text &). PRESS KEYPAD "+" TO EXPAND]
-//@ unk_1146F	db  8Bh	; ‹		; DATA XREF: AssignCrt(Text &)+1Bo
-//@ 		db 0DCh	; Ü
-//@ 		db  1Eh
-//@ 		db  36h	; 6
-//@ 		db 0C5h	; Å
-//@ 		db  7Fh	; 
-//@ 		db    4
-//@ 		db 0B8h	; ¸
-//@ 		db  77h	; w
-//@ 		db  24h	; $
-//@ 		db 0BBh	; »
-//@ 		db  55h	; U
-//@ 		db  25h	; %
-//@ 		db  8Bh	; ‹
-//@ 		db 0CBh	; Ë
-//@ 		db  81h	; 
-//@ 		db  7Dh	; }
-//@ 		db    2
-//@ 		db 0B1h	; ±
-//@ 		db 0D7h	; ×
-//@ 		db  74h	; t
-//@ 		db  0Ah
-//@ 		db 0C7h	; Ç
-//@ 		db  45h	; E
-//@ 		db    2
-//@ 		db 0B2h	; ²
-//@ 		db 0D7h	; ×
-//@ 		db 0B8h	; ¸
-//@ 		db  24h	; $
-//@ 		db  25h	; %
-//@ 		db  8Bh	; ‹
-//@ 		db 0D8h	; Ø
-//@ 		db  89h	; ‰
-//@ 		db  45h	; E
-//@ 		db  14h
-//@ 		db  8Ch	; Œ
-//@ 		db  4Dh	; M
-//@ 		db  16h
-//@ 		db  89h	; ‰
-//@ 		db  5Dh	; ]
-//@ 		db  18h
-//@ 		db  8Ch	; Œ
-//@ 		db  4Dh	; M
-//@ 		db  1Ah
-//@ 		db  89h	; ‰
-//@ 		db  4Dh	; M
-//@ 		db  1Ch
-//@ 		db  8Ch	; Œ
-//@ 		db  4Dh	; M
-//@ 		db  1Eh
-//@ 		db  33h	; 3
-//@ 		db 0C0h	; À
-//@ 		db  1Fh
-//@ 		db 0CAh	; Ê
-//@ 		db    4
-//@ 		db    0
-//@ ; ---------------------------------------------------------------------------
-//@ 		push	bp
-//@ 		mov	bp, sp
-//@ 		les	di, [bp+6]	; Load Full Pointer to ES:xx
-//@ 		mov	dx, es:[di+4]
-//@ 		dec	dx		; Decrement by 1
-//@ 		dec	dx		; Decrement by 1
-//@ 		mov	si, es:[di+8]
-//@ 		les	di, es:[di+0Ch]	; Load Full Pointer to ES:xx
-//@ 		xor	bx, bx		; Logical Exclusive OR
-//@ 
-//@ loc_114BD:				; CODE XREF: cseg02:24BCj cseg02:24C0j ...
-//@ 		mov	byte_45BA3, 0
-//@ 		push	cs
-//@ 		call	near ptr @ReadKey$qv ; function	far PASCAL returns PASCAL character 'Char'
-//@ 		mov	cx, 1
-//@ 		cmp	al, 8		; Compare Two Operands
-//@ 		jz	short loc_11501	; Jump if Zero (ZF=1)
-//@ 		cmp	al, 13h		; Compare Two Operands
-//@ 		jz	short loc_11501	; Jump if Zero (ZF=1)
-//@ 		cmp	al, 4		; Compare Two Operands
-//@ 		jz	short loc_11519	; Jump if Zero (ZF=1)
-//@ 		dec	cx		; Decrement by 1
-//@ 		cmp	al, 1Bh		; Compare Two Operands
-//@ 		jz	short loc_11501	; Jump if Zero (ZF=1)
-//@ 		cmp	al, 1		; Compare Two Operands
-//@ 		jz	short loc_11501	; Jump if Zero (ZF=1)
-//@ 		cmp	al, 6		; Compare Two Operands
-//@ 		jz	short loc_11519	; Jump if Zero (ZF=1)
-//@ 		cmp	al, 1Ah		; Compare Two Operands
-//@ 		jz	short loc_1152C	; Jump if Zero (ZF=1)
-//@ 		cmp	al, 0Dh		; Compare Two Operands
-//@ 		jz	short loc_11539	; Jump if Zero (ZF=1)
-//@ 		cmp	al, 20h	; ' '   ; Compare Two Operands
-//@ 		jb	short loc_114BD	; Jump if Below	(CF=1)
-//@ 		cmp	bx, dx		; Compare Two Operands
-//@ 		jz	short loc_114BD	; Jump if Zero (ZF=1)
-//@ 		mov	es:[bx+di], al
-//@ 		inc	bx		; Increment by 1
-//@ 		call	sub_11591	; Call Procedure
-//@ 		cmp	bx, si		; Compare Two Operands
-//@ 		jbe	short loc_114BD	; Jump if Below	or Equal (CF=1 | ZF=1)
-//@ 		mov	si, bx
-//@ 		jmp	short loc_114BD	; Jump
-//@ ; ---------------------------------------------------------------------------
-//@ 
-//@ loc_11501:				; CODE XREF: cseg02:249Bj cseg02:249Fj ...
-//@ 		or	bx, bx		; Logical Inclusive OR
-//@ 		jz	short loc_114BD	; Jump if Zero (ZF=1)
-//@ 		mov	al, 8
-//@ 		call	sub_11591	; Call Procedure
-//@ 		mov	al, 20h	; ' '
-//@ 		call	sub_11591	; Call Procedure
-//@ 		mov	al, 8
-//@ 		call	sub_11591	; Call Procedure
-//@ 		dec	bx		; Decrement by 1
-//@ 		loop	loc_11501	; Loop while CX	!= 0
-//@ 		jmp	short loc_114BD	; Jump
-//@ ; ---------------------------------------------------------------------------
-//@ 
-//@ loc_11519:				; CODE XREF: cseg02:24A3j cseg02:24B0j ...
-//@ 		cmp	bx, si		; Compare Two Operands
-//@ 		jz	short loc_114BD	; Jump if Zero (ZF=1)
-//@ 		mov	al, es:[bx+di]
-//@ 		cmp	al, 20h	; ' '   ; Compare Two Operands
-//@ 		jb	short loc_114BD	; Jump if Below	(CF=1)
-//@ 		call	sub_11591	; Call Procedure
-//@ 		inc	bx		; Increment by 1
-//@ 		loop	loc_11519	; Loop while CX	!= 0
-//@ 		jmp	short loc_114BD	; Jump
-//@ ; ---------------------------------------------------------------------------
-//@ 
-//@ loc_1152C:				; CODE XREF: cseg02:24B4j
-//@ 		cmp	CheckEOF, 0	; bool
-//@ 		jz	short loc_114BD	; Jump if Zero (ZF=1)
-//@ 		mov	es:[bx+di], al
-//@ 		inc	bx		; Increment by 1
-//@ 		jmp	short loc_11543	; Jump
-//@ ; ---------------------------------------------------------------------------
-//@ 
-//@ loc_11539:				; CODE XREF: cseg02:24B8j
-//@ 		call	sub_1158A	; Call Procedure
-//@ 		mov	word ptr es:[bx+di], 0A0Dh
-//@ 		inc	bx		; Increment by 1
-//@ 		inc	bx		; Increment by 1
-//@ 
-//@ loc_11543:				; CODE XREF: cseg02:2507j
-//@ 		les	di, [bp+6]	; Load Full Pointer to ES:xx
-//@ 		xor	ax, ax		; Logical Exclusive OR
-//@ 		mov	es:[di+8], ax
-//@ 		mov	es:[di+0Ah], bx
-//@ 		pop	bp
-//@ 		retf	4		; Return Far from Procedure
-//@ ; ---------------------------------------------------------------------------
-//@ 		db  8Bh	; ‹
-//@ 		db 0DCh	; Ü
-//@ 		db  36h	; 6
-//@ 		db 0C4h	; Ä
-//@ 		db  7Fh	; 
-//@ 		db    4
-//@ 		db  26h	; &
-//@ 		db  8Bh	; ‹
-//@ 		db  4Dh	; M
-//@ 		db    8
-//@ 		db  26h	; &
-//@ 		db  29h	; )
-//@ 		db  4Dh	; M
-//@ 		db    8
-//@ 		db 0E3h	; ã
-//@ 		db  19h
-//@ 		db  26h	; &
-//@ 		db 0C4h	; Ä
-//@ 		db  7Dh	; }
-//@ 		db  0Ch
-//@ 		db  80h	; €
-//@ 		db  3Eh	; >
-//@ 		db  44h	; D
-//@ 		db 0F9h	; ù
-//@ 		db    0
-//@ 		db  75h	; u
-//@ 		db  0Bh
-//@ 		db  26h	; &
-//@ 		db  8Ah	; Š
-//@ 		db    5
-//@ 		db 0E8h	; è
-//@ 		db  1Ch
-//@ 		db    0
-//@ 		db  47h	; G
-//@ 		db 0E2h	; â
-//@ 		db 0F7h	; ÷
-//@ 		db 0EBh	; ë
-//@ 		db    3
-//@ 		db 0E8h	; è
-//@ 		db  9Ch	; œ
-//@ 		db    0
-//@ 		db 0E8h	; è
-//@ 		db 0D6h	; Ö
-//@ 		db 0FCh	; ü
-//@ 		db  33h	; 3
-//@ 		db 0C0h	; À
-//@ 		db 0CAh	; Ê
-//@ 		db    4
-//@ 		db    0
-//@ 		db  33h	; 3
-//@ 		db 0C0h	; À
-//@ 		db 0CAh	; Ê
-//@ 		db    4
-//@ 		db    0
+//@ ; [00000038 BYTES: COLLAPSED FUNCTION sub_1146F. PRESS KEYPAD "+" TO EXPAND]
+//@ ; [000000AD BYTES: COLLAPSED FUNCTION sub_114A7. PRESS KEYPAD "+" TO EXPAND]
+//@ ; [00000031 BYTES: COLLAPSED FUNCTION sub_11554. PRESS KEYPAD "+" TO EXPAND]
+//@ ; [00000005 BYTES: COLLAPSED FUNCTION sub_11585. PRESS KEYPAD "+" TO EXPAND]
 //@ ; [00000007 BYTES: COLLAPSED FUNCTION sub_1158A. PRESS KEYPAD "+" TO EXPAND]
 //@ ; [00000059 BYTES: COLLAPSED FUNCTION sub_11591. PRESS KEYPAD "+" TO EXPAND]
 //@ ; [00000021 BYTES: COLLAPSED FUNCTION sub_115EA. PRESS KEYPAD "+" TO EXPAND]
 //@ ; [00000007 BYTES: COLLAPSED FUNCTION sub_1160B. PRESS KEYPAD "+" TO EXPAND]
 //@ ; [00000007 BYTES: COLLAPSED FUNCTION sub_11612. PRESS KEYPAD "+" TO EXPAND]
-//@ 		db  1Eh
-//@ 		db  8Eh	; Ž
-//@ 		db  1Eh
-//@ 		db 0D0h	; Ð
-//@ 		db    3
-//@ 		db  8Bh	; ‹
-//@ 		db  16h
-//@ 		db  50h	; P
-//@ 		db    0
-//@ 		db  1Fh
-//@ 		db  8Bh	; ‹
-//@ 		db 0DAh	; Ú
-//@ 		db  8Bh	; ‹
-//@ 		db 0F7h	; ÷
-//@ 		db  26h	; &
-//@ 		db  8Ah	; Š
-//@ 		db    5
-//@ 		db  3Ch	; <
-//@ 		db    7
-//@ 		db  74h	; t
-//@ 		db  21h	; !
-//@ 		db  3Ch	; <
-//@ 		db    8
-//@ 		db  74h	; t
-//@ 		db  2Ch	; ,
-//@ 		db  3Ch	; <
-//@ 		db  0Ah
-//@ 		db  74h	; t
-//@ 		db  35h	; 5
-//@ 		db  3Ch	; <
-//@ 		db  0Dh
-//@ 		db  74h	; t
-//@ 		db  39h	; 9
-//@ 		db  47h	; G
-//@ 		db 0FEh	; þ
-//@ 		db 0C2h	; Â
-//@ 		db  3Ah	; :
-//@ 		db  16h
-//@ 		db  4Ch	; L
-//@ 		db 0F9h	; ù
-//@ 		db  76h	; v
-//@ 		db  3Ch	; <
-//@ 		db 0E8h	; è
-//@ 		db  6Eh	; n
-//@ 		db    0
-//@ 		db 0E8h	; è
-//@ 		db 0A1h	; ¡
-//@ 		db 0FFh
-//@ 		db  8Ah	; Š
-//@ 		db  16h
-//@ 		db  4Ah	; J
-//@ 		db 0F9h	; ù
-//@ 		db 0EBh	; ë
-//@ 		db  2Ch	; ,
-//@ 		db 0E8h	; è
-//@ 		db  62h	; b
-//@ 		db    0
-//@ 		db  51h	; Q
-//@ 		db  52h	; R
-//@ 		db 0B8h	; ¸
-//@ 		db    7
-//@ 		db  0Eh
-//@ 		db 0E8h	; è
-//@ 		db 0C2h	; Â
-//@ 		db    0
-//@ 		db  5Ah	; Z
-//@ 		db  59h	; Y
-//@ 		db 0EBh	; ë
-//@ 		db  1Ch
-//@ 		db 0E8h	; è
-//@ 		db  53h	; S
-//@ 		db    0
-//@ 		db  3Ah	; :
-//@ 		db  16h
-//@ 		db  4Ah	; J
-//@ 		db 0F9h	; ù
-//@ 		db  74h	; t
-//@ 		db  13h
-//@ 		db 0FEh	; þ
-//@ 		db 0CAh	; Ê
-//@ 		db 0EBh	; ë
-//@ 		db  0Fh
-//@ 		db 0E8h	; è
-//@ 		db  46h	; F
-//@ 		db    0
-//@ 		db 0E8h	; è
-//@ 		db  79h	; y
-//@ 		db 0FFh
-//@ 		db 0EBh	; ë
-//@ 		db    7
-//@ 		db 0E8h	; è
-//@ 		db  3Eh	; >
-//@ 		db    0
-//@ 		db  8Ah	; Š
-//@ 		db  16h
-//@ 		db  4Ah	; J
-//@ 		db 0F9h	; ù
-//@ 		db  47h	; G
-//@ 		db  8Bh	; ‹
-//@ 		db 0F7h	; ÷
-//@ 		db  8Bh	; ‹
-//@ 		db 0DAh	; Ú
-//@ 		db 0E2h	; â
-//@ 		db 0A6h	; ¦
-//@ 		db 0E8h	; è
-//@ 		db  30h	; 0
-//@ 		db    0
-//@ 		db  1Eh
-//@ 		db  8Eh	; Ž
-//@ 		db  1Eh
-//@ 		db 0D0h	; Ð
-//@ 		db    3
-//@ 		db  89h	; ‰
-//@ 		db  16h
-//@ 		db  50h	; P
-//@ 		db    0
-//@ 		db  8Ah	; Š
-//@ 		db 0C6h	; Æ
-//@ 		db 0F6h	; ö
-//@ 		db  26h	; &
-//@ 		db  4Ah	; J
-//@ 		db    0
-//@ 		db  32h	; 2
-//@ 		db 0F6h	; ö
-//@ 		db    3
-//@ 		db 0C2h	; Â
-//@ 		db  8Bh	; ‹
-//@ 		db 0C8h	; È
-//@ 		db  8Bh	; ‹
-//@ 		db  16h
-//@ 		db  63h	; c
-//@ 		db    0
-//@ 		db 0B0h	; °
-//@ 		db  0Eh
-//@ 		db 0EEh	; î
-//@ 		db 0EBh	; ë
-//@ 		db    0
-//@ 		db  8Ah	; Š
-//@ 		db 0C5h	; Å
-//@ 		db  42h	; B
-//@ 		db 0EEh	; î
-//@ 		db 0EBh	; ë
-//@ 		db    0
-//@ 		db  4Ah	; J
-//@ 		db 0B0h	; °
-//@ 		db  0Fh
-//@ 		db 0EEh	; î
-//@ 		db 0EBh	; ë
-//@ 		db    0
-//@ 		db  8Ah	; Š
-//@ 		db 0C1h	; Á
-//@ 		db  42h	; B
-//@ 		db 0EEh	; î
-//@ 		db  1Fh
-//@ 		db 0C3h	; Ã
-//@ 		db  3Bh	; ;
-//@ 		db 0F7h	; ÷
-//@ 		db  74h	; t
-//@ 		db  63h	; c
-//@ 		db  51h	; Q
-//@ 		db  52h	; R
-//@ 		db  57h	; W
-//@ 		db  1Eh
-//@ 		db    6
-//@ 		db  8Bh	; ‹
-//@ 		db 0CFh	; Ï
-//@ 		db  2Bh	; +
-//@ 		db 0CEh	; Î
-//@ 		db  1Eh
-//@ 		db  8Eh	; Ž
-//@ 		db  1Eh
-//@ 		db 0D0h	; Ð
-//@ 		db    3
-//@ 		db  8Ah	; Š
-//@ 		db 0C7h	; Ç
-//@ 		db 0F6h	; ö
-//@ 		db  26h	; &
-//@ 		db  4Ah	; J
-//@ 		db    0
-//@ 		db  32h	; 2
-//@ 		db 0FFh
-//@ 		db    3
-//@ 		db 0C3h	; Ã
-//@ 		db 0D1h	; Ñ
-//@ 		db 0E0h	; à
-//@ 		db  8Bh	; ‹
-//@ 		db 0F8h	; ø
-//@ 		db  8Bh	; ‹
-//@ 		db  16h
-//@ 		db  63h	; c
-//@ 		db    0
-//@ 		db  83h	; ƒ
-//@ 		db 0C2h	; Â
-//@ 		db    6
-//@ 		db  80h	; €
-//@ 		db  3Eh	; >
-//@ 		db  49h	; I
-//@ 		db    0
-//@ 		db    7
-//@ 		db  1Fh
-//@ 		db 0A1h	; ¡
-//@ 		db 0D6h	; Ö
-//@ 		db    3
-//@ 		db  75h	; u
-//@ 		db    3
-//@ 		db 0A1h	; ¡
-//@ 		db 0D4h	; Ô
-//@ 		db    3
-//@ 		db  8Ah	; Š
-//@ 		db  1Eh
-//@ 		db  45h	; E
-//@ 		db 0F9h	; ù
-//@ 		db  8Ah	; Š
-//@ 		db  3Eh	; >
-//@ 		db  48h	; H
-//@ 		db 0F9h	; ù
-//@ 		db    6
-//@ 		db  1Fh
-//@ 		db  8Eh	; Ž
-//@ 		db 0C0h	; À
-//@ 		db 0FCh	; ü
-//@ 		db  0Ah
-//@ 		db 0DBh	; Û
-//@ 		db  74h	; t
-//@ 		db  16h
-//@ 		db 0ACh	; ¬
-//@ 		db  8Ah	; Š
-//@ 		db 0D8h	; Ø
-//@ 		db 0ECh	; ì
-//@ 		db 0A8h	; ¨
-//@ 		db    1
-//@ 		db  75h	; u
-//@ 		db 0FBh	; û
-//@ 		db 0FAh	; ú
-//@ 		db 0ECh	; ì
-//@ 		db 0A8h	; ¨
-//@ 		db    1
-//@ 		db  74h	; t
-//@ 		db 0FBh	; û
-//@ 		db  8Bh	; ‹
-//@ 		db 0C3h	; Ã
-//@ 		db 0ABh	; «
-//@ 		db 0FBh	; û
-//@ 		db 0E2h	; â
-//@ 		db 0ECh	; ì
-//@ 		db 0EBh	; ë
-//@ 		db    6
-//@ 		db  8Ah	; Š
-//@ 		db 0E7h	; ç
-//@ 		db 0ACh	; ¬
-//@ 		db 0ABh	; «
-//@ 		db 0E2h	; â
-//@ 		db 0FCh	; ü
-//@ 		db    7
-//@ 		db  1Fh
-//@ 		db  5Fh	; _
-//@ 		db  5Ah	; Z
-//@ 		db  59h	; Y
-//@ 		db 0C3h	; Ã
+//@ ; [0000009B BYTES: COLLAPSED FUNCTION sub_11619. PRESS KEYPAD "+" TO EXPAND]
+//@ 
+//@ ; =============== S U B	R O U T	I N E =======================================
+//@ 
+//@ 
+//@ sub_116B4	proc near		; CODE XREF: sub_11619+2Ap
+//@ 					; sub_11619:loc_1164Fp	...
+//@ 		cmp	si, di		; Compare Two Operands
+//@ 		jz	short locret_1171B ; Jump if Zero (ZF=1)
+//@ 		push	cx
+//@ 		push	dx
+//@ 		push	di
+//@ 		push	ds
+//@ 		push	es
+//@ 		mov	cx, di
+//@ 		sub	cx, si		; Integer Subtraction
+//@ 		push	ds
+//@ 		mov	ds, Seg0040	; uint16_t
+//@ 		mov	al, bh
+//@ 		mul	byte ptr ConsoleCommands+16h ; char[546] // Pascal string
+//@ 		xor	bh, bh		; Logical Exclusive OR
+//@ 		add	ax, bx		; Add
+//@ 		shl	ax, 1		; Shift	Logical	Left
+//@ 		mov	di, ax
+//@ 		mov	dx, word ptr ConsoleCommands+2Fh ; char[546] //	Pascal string
+//@ 		add	dx, 6		; Add
+//@ 		cmp	byte ptr ConsoleCommands+15h, 7	; char[546] // Pascal string
+//@ 		pop	ds
+//@ 		mov	ax, SegB800	; uint16_t
+//@ 		jnz	short loc_116E9	; Jump if Not Zero (ZF=0)
+//@ 		mov	ax, SegB000	; uint16_t
+//@ 
+//@ loc_116E9:				; CODE XREF: sub_116B4+30j
+//@ 		mov	bl, CheckSnow	; bool
+//@ 		mov	bh, TextAttr	; uint8_t
+//@ 		push	es
+//@ 		pop	ds
+//@ 		mov	es, ax
+//@ 		cld			; Clear	Direction Flag
+//@ 		or	bl, bl		; Logical Inclusive OR
+//@ 		jz	short loc_11710	; Jump if Zero (ZF=1)
+//@ 
+//@ loc_116FA:				; CODE XREF: sub_116B4+58j
+//@ 		lodsb			; Load String
+//@ 		mov	bl, al
+//@ 
+//@ loc_116FD:				; CODE XREF: sub_116B4+4Cj
+//@ 		in	al, dx		; DMA controller, 8237A-5.
+//@ 					; channel 3 current address
+//@ 		test	al, 1		; Logical Compare
+//@ 		jnz	short loc_116FD	; Jump if Not Zero (ZF=0)
+//@ 		cli			; Clear	Interrupt Flag
+//@ 
+//@ loc_11703:				; CODE XREF: sub_116B4+52j
+//@ 		in	al, dx		; DMA controller, 8237A-5.
+//@ 					; channel 3 current address
+//@ 		test	al, 1		; Logical Compare
+//@ 		jz	short loc_11703	; Jump if Zero (ZF=1)
+//@ 		mov	ax, bx
+//@ 		stosw			; Store	String
+//@ 		sti			; Set Interrupt	Flag
+//@ 		loop	loc_116FA	; Loop while CX	!= 0
+//@ 		jmp	short loc_11716	; Jump
+//@ ; ---------------------------------------------------------------------------
+//@ 
+//@ loc_11710:				; CODE XREF: sub_116B4+44j
+//@ 		mov	ah, bh
+//@ 
+//@ loc_11712:				; CODE XREF: sub_116B4+60j
+//@ 		lodsb			; Load String
+//@ 		stosw			; Store	String
+//@ 		loop	loc_11712	; Loop while CX	!= 0
+//@ 
+//@ loc_11716:				; CODE XREF: sub_116B4+5Aj
+//@ 		pop	es
+//@ 		pop	ds
+//@ 		pop	di
+//@ 		pop	dx
+//@ 		pop	cx
+//@ 
+//@ locret_1171B:				; CODE XREF: sub_116B4+2j
+//@ 		retn			; Return Near from Procedure
+//@ sub_116B4	endp
+//@ 
 //@ ; [0000000B BYTES: COLLAPSED FUNCTION sub_1171C. PRESS KEYPAD "+" TO EXPAND]
 //@ ; [00000018 BYTES: COLLAPSED FUNCTION GetIntVec(Byte,Pointer &). PRESS KEYPAD "+" TO EXPAND]
 //@ ; [00000013 BYTES: COLLAPSED FUNCTION SetIntVec(Byte,Pointer). PRESS KEYPAD "+"	TO EXPAND]

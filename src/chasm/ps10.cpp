@@ -22,6 +22,8 @@
 #include "ps10.h"
 
 #include "cspbio.h"
+#include "csprndr.h"
+
 
 //@ ; #line	"PS10.PAS" 43
 //@ 
@@ -22134,7 +22136,8 @@ int main(int argc, char** argv)
 //@ 		call	$SoundIPInit	; Call Procedure
 //! 		call	$CspBioInit	; Call Procedure
 	CspBioInit();
-//@ 		call	$CspRndrInit	; Call Procedure
+//! 		call	$CspRndrInit	; Call Procedure
+    CspRndrInit();
 //@ 		call	$CsMenuInit	; Call Procedure
 //@ 		call	$CspUtlInit	; Call Procedure
 //@ 		call	$CsActInit	; Call Procedure
