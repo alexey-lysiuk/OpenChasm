@@ -23,6 +23,10 @@
     <ClCompile Include="csvesa.cpp" />
     <ClCompile Include="cs_demo.cpp" />
     <ClCompile Include="cs_mapml.cpp" />
+    <ClCompile Include="precomp.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="ps10.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -38,6 +42,8 @@
     <ClInclude Include="csvesa.h" />
     <ClInclude Include="cs_demo.h" />
     <ClInclude Include="cs_mapml.h" />
+    <ClInclude Include="precomp.h" />
+    <ClInclude Include="ps10.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{078B40AD-9656-4553-BD5F-C6E0735A1FF5}</ProjectGuid>
@@ -74,11 +80,13 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PrecompiledHeaderFile>precomp.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>precomp.h</ForcedIncludeFiles>
+      <AdditionalIncludeDirectories>src/chasm</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -88,12 +96,14 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PrecompiledHeaderFile>precomp.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>precomp.h</ForcedIncludeFiles>
+      <AdditionalIncludeDirectories>src/chasm</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

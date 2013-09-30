@@ -22,6 +22,10 @@
 #ifndef OPENCHASM_PRECOMP_H_INCLUDED
 #define OPENCHASM_PRECOMP_H_INCLUDED
 
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif // _MSC_VER
+
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
