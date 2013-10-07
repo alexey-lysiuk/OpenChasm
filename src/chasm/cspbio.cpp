@@ -27,9 +27,16 @@
 uint16_t CurVideoMode;
 
 bool Internal;
+bool UserMaps;
 
 FILE* F;
+FILE* Ft;
+
 int32_t Ll;
+
+char LastFName[256]; // TOOD: filesystem
+
+char AddonPath[41]; // TOOD: filesystem
 
 
 static char BaseFile[81]; // TODO: filesystem
@@ -802,6 +809,12 @@ bool ExistFile(const char* const filename)
 //@ aCsm_binOpenErr	db 26,'CSM.BIN Open Error. (File:' ; DATA XREF: FOpen+26Ao
 //! aChasmdat	db 9,'CHASMDAT\'        ; DATA XREF: FOpen+2AEo
 static const char* const CHASM_DATA_DIRECTORY = "CHASMDAT/";
+
+static void JustFilename(char* const filename, const char* const path)
+{
+
+}
+
 //@ ; #line	"CSPBIO.PAS" 1417
 //@ 
 //@ ; =============== S U B	R O U T	I N E =======================================
@@ -1245,99 +1258,113 @@ static const char* const CHASM_DATA_DIRECTORY = "CHASMDAT/";
 //@ aChasmdat_0	db 9,'CHASMDAT\'        ; DATA XREF: TOpen+1FAo
 //@ ; #line	"CSPBIO.PAS" 1458
 //@ 
-//@ ; =============== S U B	R O U T	I N E =======================================
-//@ 
-//@ ; function far PASCAL returns void
-//@ ; Attributes: bp-based frame
-//@ 
-//@ TOpen		proc far		; CODE XREF: PlayBrifing+17EP
-//@ 					; ReloadResources+5FP ...
-//@ 
-//@ var_404		= byte ptr -404h
-//@ var_304		= byte ptr -304h
-//@ var_204		= byte ptr -204h
-//@ var_106		= word ptr -106h
-//@ fn		= word ptr -104h	; int16_t
-//@ i		= word ptr -102h	; int16_t
-//@ Name		= byte ptr -100h	; char[256] // Pascal string
-//@ arg_0		= dword	ptr  6
-//@ F		= dword	ptr  0Ah	; Text
-//@ 
-//@ 		enter	404h, 0		; Make Stack Frame for Procedure Parameters
-//@ 		mov	bx, ss
-//@ 		mov	es, bx
-//@ 		mov	bx, ds
-//@ 		cld			; Clear	Direction Flag
-//@ 		lea	di, [bp+Name]	; char[256] // Pascal string
-//@ 		lds	si, [bp+arg_0]	; Load Full Pointer to DS:xx
-//@ 		lodsb			; Load String
-//@ 		stosb			; Store	String
-//@ 		xchg	ax, cx		; Exchange Register/Memory with	Register
-//@ 		xor	ch, ch		; Logical Exclusive OR
-//@ 		rep movsb		; Move Byte(s) from String to String
-//@ 		mov	ds, bx
-//@ ; #line	"CSPBIO.PAS" 1459
-//@ 		lea	di, [bp+Name]	; char[256] // Pascal string
-//@ 		push	ss
-//@ 		push	di
-//@ 		mov	di, offset LastFName ; char[256] // Pascal string
-//@ 		push	ds
-//@ 		push	di
-//@ 		push	0FFh
-//@ 		call	@$basg$qm6Stringt14Byte	; Store	string
-//@ ; #line	"CSPBIO.PAS" 1460
-//@ 		cmp	UserMaps, 0	; bool
-//@ 		jnz	short loc_2C00B	; Jump if Not Zero (ZF=0)
-//@ 		jmp	loc_2C0C9	; Jump
-//@ ; ---------------------------------------------------------------------------
-//@ ; #line	"CSPBIO.PAS" 1461
-//@ 
-//@ loc_2C00B:				; CODE XREF: TOpen+33j
-//@ 		lea	di, [bp+var_204] ; Load	Effective Address
-//@ 		push	ss
-//@ 		push	di
-//@ 		mov	di, offset AddonPath ; char[41]	// Pascal string
-//@ 		push	ds
-//@ 		push	di
-//@ 		call	@$basg$qm6Stringt1 ; Load string
-//@ 		lea	di, [bp+Name]	; char[256] // Pascal string
-//@ 		push	ss
-//@ 		push	di
-//@ 		call	@Concat$qm6Stringt1 ; Concat(dst, src: String):	String
-//@ 		call	ExistFile	; function far PASCAL returns PASCAL boolean 'Boolean'
-//@ 		or	al, al		; Logical Inclusive OR
-//@ 		jnz	short loc_2C032	; Jump if Not Zero (ZF=0)
-//@ 		jmp	loc_2C0C9	; Jump
-//@ ; ---------------------------------------------------------------------------
-//@ ; #line	"CSPBIO.PAS" 1463
-//@ 
-//@ loc_2C032:				; CODE XREF: TOpen+5Aj
-//@ 		les	di, [bp+F]	; Text
-//@ 		push	es
-//@ 		push	di
-//@ 		lea	di, [bp+var_304] ; Load	Effective Address
-//@ 		push	ss
-//@ 		push	di
-//@ 		mov	di, offset AddonPath ; char[41]	// Pascal string
-//@ 		push	ds
-//@ 		push	di
-//@ 		call	@$basg$qm6Stringt1 ; Load string
-//@ 		lea	di, [bp+Name]	; char[256] // Pascal string
-//@ 		push	ss
-//@ 		push	di
-//@ 		call	@Concat$qm6Stringt1 ; Concat(dst, src: String):	String
-//@ 		call	@Assign$qm4Textm6String	; Assign(var f:	Text; name: String)
-//@ ; #line	"CSPBIO.PAS" 1464
-//@ 		les	di, [bp+F]	; Text
-//@ 		push	es
-//@ 		push	di
-//@ 		call	@Reset$qm4Text	; Reset(var f: Text)
-//@ ; #line	"CSPBIO.PAS" 1465
-//@ 		call	@IOResult$qv	; IOResult: Word{AX}
-//@ 		mov	[bp+i],	ax	; int16_t
-//@ ; #line	"CSPBIO.PAS" 1466
-//@ 		cmp	[bp+i],	0	; int16_t
-//@ 		jz	short loc_2C0C6	; Jump if Zero (ZF=1)
+//! ; =============== S U B	R O U T	I N E =======================================
+//! 
+//! ; function far PASCAL returns void
+//! ; Attributes: bp-based frame
+//! 
+//! TOpen		proc far		; CODE XREF: PlayBrifing+17EP
+//! 					; ReloadResources+5FP ...
+void TOpen(const char* const filename, FILE** externalFile)
+{
+//! 
+//! var_404		= byte ptr -404h
+//! var_304		= byte ptr -304h
+//! var_204		= byte ptr -204h
+//! var_106		= word ptr -106h
+//! fn		= word ptr -104h	; int16_t
+//! i		= word ptr -102h	; int16_t
+//! Name		= byte ptr -100h	; char[256] // Pascal string
+//! arg_0		= dword	ptr  6
+//! F		= dword	ptr  0Ah	; Text
+//! 
+//! 		enter	404h, 0		; Make Stack Frame for Procedure Parameters
+//! 		mov	bx, ss
+//! 		mov	es, bx
+//! 		mov	bx, ds
+//! 		cld			; Clear	Direction Flag
+//! 		lea	di, [bp+Name]	; char[256] // Pascal string
+//! 		lds	si, [bp+arg_0]	; Load Full Pointer to DS:xx
+//! 		lodsb			; Load String
+//! 		stosb			; Store	String
+//! 		xchg	ax, cx		; Exchange Register/Memory with	Register
+//! 		xor	ch, ch		; Logical Exclusive OR
+//! 		rep movsb		; Move Byte(s) from String to String
+//! 		mov	ds, bx
+//! ; #line	"CSPBIO.PAS" 1459
+//! 		lea	di, [bp+Name]	; char[256] // Pascal string
+//! 		push	ss
+//! 		push	di
+//! 		mov	di, offset LastFName ; char[256] // Pascal string
+//! 		push	ds
+//! 		push	di
+//! 		push	0FFh
+//! 		call	@$basg$qm6Stringt14Byte	; Store	string
+    strncpy(LastFName, filename, sizeof LastFName);
+//! ; #line	"CSPBIO.PAS" 1460
+//! 		cmp	UserMaps, 0	; bool
+//! 		jnz	short loc_2C00B	; Jump if Not Zero (ZF=0)
+//! 		jmp	loc_2C0C9	; Jump
+    if (UserMaps)
+    {
+//! ; ---------------------------------------------------------------------------
+//! ; #line	"CSPBIO.PAS" 1461
+//! 
+//! loc_2C00B:				; CODE XREF: TOpen+33j
+        char addonFilePath[256];
+//! 		lea	di, [bp+var_204] ; Load	Effective Address
+//! 		push	ss
+//! 		push	di
+//! 		mov	di, offset AddonPath ; char[41]	// Pascal string
+//! 		push	ds
+//! 		push	di
+//! 		call	@$basg$qm6Stringt1 ; Load string
+        strncpy(addonFilePath, AddonPath, sizeof addonFilePath - 1);
+//! 		lea	di, [bp+Name]	; char[256] // Pascal string
+//! 		push	ss
+//! 		push	di
+//! 		call	@Concat$qm6Stringt1 ; Concat(dst, src: String):	String
+        strncat(addonFilePath, filename, sizeof addonFilePath - strlen(AddonPath) - 1);
+//! 		call	ExistFile	; function far PASCAL returns PASCAL boolean 'Boolean'
+        if (ExistFile(addonFilePath))
+        {
+//! 		or	al, al		; Logical Inclusive OR
+//! 		jnz	short loc_2C032	; Jump if Not Zero (ZF=0)
+//! 		jmp	loc_2C0C9	; Jump
+//! ; ---------------------------------------------------------------------------
+//! ; #line	"CSPBIO.PAS" 1463
+//! 
+//! loc_2C032:				; CODE XREF: TOpen+5Aj
+//! 		les	di, [bp+F]	; Text
+//! 		push	es
+//! 		push	di
+//! 		lea	di, [bp+var_304] ; Load	Effective Address
+//! 		push	ss
+//! 		push	di
+//! 		mov	di, offset AddonPath ; char[41]	// Pascal string
+//! 		push	ds
+//! 		push	di
+//! 		call	@$basg$qm6Stringt1 ; Load string
+//! 		lea	di, [bp+Name]	; char[256] // Pascal string
+//! 		push	ss
+//! 		push	di
+//! 		call	@Concat$qm6Stringt1 ; Concat(dst, src: String):	String
+//! 		call	@Assign$qm4Textm6String	; Assign(var f:	Text; name: String)
+//! ; #line	"CSPBIO.PAS" 1464
+            assert(NULL != externalFile);
+            *externalFile = fopen(addonFilePath, "r");
+//! 		les	di, [bp+F]	; Text
+//! 		push	es
+//! 		push	di
+//! 		call	@Reset$qm4Text	; Reset(var f: Text)
+//! ; #line	"CSPBIO.PAS" 1465
+//! 		call	@IOResult$qv	; IOResult: Word{AX}
+//! 		mov	[bp+i],	ax	; int16_t
+//! ; #line	"CSPBIO.PAS" 1466
+//! 		cmp	[bp+i],	0	; int16_t
+//! 		jz	short loc_2C0C6	; Jump if Zero (ZF=1)
+            if (NULL == *externalFile)
+            {
 //@ 		lea	di, [bp+var_404] ; Load	Effective Address
 //@ 		push	ss
 //@ 		push	di
@@ -1372,18 +1399,24 @@ static const char* const CHASM_DATA_DIRECTORY = "CHASMDAT/";
 //@ 		push	di
 //@ 		call	@Concat$qm6Stringt1 ; Concat(dst, src: String):	String
 //@ 		call	far ptr	DoHalt	; function far PASCAL returns void
-//@ ; ---------------------------------------------------------------------------
-//@ ; #line	"CSPBIO.PAS" 1467
-//@ 
-//@ loc_2C0C6:				; CODE XREF: TOpen+9Cj
-//@ 		jmp	locret_2C256	; Jump
-//@ ; ---------------------------------------------------------------------------
-//@ ; #line	"CSPBIO.PAS" 1470
-//@ 
-//@ loc_2C0C9:				; CODE XREF: TOpen+35j	TOpen+5Cj
-//@ 		cmp	Internal, 0	; bool
-//@ 		jnz	short loc_2C0D3	; Jump if Not Zero (ZF=0)
-//@ 		jmp	loc_2C1C2	; Jump
+                DoHalt("I/O Error");
+            }
+//! ; ---------------------------------------------------------------------------
+//! ; #line	"CSPBIO.PAS" 1467
+//! 
+//! loc_2C0C6:				; CODE XREF: TOpen+9Cj
+//! 		jmp	locret_2C256	; Jump
+//! ; ---------------------------------------------------------------------------
+//! ; #line	"CSPBIO.PAS" 1470
+//! 
+        }
+    }
+//! loc_2C0C9:				; CODE XREF: TOpen+35j	TOpen+5Cj
+//! 		cmp	Internal, 0	; bool
+//! 		jnz	short loc_2C0D3	; Jump if Not Zero (ZF=0)
+//! 		jmp	loc_2C1C2	; Jump
+    else if (Internal)
+    {
 //@ ; ---------------------------------------------------------------------------
 //@ ; #line	"CSPBIO.PAS" 1472
 //@ 
@@ -1500,6 +1533,9 @@ static const char* const CHASM_DATA_DIRECTORY = "CHASMDAT/";
 //@ loc_2C1BF:				; CODE XREF: TOpen+1C1j
 //@ 		jmp	locret_2C256	; Jump
 //@ ; ---------------------------------------------------------------------------
+    }
+    else
+    {
 //@ ; #line	"CSPBIO.PAS" 1484
 //@ 
 //@ loc_2C1C2:				; CODE XREF: TOpen+FDj
@@ -1563,15 +1599,17 @@ static const char* const CHASM_DATA_DIRECTORY = "CHASMDAT/";
 //@ 		push	di
 //@ 		call	@Concat$qm6Stringt1 ; Concat(dst, src: String):	String
 //@ 		call	far ptr	DoHalt	; function far PASCAL returns void
-//@ ; ---------------------------------------------------------------------------
-//@ ; #line	"CSPBIO.PAS" 1489
-//@ 
-//@ locret_2C256:				; CODE XREF: TOpen:loc_2C0C6j
-//@ 					; TOpen:loc_2C1BFj ...
-//@ 		leave			; High Level Procedure Exit
-//@ 		retf	8		; Return Far from Procedure
-//@ TOpen		endp
-//@ 
+    }
+//! ; ---------------------------------------------------------------------------
+//! ; #line	"CSPBIO.PAS" 1489
+//! 
+//! locret_2C256:				; CODE XREF: TOpen:loc_2C0C6j
+//! 					; TOpen:loc_2C1BFj ...
+//! 		leave			; High Level Procedure Exit
+//! 		retf	8		; Return Far from Procedure
+//! TOpen		endp
+}
+//! 
 //@ ; ---------------------------------------------------------------------------
 //@ aChasmdat_1	db 9,'CHASMDAT\'        ; DATA XREF: FExistFile+79o
 //@ ; #line	"CSPBIO.PAS" 1494

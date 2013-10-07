@@ -21,6 +21,12 @@
 
 #include "csmenu.h"
 
+#include "cspbio.h"
+
+
+TMenuText PM;
+
+
 //@ ; #line	"CSMENU.PAS" 69
 //@ 
 //@ ; =============== S U B	R O U T	I N E =======================================
@@ -5112,28 +5118,30 @@
 //@ aMenuM_netwrk_c	db 17,'menu\m_netwrk.cel' ; DATA XREF: LoadMenuResourses+872o
 //@ aMenuM_pause_ce	db 16,'menu\m_pause.cel' ; DATA XREF: LoadMenuResourses+87Fo
 //@ aMenuPtors_cel	db 14,'menu\ptors.cel'  ; DATA XREF: LoadMenuResourses+88Co
-//@ ; #line	"CSMENU.PAS" 788
-//@ 
-//@ ; =============== S U B	R O U T	I N E =======================================
-//@ 
-//@ ; function near	PASCAL returns void
-//@ ; Attributes: bp-based frame
-//@ 
-//@ LoadMenuResourses proc near		; CODE XREF: $CsMenuInit+3p
-//@ 
-//@ var_306		= byte ptr -306h
-//@ var_206		= byte ptr -206h
-//@ var_106		= byte ptr -106h
-//@ var_6		= dword	ptr -6
-//@ var_2		= word ptr -2
-//@ 
-//@ 		enter	306h, 0		; Make Stack Frame for Procedure Parameters
-//@ ; #line	"CSMENU.PAS" 789
-//@ 		mov	di, offset PM	; TMenuText*
-//@ 		push	ds
-//@ 		push	di
-//@ 		push	10E0h
-//@ 		call	GetMem16	; function far PASCAL returns void
+//! ; #line	"CSMENU.PAS" 788
+//! 
+//! ; =============== S U B	R O U T	I N E =======================================
+//! 
+//! ; function near	PASCAL returns void
+//! ; Attributes: bp-based frame
+//! 
+//! LoadMenuResourses proc near		; CODE XREF: $CsMenuInit+3p
+static void LoadMenuResourses()
+{
+//! 
+//! var_306		= byte ptr -306h
+//! var_206		= byte ptr -206h
+//! var_106		= byte ptr -106h
+//! var_6		= dword	ptr -6
+//! var_2		= word ptr -2
+//! 
+//! 		enter	306h, 0		; Make Stack Frame for Procedure Parameters
+//! ; #line	"CSMENU.PAS" 789
+//! 		mov	di, offset PM	; TMenuText*
+//! 		push	ds
+//! 		push	di
+//! 		push	10E0h
+//! 		call	GetMem16	; function far PASCAL returns void
 //@ ; #line	"CSMENU.PAS" 790
 //@ 		mov	di, offset Ft	; Text
 //@ 		push	ds
@@ -6001,26 +6009,28 @@
 //@ 		push	ds
 //@ 		push	di
 //@ 		call	LoadPicFromCel	; function near	PASCAL returns void
-//@ ; #line	"CSMENU.PAS" 856
-//@ 		leave			; High Level Procedure Exit
-//@ 		retn			; Return Near from Procedure
-//@ LoadMenuResourses endp
-//@ 
-//@ ; #line	"CSMENU.PAS" 861
-//@ 
-//@ ; =============== S U B	R O U T	I N E =======================================
-//@ 
-//@ ; Attributes: bp-based frame
-//@ 
-//@ $CsMenuInit	proc far		; CODE XREF: PROGRAM+1EP
-//@ 		push	bp
-//@ 		mov	bp, sp
-//@ ; #line	"CSMENU.PAS" 862
-//@ 		call	LoadMenuResourses ; function near PASCAL returns void
-//@ ; #line	"CSMENU.PAS" 863
-//@ 		leave			; High Level Procedure Exit
-//@ 		retf			; Return Far from Procedure
-//@ $CsMenuInit	endp
-//@ 
-//@ ; ---------------------------------------------------------------------------
-//@ 		align 10h
+//! ; #line	"CSMENU.PAS" 856
+//! 		leave			; High Level Procedure Exit
+//! 		retn			; Return Near from Procedure
+//! LoadMenuResourses endp
+}
+//! 
+//! ; #line	"CSMENU.PAS" 861
+//! 
+//! ; =============== S U B	R O U T	I N E =======================================
+//! 
+//! ; Attributes: bp-based frame
+//! 
+//! $CsMenuInit	proc far		; CODE XREF: PROGRAM+1EP
+void CsMenuInit()
+{
+//! 		push	bp
+//! 		mov	bp, sp
+//! ; #line	"CSMENU.PAS" 862
+//! 		call	LoadMenuResourses ; function near PASCAL returns void
+    LoadMenuResourses();
+//! ; #line	"CSMENU.PAS" 863
+//! 		leave			; High Level Procedure Exit
+//! 		retf			; Return Far from Procedure
+//! $CsMenuInit	endp
+}

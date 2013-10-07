@@ -21,6 +21,7 @@
 
 #include "ps10.h"
 
+#include "csmenu.h"
 #include "cspbio.h"
 #include "csprndr.h"
 
@@ -22138,7 +22139,8 @@ int main(int argc, char** argv)
 	CspBioInit();
 //! 		call	$CspRndrInit	; Call Procedure
     CspRndrInit();
-//@ 		call	$CsMenuInit	; Call Procedure
+//! 		call	$CsMenuInit	; Call Procedure
+    CsMenuInit();
 //@ 		call	$CspUtlInit	; Call Procedure
 //@ 		call	$CsActInit	; Call Procedure
 //@ 		call	$Cs3dm2Init	; Call Procedure
