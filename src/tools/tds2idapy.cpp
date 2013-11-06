@@ -689,6 +689,7 @@ private:
 
 	void loadNames(File& input);
 
+	void addModuleNames();
 	void renameReservedWords();
 	void makeGlobalSymbolsUnique();
 	void assignMissingTypeNames();
@@ -761,6 +762,7 @@ bool TDS::load(const char* const filename)
 
 	loadNames(file);
 
+	addModuleNames();
 	renameReservedWords();
 	makeGlobalSymbolsUnique();
 	assignMissingTypeNames();
@@ -818,6 +820,37 @@ void TDS::loadNames(File& input)
 		}
 
 		names.push_back(name);
+	}
+}
+
+void TDS::addModuleNames()
+{
+	// Turbo Debugger behavior is to iterate over modules only and to ignore scopes
+	// However this leaves too many symbols (and all types) without module names
+
+	for (size_t moduleIndex = 1, moduleCount = modules.size();
+		moduleIndex < moduleCount; ++moduleIndex)
+	{
+		const Module& module = modules[moduleIndex];
+		const Scope& scope = scopes[moduleIndex];
+
+		const size_t symbolEndIndex = moduleIndex < moduleCount - 1
+			? scopes[moduleIndex + 1].index
+			: symbols.size();
+
+		for (size_t symbolIndex = scope.index; symbolIndex < symbolEndIndex; ++symbolIndex)
+		{
+			const Symbol& symbol = symbols[symbolIndex];
+			const size_t typeFlags = symbol.flags & 7;
+
+			if (typeFlags > 0 && 6 != typeFlags)
+			{
+				// Module names must be assigned to types and global symbols only
+				continue;
+			}
+
+			names[symbol.name] = names[module.name] + "::" + names[symbol.name];
+		}
 	}
 }
 
