@@ -23,5 +23,14 @@
 
 int main(int argc, char** argv)
 {
-	return 0;
+	if (0 != SDL_Init(SDL_INIT_EVERYTHING))
+	{
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal Error", SDL_GetError(), NULL);
+		return EXIT_FAILURE;
+	}
+
+
+	SDL_Quit();
+
+	return EXIT_SUCCESS;
 }

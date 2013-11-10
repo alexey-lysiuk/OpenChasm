@@ -10,6 +10,12 @@
 		8A215F3817D32DC800C0A000 /* asmsplit.py in Resources */ = {isa = PBXBuildFile; fileRef = 8A215F3617D32DC800C0A000 /* asmsplit.py */; };
 		8A215F3917D32DC800C0A000 /* tds2ida.py in Resources */ = {isa = PBXBuildFile; fileRef = 8A215F3717D32DC800C0A000 /* tds2ida.py */; };
 		8A2E439617B7633300EEC482 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A2E439517B7633300EEC482 /* Cocoa.framework */; };
+		8A35F13A182FC48500C11D0C /* libSDL2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A35F139182FC48500C11D0C /* libSDL2.a */; };
+		8A35F13C182FC4B200C11D0C /* AudioUnit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A35F13B182FC4B200C11D0C /* AudioUnit.framework */; };
+		8A35F13E182FC4B800C11D0C /* ForceFeedback.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A35F13D182FC4B800C11D0C /* ForceFeedback.framework */; };
+		8A35F140182FC4D100C11D0C /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A35F13F182FC4D100C11D0C /* CoreAudio.framework */; };
+		8A35F142182FC4E200C11D0C /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A35F141182FC4E200C11D0C /* IOKit.framework */; };
+		8A35F144182FC4F800C11D0C /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A35F143182FC4F800C11D0C /* Carbon.framework */; };
 		8ACD560817B76C3100C2640A /* cs3dm2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8ACD55E617B76C3000C2640A /* cs3dm2.cpp */; };
 		8ACD560917B76C3100C2640A /* cs_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8ACD55E817B76C3000C2640A /* cs_demo.cpp */; };
 		8ACD560A17B76C3100C2640A /* cs_mapml.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8ACD55EA17B76C3000C2640A /* cs_mapml.cpp */; };
@@ -36,6 +42,12 @@
 		8A215F3717D32DC800C0A000 /* tds2ida.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = tds2ida.py; sourceTree = "<group>"; };
 		8A2E439217B7633300EEC482 /* OpenChasm.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OpenChasm.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A2E439517B7633300EEC482 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		8A35F139182FC48500C11D0C /* libSDL2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDL2.a; path = thirdparty/SDL/lib/libSDL2.a; sourceTree = "<group>"; };
+		8A35F13B182FC4B200C11D0C /* AudioUnit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioUnit.framework; path = System/Library/Frameworks/AudioUnit.framework; sourceTree = SDKROOT; };
+		8A35F13D182FC4B800C11D0C /* ForceFeedback.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ForceFeedback.framework; path = System/Library/Frameworks/ForceFeedback.framework; sourceTree = SDKROOT; };
+		8A35F13F182FC4D100C11D0C /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
+		8A35F141182FC4E200C11D0C /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		8A35F143182FC4F800C11D0C /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		8A3ACEEC17F829C1002E550F /* chasm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = chasm.h; sourceTree = "<group>"; };
 		8A3ACEF617F841C5002E550F /* precomp.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = precomp.cpp; sourceTree = "<group>"; };
 		8A3ACEF717F841C5002E550F /* precomp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = precomp.h; sourceTree = "<group>"; };
@@ -77,7 +89,13 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8A35F13C182FC4B200C11D0C /* AudioUnit.framework in Frameworks */,
+				8A35F13E182FC4B800C11D0C /* ForceFeedback.framework in Frameworks */,
+				8A35F144182FC4F800C11D0C /* Carbon.framework in Frameworks */,
 				8A2E439617B7633300EEC482 /* Cocoa.framework in Frameworks */,
+				8A35F140182FC4D100C11D0C /* CoreAudio.framework in Frameworks */,
+				8A35F142182FC4E200C11D0C /* IOKit.framework in Frameworks */,
+				8A35F13A182FC48500C11D0C /* libSDL2.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -103,7 +121,7 @@
 			children = (
 				8ACD55AF17B7639500C2640A /* Sources */,
 				8ACD55B017B7639D00C2640A /* Resources */,
-				8A2E439417B7633300EEC482 /* Frameworks */,
+				8A2E439417B7633300EEC482 /* Dependencies */,
 				8A2E439317B7633300EEC482 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -118,12 +136,18 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		8A2E439417B7633300EEC482 /* Frameworks */ = {
+		8A2E439417B7633300EEC482 /* Dependencies */ = {
 			isa = PBXGroup;
 			children = (
+				8A35F13B182FC4B200C11D0C /* AudioUnit.framework */,
+				8A35F143182FC4F800C11D0C /* Carbon.framework */,
 				8A2E439517B7633300EEC482 /* Cocoa.framework */,
+				8A35F13F182FC4D100C11D0C /* CoreAudio.framework */,
+				8A35F13D182FC4B800C11D0C /* ForceFeedback.framework */,
+				8A35F141182FC4E200C11D0C /* IOKit.framework */,
+				8A35F139182FC48500C11D0C /* libSDL2.a */,
 			);
-			name = Frameworks;
+			name = Dependencies;
 			sourceTree = "<group>";
 		};
 		8ACD55AF17B7639500C2640A /* Sources */ = {
@@ -415,8 +439,19 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = src/chasm/precomp.h;
-				HEADER_SEARCH_PATHS = src/chasm;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					OC_PLATFORM_OSX,
+				);
+				HEADER_SEARCH_PATHS = (
+					thirdparty/SDL/include,
+					src/chasm,
+				);
 				INFOPLIST_FILE = "res/OpenChasm-Info.plist";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					thirdparty/SDL/lib,
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
 			};
@@ -428,8 +463,19 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = src/chasm/precomp.h;
-				HEADER_SEARCH_PATHS = src/chasm;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					OC_PLATFORM_OSX,
+				);
+				HEADER_SEARCH_PATHS = (
+					thirdparty/SDL/include,
+					src/chasm,
+				);
 				INFOPLIST_FILE = "res/OpenChasm-Info.plist";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					thirdparty/SDL/lib,
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
 			};
