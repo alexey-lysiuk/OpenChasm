@@ -19,5 +19,8 @@
 **---------------------------------------------------------------------------
 */
 
-#include "cspbio.h"
+#ifndef OPENCHASM_CHASM_H_INCLUDED
+#define OPENCHASM_CHASM_H_INCLUDED
 
+
+#endif // OPENCHASM_CHASM_H_INCLUDED

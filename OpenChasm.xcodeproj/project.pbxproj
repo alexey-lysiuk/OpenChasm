@@ -36,7 +36,7 @@
 		8A215F3717D32DC800C0A000 /* tds2ida.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = tds2ida.py; sourceTree = "<group>"; };
 		8A2E439217B7633300EEC482 /* OpenChasm.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OpenChasm.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A2E439517B7633300EEC482 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
-		8A3ACEEC17F829C1002E550F /* ps10.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ps10.h; sourceTree = "<group>"; };
+		8A3ACEEC17F829C1002E550F /* chasm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = chasm.h; sourceTree = "<group>"; };
 		8A3ACEF617F841C5002E550F /* precomp.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = precomp.cpp; sourceTree = "<group>"; };
 		8A3ACEF717F841C5002E550F /* precomp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = precomp.h; sourceTree = "<group>"; };
 		8ACD55B117B763C500C2640A /* OpenChasm-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "OpenChasm-Info.plist"; sourceTree = "<group>"; };
@@ -45,13 +45,11 @@
 		8ACD55E817B76C3000C2640A /* cs_demo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cs_demo.cpp; sourceTree = "<group>"; };
 		8ACD55E917B76C3000C2640A /* cs_demo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cs_demo.h; sourceTree = "<group>"; };
 		8ACD55EA17B76C3000C2640A /* cs_mapml.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cs_mapml.cpp; sourceTree = "<group>"; };
-		8ACD55EB17B76C3000C2640A /* cs_mapml.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cs_mapml.h; sourceTree = "<group>"; };
 		8ACD55EC17B76C3000C2640A /* csact.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = csact.cpp; sourceTree = "<group>"; };
 		8ACD55ED17B76C3000C2640A /* csact.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = csact.h; sourceTree = "<group>"; };
 		8ACD55EE17B76C3000C2640A /* csbrif.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = csbrif.cpp; sourceTree = "<group>"; };
 		8ACD55EF17B76C3000C2640A /* csbrif.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = csbrif.h; sourceTree = "<group>"; };
 		8ACD55F017B76C3000C2640A /* csipx.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = csipx.cpp; sourceTree = "<group>"; };
-		8ACD55F117B76C3000C2640A /* csipx.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = csipx.h; sourceTree = "<group>"; };
 		8ACD55F217B76C3000C2640A /* csmenu.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = csmenu.cpp; sourceTree = "<group>"; };
 		8ACD55F317B76C3000C2640A /* csmenu.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = csmenu.h; sourceTree = "<group>"; };
 		8ACD55F417B76C3000C2640A /* cspbio.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cspbio.cpp; sourceTree = "<group>"; };
@@ -61,16 +59,11 @@
 		8ACD55F817B76C3000C2640A /* csputl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = csputl.cpp; sourceTree = "<group>"; };
 		8ACD55F917B76C3000C2640A /* csputl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = csputl.h; sourceTree = "<group>"; };
 		8ACD55FA17B76C3100C2640A /* csrtla.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = csrtla.cpp; sourceTree = "<group>"; };
-		8ACD55FB17B76C3100C2640A /* csrtla.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = csrtla.h; sourceTree = "<group>"; };
 		8ACD55FC17B76C3100C2640A /* csvesa.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = csvesa.cpp; sourceTree = "<group>"; };
-		8ACD55FD17B76C3100C2640A /* csvesa.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = csvesa.h; sourceTree = "<group>"; };
 		8ACD55FE17B76C3100C2640A /* ps10.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ps10.cpp; sourceTree = "<group>"; };
 		8ACD560017B76C3100C2640A /* common.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = common.cpp; sourceTree = "<group>"; };
-		8ACD560117B76C3100C2640A /* common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = common.h; sourceTree = "<group>"; };
 		8ACD560217B76C3100C2640A /* sound_gs.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = sound_gs.cpp; sourceTree = "<group>"; };
-		8ACD560317B76C3100C2640A /* sound_gs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sound_gs.h; sourceTree = "<group>"; };
 		8ACD560417B76C3100C2640A /* sound_sb.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = sound_sb.cpp; sourceTree = "<group>"; };
-		8ACD560517B76C3100C2640A /* sound_sb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sound_sb.h; sourceTree = "<group>"; };
 		8ACD560617B76C3100C2640A /* soundip.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = soundip.cpp; sourceTree = "<group>"; };
 		8ACD560717B76C3100C2640A /* soundip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = soundip.h; sourceTree = "<group>"; };
 		8ACD562017B778E400C2640A /* tdump2idc.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = tdump2idc.cpp; sourceTree = "<group>"; };
@@ -156,18 +149,17 @@
 			isa = PBXGroup;
 			children = (
 				8ACD55FF17B76C3100C2640A /* soundip */,
+				8A3ACEEC17F829C1002E550F /* chasm.h */,
 				8ACD55E617B76C3000C2640A /* cs3dm2.cpp */,
 				8ACD55E717B76C3000C2640A /* cs3dm2.h */,
 				8ACD55E817B76C3000C2640A /* cs_demo.cpp */,
 				8ACD55E917B76C3000C2640A /* cs_demo.h */,
 				8ACD55EA17B76C3000C2640A /* cs_mapml.cpp */,
-				8ACD55EB17B76C3000C2640A /* cs_mapml.h */,
 				8ACD55EC17B76C3000C2640A /* csact.cpp */,
 				8ACD55ED17B76C3000C2640A /* csact.h */,
 				8ACD55EE17B76C3000C2640A /* csbrif.cpp */,
 				8ACD55EF17B76C3000C2640A /* csbrif.h */,
 				8ACD55F017B76C3000C2640A /* csipx.cpp */,
-				8ACD55F117B76C3000C2640A /* csipx.h */,
 				8ACD55F217B76C3000C2640A /* csmenu.cpp */,
 				8ACD55F317B76C3000C2640A /* csmenu.h */,
 				8ACD55F417B76C3000C2640A /* cspbio.cpp */,
@@ -177,13 +169,10 @@
 				8ACD55F817B76C3000C2640A /* csputl.cpp */,
 				8ACD55F917B76C3000C2640A /* csputl.h */,
 				8ACD55FA17B76C3100C2640A /* csrtla.cpp */,
-				8ACD55FB17B76C3100C2640A /* csrtla.h */,
 				8ACD55FC17B76C3100C2640A /* csvesa.cpp */,
-				8ACD55FD17B76C3100C2640A /* csvesa.h */,
 				8A3ACEF617F841C5002E550F /* precomp.cpp */,
 				8A3ACEF717F841C5002E550F /* precomp.h */,
 				8ACD55FE17B76C3100C2640A /* ps10.cpp */,
-				8A3ACEEC17F829C1002E550F /* ps10.h */,
 			);
 			path = chasm;
 			sourceTree = "<group>";
@@ -192,11 +181,8 @@
 			isa = PBXGroup;
 			children = (
 				8ACD560017B76C3100C2640A /* common.cpp */,
-				8ACD560117B76C3100C2640A /* common.h */,
 				8ACD560217B76C3100C2640A /* sound_gs.cpp */,
-				8ACD560317B76C3100C2640A /* sound_gs.h */,
 				8ACD560417B76C3100C2640A /* sound_sb.cpp */,
-				8ACD560517B76C3100C2640A /* sound_sb.h */,
 				8ACD560617B76C3100C2640A /* soundip.cpp */,
 				8ACD560717B76C3100C2640A /* soundip.h */,
 			);

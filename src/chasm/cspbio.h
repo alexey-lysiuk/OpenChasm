@@ -22,29 +22,5 @@
 #ifndef OPENCHASM_CSPBIO_H_INCLUDED
 #define OPENCHASM_CSPBIO_H_INCLUDED
 
-extern uint16_t CurVideoMode;
-
-extern bool Internal;
-extern bool UserMaps;
-
-extern FILE* F;
-extern FILE* Ft;
-
-extern int32_t Ll;
-
-extern char LastFName[256];
-
-extern char AddonPath[41];
-
-
-bool ExistFile(const char* const filename);
-
-void TOpen(const char* const filename, FILE** externalFile);
-
-void DoHalt(const char* const message);
-
-void* GetMem16(const uint16_t size);
-
-void CspBioInit();
 
 #endif // OPENCHASM_CSPBIO_H_INCLUDED

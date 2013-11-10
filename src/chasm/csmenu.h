@@ -22,57 +22,5 @@
 #ifndef OPENCHASM_CSMENU_H_INCLUDED
 #define OPENCHASM_CSMENU_H_INCLUDED
 
-#pragma pack(push, 1)
-
-struct MenuRect
-{
-    int16_t x1;
-    int16_t y1;
-    int16_t x2;
-    int16_t y2;
-};
-
-struct TMenuText
-{
-    char Main[16];
-    MenuRect MainPos;
-    char Skl[16];
-    MenuRect SklPos;
-    char Net[16];
-    MenuRect NetPos;
-    char Save[16];
-    char Load[16];
-    MenuRect SavePos;
-    char Opti[338];
-    MenuRect OptiPos;
-    char Disp[104];
-    MenuRect DispPos;
-    char Resl[782];
-    MenuRect ReslPos;
-    char Cont[442];
-    MenuRect ContPos;
-    char Quit[128];
-    MenuRect QuitPos;
-    char Newg[96];
-    MenuRect NewgPos;
-    char NGSt[144];
-    MenuRect NGStPos;
-    char NGModes[66];
-    char NGSkill[48];
-    char NJst[96];
-    MenuRect NJStPos;
-    char NOpt[84];
-    MenuRect NOptPos;
-    char KName[1408];
-    char GameNames[400];
-};
-
-#pragma pack(pop)
-
-
-extern TMenuText PM;
-
-
-void CsMenuInit();
 
 #endif // OPENCHASM_CSMENU_H_INCLUDED
