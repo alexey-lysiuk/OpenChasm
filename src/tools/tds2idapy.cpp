@@ -1382,7 +1382,7 @@ static uint16_t GetElementSize(const TDS& tds, const size_t typeIndex)
 	}
 }
 
-static void GenerateTypes(const TDS& tds, FILE* const output)
+static void GenerateTypes(const TDS& tds, FILE* const scriptOutput, FILE* const headerOutput)
 {
 	for (TDS::TypeIterator i = tds.typeIterator(); i.hasNext(); ++i)
 	{
@@ -1399,11 +1399,13 @@ static void GenerateTypes(const TDS& tds, FILE* const output)
 
 		if (isEnum)
 		{
-			fprintf(output, "enum = add_enum(BADADDR, \"%s\", 0)\n", typeName);
+			fprintf(scriptOutput, "enum = add_enum(BADADDR, \"%s\", 0)\n", typeName);
+			fprintf(headerOutput, "enum %s\n{\n", typeName);
 		}
 		else
 		{
-			fprintf(output, "struc = make_struc(\"%s\")\n", typeName);
+			fprintf(scriptOutput, "struc = make_struc(\"%s\")\n", typeName);
+			fprintf(headerOutput, "struct %s\n{\n", typeName);
 		}
 
 		const std::vector<TDS::Member>& members = tds.members;
@@ -1427,18 +1429,33 @@ static void GenerateTypes(const TDS& tds, FILE* const output)
 			}
 
 			const char* const memberName = tds.names[member.name].c_str();
-			const uint16_t memberSize = isEnum ? 0 : tds.types[member.type].size;
+			const TDS::Type& memberType = tds.types[member.type];
+			const uint16_t memberSize = isEnum ? 0 : memberType.size;
 
 			if (isEnum)
 			{
-				fprintf(output, "add_enum_member(enum, '%s', %hu)\n",
+				fprintf(scriptOutput, "add_enum_member(enum, '%s', %hu)\n",
 					memberName, member.type);
+				fprintf(headerOutput, "\t%s = %hu;\n", memberName, member.type);
 			}
 			else
 			{
-				fprintf(output, "make_struc_member(struc, '%s', %hu, '%s', %hu, %hu, %s)\n",
-					memberName, offset, GetTypeName(tds, member.type).c_str(), memberSize,
-					GetElementSize(tds, member.type), GetTypeFlags(tds, member.type));
+				const std::string memberTypeName = GetTypeName(tds, member.type);
+				const uint16_t elementSize = GetElementSize(tds, member.type);
+
+				fprintf(scriptOutput, "make_struc_member(struc, '%s', %hu, '%s', %hu, %hu, %s)\n",
+					memberName, offset, memberTypeName.c_str(), memberSize,
+					elementSize, GetTypeFlags(tds, member.type));
+
+				if (memberType.isPascalArray())
+				{
+					fprintf(headerOutput, "\t%s %s[%i];\n", memberTypeName.c_str(), memberName,
+						memberSize / elementSize);
+				}
+				else
+				{
+					fprintf(headerOutput, "\t%s %s;\n", memberTypeName.c_str(), memberName);
+				}
 			}
 
 			if (INFO_END_OF_TYPE == member.info)
@@ -1448,9 +1465,11 @@ static void GenerateTypes(const TDS& tds, FILE* const output)
 
 			offset += memberSize;
 		}
+
+		fputs("};\n\n", headerOutput);
 	}
 
-	fputs("\n", output);
+	fputs("\n", scriptOutput);
 }
 
 
@@ -1586,21 +1605,22 @@ static void GenerateSources(const TDS& tds, FILE* const output)
 }
 
 
-static void GenerateScript(const TDS& tds, FILE* const output)
+static void GenerateScript(const TDS& tds, FILE* const scriptOutput, FILE* const headerOutput)
 {
-	assert(NULL != output);
+	assert(NULL != scriptOutput);
+	assert(NULL != headerOutput);
 
-	fwrite(tds2ida_py, tds2ida_py_len, 1, output);
+	fwrite(tds2ida_py, tds2ida_py_len, 1, scriptOutput);
 
-	GeneratePS10Specifics(output);
+	GeneratePS10Specifics(scriptOutput);
 
 	// TODO: add range checks for all generator functions
 
-	GenerateTypes(tds, output);
-	GenerateSymbols(tds, output);
-	GenerateSources(tds, output);
+	GenerateTypes(tds, scriptOutput, headerOutput);
+	GenerateSymbols(tds, scriptOutput);
+	GenerateSources(tds, scriptOutput);
 
-	fputs("refresh_idaview_anyway()\n", output);
+	fputs("refresh_idaview_anyway()\n", scriptOutput);
 }
 
 
@@ -1609,40 +1629,42 @@ static void GenerateScript(const TDS& tds, FILE* const output)
 
 int main(int argc, char** argv)
 {
-	if (argc < 2)
+	if (argc < 4)
 	{
-		puts("Usage: tds2idapy new-executable-file [output-file]");
+		puts("Usage: tds2idapy new-executable-file output-script-file output-header-file");
 		return EXIT_SUCCESS;
 	}
 
 	TDS tds;
 
-	const bool result = tds.load(argv[1]);
-
-	if (result)
+	if (!tds.load(argv[1]))
 	{
-		FILE* output = stdout;
-
-		if (argc >= 3)
-		{
-			const char* const filename = argv[2];
-
-			output = fopen(filename, "w");
-
-			if (NULL == output)
-			{
-				printf("Unable to open output file %s\n", filename);
-				return EXIT_FAILURE;
-			}
-		}
-
-		GenerateScript(tds, output);
-
-		if (output != stdout)
-		{
-			fclose(output);
-		}
+		puts("No output files generated");
+		return EXIT_FAILURE;
 	}
 
-	return result ? EXIT_SUCCESS : EXIT_FAILURE;
+	const char* const scriptFilename = argv[2];
+	FILE* const scriptOutput = fopen(scriptFilename, "w");
+
+	if (NULL == scriptOutput)
+	{
+		printf("Unable to open output script file %s\n", scriptFilename);
+		return EXIT_FAILURE;
+	}
+
+	const char* const headerFilename = argv[3];
+	FILE* const headerOutput = fopen(headerFilename, "w");
+
+	if (NULL == headerOutput)
+	{
+		printf("Unable to open output header file %s\n", headerFilename);
+		return EXIT_FAILURE;
+	}
+
+	GenerateScript(tds, scriptOutput, headerOutput);
+
+	fclose(headerOutput);
+	fclose(scriptOutput);
+
+	return EXIT_SUCCESS;
 }
