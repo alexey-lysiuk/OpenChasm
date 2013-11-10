@@ -1248,6 +1248,9 @@ static std::string GetTypeName(const TDS& tds, const size_t typeIndex)
 
 	switch (type.id)
 	{
+	case TDS::TYPE_VOID:
+		return "void";
+
 	case TDS::TYPE_PASCAL_STRING:
 		return "char";
 
@@ -1473,7 +1476,7 @@ static void GenerateTypes(const TDS& tds, FILE* const scriptOutput, FILE* const 
 }
 
 
-static void GenerateSymbols(const TDS& tds, FILE* const output)
+static void GenerateSymbols(const TDS& tds, FILE* const scriptOutput, FILE* const headerOutput)
 {
 	const std::vector<TDS::Symbol>& symbols = tds.symbols;
 
@@ -1486,10 +1489,10 @@ static void GenerateSymbols(const TDS& tds, FILE* const output)
 			continue;
 		}
 
-		const std::string typeStr = tds.typeString(symbol.type);
+		const std::string typeName   = tds.typeString(symbol.type);
+		const char* const symbolName = tds.names[symbol.name].c_str();
 
-		const char* const name = tds.names[symbol.name].c_str();
-		const char* const type = typeStr.c_str();
+		const TDS::Type& type = tds.types[symbol.type];
 
 		if (symbol.segment & 0x4000)
 		{
@@ -1497,21 +1500,22 @@ static void GenerateSymbols(const TDS& tds, FILE* const output)
 			snprintf(importedName, sizeof importedName, "%s_%u",
 				tds.names[symbol.offset].c_str(), symbol.segment & 0x3FFF);
 
-			fprintf(output, "make_import(\"%s\", \"%s\", \"%s\")\n",
-				importedName, name, type);
+			fprintf(scriptOutput, "make_import(\"%s\", \"%s\", \"%s\")\n",
+				importedName, symbolName, typeName.c_str());
 		}
 		else if (tds.executable.segments[symbol.segment].flags & Executable::SEGMENT_DATA)
 		{
-			fprintf(output, "make_data(%hu, 0x%04hx, '%s', '%s', %hu, %hu, %s)\n",
+			fprintf(scriptOutput, "make_data(%hu, 0x%04hx, '%s', '%s', %hu, %hu, %s)\n",
 				symbol.segment, symbol.offset, 
-				name, GetTypeName(tds, symbol.type).c_str(),
-				tds.types[symbol.type].size, GetElementSize(tds, symbol.type),
+				symbolName, GetTypeName(tds, symbol.type).c_str(),
+				type.size, GetElementSize(tds, symbol.type),
 				GetTypeFlags(tds, symbol.type));
 		}
 		else
 		{
-			fprintf(output, "func = make_func(%hu, 0x%04hx, \"%s\", \"%s\")\n",
-				symbol.segment, symbol.offset, name, type);
+			fprintf(scriptOutput, "func = make_func(%hu, 0x%04hx, \"%s\", \"%s\")\n",
+				symbol.segment, symbol.offset, symbolName, typeName.c_str());
+			fprintf(headerOutput, "%s %s();\n", GetTypeName(tds, type.recordWord).c_str(), symbolName);
 
 			for (auto scope = tds.scopes.begin(), last = tds.scopes.end();
 				last != scope; ++scope)
@@ -1532,7 +1536,7 @@ static void GenerateSymbols(const TDS& tds, FILE* const output)
 						continue;
 					}
 
-					fprintf(output, "make_local(func, %hi, '%s', '%s', %hu, %hu, %s)\n",
+					fprintf(scriptOutput, "make_local(func, %hi, '%s', '%s', %hu, %hu, %s)\n",
 							static_cast<int16_t>(local.offset),
 							tds.names[local.name].c_str(), GetTypeName(tds, local.type).c_str(),
 							tds.types[local.type].size, GetElementSize(tds, local.type),
@@ -1542,7 +1546,7 @@ static void GenerateSymbols(const TDS& tds, FILE* const output)
 		}
 	}
 
-	fputs("\n", output);
+	fputs("\n", scriptOutput);
 }
 
 
@@ -1617,7 +1621,7 @@ static void GenerateScript(const TDS& tds, FILE* const scriptOutput, FILE* const
 	// TODO: add range checks for all generator functions
 
 	GenerateTypes(tds, scriptOutput, headerOutput);
-	GenerateSymbols(tds, scriptOutput);
+	GenerateSymbols(tds, scriptOutput, headerOutput);
 	GenerateSources(tds, scriptOutput);
 
 	fputs("refresh_idaview_anyway()\n", scriptOutput);
