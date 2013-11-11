@@ -508,6 +508,11 @@ struct TDS
 			return *reinterpret_cast<const uint64_t*>(this);
 		}
 
+		bool isPascalString() const
+		{
+			return TYPE_PASCAL_STRING == id;
+		}
+
 		bool isPascalArray() const
 		{
 			return TYPE_PASCAL_ARRAY == id;
@@ -1450,7 +1455,7 @@ static void GenerateTypes(const TDS& tds, FILE* const scriptOutput, FILE* const 
 					memberName, offset, memberTypeName.c_str(), memberSize,
 					elementSize, GetTypeFlags(tds, member.type));
 
-				if (memberType.isPascalArray())
+				if (memberType.isPascalArray() || memberType.isPascalString())
 				{
 					fprintf(headerOutput, "\t%s %s[%i];\n", memberTypeName.c_str(), memberName,
 						memberSize / elementSize);
@@ -1515,7 +1520,19 @@ static void GenerateSymbols(const TDS& tds, FILE* const scriptOutput, FILE* cons
 		{
 			fprintf(scriptOutput, "func = make_func(%hu, 0x%04hx, \"%s\", \"%s\")\n",
 				symbol.segment, symbol.offset, symbolName, typeName.c_str());
-			fprintf(headerOutput, "%s %s();\n", GetTypeName(tds, type.recordWord).c_str(), symbolName);
+
+			const TDS::Type& returnType = tds.types[type.recordWord];
+			const std::string returnTypeName = GetTypeName(tds, type.recordWord);
+
+			if (returnType.isPascalArray() || returnType.isPascalString())
+			{
+				fprintf(headerOutput, "%s[%i] %s();\n", returnTypeName.c_str(),
+					returnType.size / GetElementSize(tds, type.recordWord), symbolName);
+			}
+			else
+			{
+				fprintf(headerOutput, "%s %s();\n", returnTypeName.c_str(), symbolName);
+			}
 
 			for (auto scope = tds.scopes.begin(), last = tds.scopes.end();
 				last != scope; ++scope)
