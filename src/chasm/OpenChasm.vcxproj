@@ -28,22 +28,22 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="ps10.cpp" />
+    <ClCompile Include="soundip\common.cpp" />
+    <ClCompile Include="soundip\soundip.cpp" />
+    <ClCompile Include="soundip\sound_gs.cpp" />
+    <ClCompile Include="soundip\sound_sb.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cs3dm2.h" />
     <ClInclude Include="csact.h" />
     <ClInclude Include="csbrif.h" />
-    <ClInclude Include="csipx.h" />
     <ClInclude Include="csmenu.h" />
     <ClInclude Include="cspbio.h" />
     <ClInclude Include="csprndr.h" />
     <ClInclude Include="csputl.h" />
-    <ClInclude Include="csrtla.h" />
-    <ClInclude Include="csvesa.h" />
     <ClInclude Include="cs_demo.h" />
-    <ClInclude Include="cs_mapml.h" />
     <ClInclude Include="precomp.h" />
-    <ClInclude Include="ps10.h" />
+    <ClInclude Include="soundip\soundip.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{078B40AD-9656-4553-BD5F-C6E0735A1FF5}</ProjectGuid>
@@ -81,21 +81,24 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>precomp.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>precomp.h</ForcedIncludeFiles>
-      <AdditionalIncludeDirectories>src/chasm</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../thirdparty/SDL/include;.</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>../../thirdparty/SDL/VisualC/SDL/Win32/Debug_static;../../thirdparty/SDL/VisualC/SDLmain/Win32/Debug</AdditionalLibraryDirectories>
+      <AdditionalDependencies>imm32.lib;version.lib;winmm.lib;SDL2_static.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -103,13 +106,16 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>precomp.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>precomp.h</ForcedIncludeFiles>
-      <AdditionalIncludeDirectories>src/chasm</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../thirdparty/SDL/include;.</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>../../thirdparty/SDL/VisualC/SDL/Win32/Release_static;../../thirdparty/SDL/VisualC/SDLmain/Win32/Release</AdditionalLibraryDirectories>
+      <AdditionalDependencies>imm32.lib;version.lib;winmm.lib;SDL2_static.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

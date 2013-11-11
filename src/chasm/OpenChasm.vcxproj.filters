@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="cs3dm2.cpp" />
+    <ClCompile Include="csact.cpp" />
+    <ClCompile Include="csbrif.cpp" />
+    <ClCompile Include="csipx.cpp" />
+    <ClCompile Include="csmenu.cpp" />
+    <ClCompile Include="cspbio.cpp" />
+    <ClCompile Include="csprndr.cpp" />
+    <ClCompile Include="csputl.cpp" />
+    <ClCompile Include="csrtla.cpp" />
+    <ClCompile Include="csvesa.cpp" />
+    <ClCompile Include="cs_demo.cpp" />
+    <ClCompile Include="cs_mapml.cpp" />
+    <ClCompile Include="precomp.cpp" />
+    <ClCompile Include="ps10.cpp" />
+    <ClCompile Include="soundip\common.cpp">
+      <Filter>SoundIP</Filter>
+    </ClCompile>
+    <ClCompile Include="soundip\sound_gs.cpp">
+      <Filter>SoundIP</Filter>
+    </ClCompile>
+    <ClCompile Include="soundip\sound_sb.cpp">
+      <Filter>SoundIP</Filter>
+    </ClCompile>
+    <ClCompile Include="soundip\soundip.cpp">
+      <Filter>SoundIP</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="cs3dm2.h" />
+    <ClInclude Include="csact.h" />
+    <ClInclude Include="csbrif.h" />
+    <ClInclude Include="csmenu.h" />
+    <ClInclude Include="cspbio.h" />
+    <ClInclude Include="csprndr.h" />
+    <ClInclude Include="csputl.h" />
+    <ClInclude Include="cs_demo.h" />
+    <ClInclude Include="precomp.h" />
+    <ClInclude Include="soundip\soundip.h">
+      <Filter>SoundIP</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="SoundIP">
+      <UniqueIdentifier>{61f81a6a-d9fe-43a7-85c1-99cd5032d981}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

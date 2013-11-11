@@ -22,6 +22,8 @@
 #ifndef OPENCHASM_PRECOMP_H_INCLUDED
 #define OPENCHASM_PRECOMP_H_INCLUDED
 
+#include <cstdlib>
+
 #include <SDL.h>
 
 #endif // OPENCHASM_PRECOMP_H_INCLUDED
