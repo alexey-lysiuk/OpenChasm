@@ -1494,7 +1494,7 @@ static void GenerateSymbols(const TDS& tds, FILE* const scriptOutput, FILE* cons
             continue;
         }
 
-        const std::string typeName   = tds.typeString(symbol.type);
+        const std::string typeNameTD = tds.typeString(symbol.type);
         const char* const symbolName = tds.names[symbol.name].c_str();
 
         const TDS::Type& type = tds.types[symbol.type];
@@ -1506,20 +1506,33 @@ static void GenerateSymbols(const TDS& tds, FILE* const scriptOutput, FILE* cons
                 tds.names[symbol.offset].c_str(), symbol.segment & 0x3FFF);
 
             fprintf(scriptOutput, "make_import(\"%s\", \"%s\", \"%s\")\n",
-                importedName, symbolName, typeName.c_str());
+                importedName, symbolName, typeNameTD.c_str());
         }
         else if (tds.executable.segments[symbol.segment].flags & Executable::SEGMENT_DATA)
         {
+            const std::string typeName = GetTypeName(tds, symbol.type);
+            const uint16_t elementSize = GetElementSize(tds, symbol.type);
+
             fprintf(scriptOutput, "make_data(%hu, 0x%04hx, '%s', '%s', %hu, %hu, %s)\n",
                 symbol.segment, symbol.offset, 
-                symbolName, GetTypeName(tds, symbol.type).c_str(),
-                type.size, GetElementSize(tds, symbol.type),
+                symbolName, typeName.c_str(),
+                type.size, elementSize,
                 GetTypeFlags(tds, symbol.type));
+
+            if (type.isPascalArray() || type.isPascalString())
+            {
+                fprintf(headerOutput, "extern %s %s[%i];\n", typeName.c_str(), symbolName,
+                    type.size / elementSize);
+            }
+            else
+            {
+                fprintf(headerOutput, "extern %s %s;\n", typeName.c_str(), symbolName);
+            }
         }
         else
         {
             fprintf(scriptOutput, "func = make_func(%hu, 0x%04hx, \"%s\", \"%s\")\n",
-                symbol.segment, symbol.offset, symbolName, typeName.c_str());
+                symbol.segment, symbol.offset, symbolName, typeNameTD.c_str());
 
             const TDS::Type& returnType = tds.types[type.recordWord];
             const std::string returnTypeName = GetTypeName(tds, type.recordWord);
