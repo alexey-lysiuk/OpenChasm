@@ -34,6 +34,7 @@
     <ClCompile Include="soundip\sound_sb.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="chasm.h" />
     <ClInclude Include="cs3dm2.h" />
     <ClInclude Include="csact.h" />
     <ClInclude Include="csbrif.h" />

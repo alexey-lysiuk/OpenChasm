@@ -41,6 +41,7 @@
     <ClInclude Include="soundip\soundip.h">
       <Filter>SoundIP</Filter>
     </ClInclude>
+    <ClInclude Include="chasm.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="SoundIP">
