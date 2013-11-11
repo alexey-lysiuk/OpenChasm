@@ -1,7 +1,9 @@
 # Windows
 Debug/
+Debug_static/
 Release/
 *.vcxproj.filters
+Release_static/
 *.vcxproj.user
 *.ncb
 *.suo
