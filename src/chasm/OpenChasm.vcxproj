@@ -87,14 +87,14 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>precomp.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>precomp.h</ForcedIncludeFiles>
-      <AdditionalIncludeDirectories>../../thirdparty/SDL/include;.</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../thirdparty/SDL/include;../../thirdparty/boost;.</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>../../thirdparty/SDL/VisualC/SDL/Win32/Debug_static;../../thirdparty/SDL/VisualC/SDLmain/Win32/Debug</AdditionalLibraryDirectories>
-      <AdditionalDependencies>imm32.lib;version.lib;winmm.lib;SDL2_static.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OutDir);../../thirdparty/SDL/VisualC/SDL/Win32/Debug_static;../../thirdparty/SDL/VisualC/SDLmain/Win32/Debug</AdditionalLibraryDirectories>
+      <AdditionalDependencies>imm32.lib;version.lib;winmm.lib;system_lib.lib;filesystem_lib.lib;SDL2_static.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -107,7 +107,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>precomp.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>precomp.h</ForcedIncludeFiles>
-      <AdditionalIncludeDirectories>../../thirdparty/SDL/include;.</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../thirdparty/SDL/include;../../thirdparty/boost;.</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -115,8 +115,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>../../thirdparty/SDL/VisualC/SDL/Win32/Release_static;../../thirdparty/SDL/VisualC/SDLmain/Win32/Release</AdditionalLibraryDirectories>
-      <AdditionalDependencies>imm32.lib;version.lib;winmm.lib;SDL2_static.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OutDir);../../thirdparty/SDL/VisualC/SDL/Win32/Release_static;../../thirdparty/SDL/VisualC/SDLmain/Win32/Release</AdditionalLibraryDirectories>
+      <AdditionalDependencies>imm32.lib;version.lib;winmm.lib;system_lib.lib;filesystem_lib.lib;SDL2_static.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

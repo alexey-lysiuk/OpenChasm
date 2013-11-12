@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenChasm", "src\chasm\OpenChasm.vcxproj", "{078B40AD-9656-4553-BD5F-C6E0735A1FF5}"
 	ProjectSection(ProjectDependencies) = postProject
+		{3640605D-6F82-493D-879F-8F30762DA554} = {3640605D-6F82-493D-879F-8F30762DA554}
+		{2C1770A4-4AC3-4102-9D36-E652DBB686D8} = {2C1770A4-4AC3-4102-9D36-E652DBB686D8}
 		{81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68} = {81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68}
 		{DA956FD3-E142-46F2-9DD5-C78BEBB56B7A} = {DA956FD3-E142-46F2-9DD5-C78BEBB56B7A}
 	EndProjectSection
@@ -14,6 +16,10 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL2", "thirdparty\SDL\VisualC\SDL\SDL_VS2010.vcxproj", "{81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL2main", "thirdparty\SDL\VisualC\SDLmain\SDLmain_VS2010.vcxproj", "{DA956FD3-E142-46F2-9DD5-C78BEBB56B7A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "system_lib", "thirdparty\boost\libs\filesystem\test\msvc10\system_lib\system_lib.vcxproj", "{3640605D-6F82-493D-879F-8F30762DA554}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "filesystem_lib", "thirdparty\boost\libs\filesystem\test\msvc10\filesystem_lib\filesystem_lib.vcxproj", "{2C1770A4-4AC3-4102-9D36-E652DBB686D8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -93,6 +99,30 @@ Global
 		{DA956FD3-E142-46F2-9DD5-C78BEBB56B7A}.Release|Win32.Build.0 = Release|Win32
 		{DA956FD3-E142-46F2-9DD5-C78BEBB56B7A}.Release|x64.ActiveCfg = Release|x64
 		{DA956FD3-E142-46F2-9DD5-C78BEBB56B7A}.Release|x64.Build.0 = Release|x64
+		{3640605D-6F82-493D-879F-8F30762DA554}.Debug_static|Win32.ActiveCfg = Debug|Win32
+		{3640605D-6F82-493D-879F-8F30762DA554}.Debug_static|Win32.Build.0 = Debug|Win32
+		{3640605D-6F82-493D-879F-8F30762DA554}.Debug_static|x64.ActiveCfg = Debug|Win32
+		{3640605D-6F82-493D-879F-8F30762DA554}.Debug|Win32.ActiveCfg = Debug|Win32
+		{3640605D-6F82-493D-879F-8F30762DA554}.Debug|Win32.Build.0 = Debug|Win32
+		{3640605D-6F82-493D-879F-8F30762DA554}.Debug|x64.ActiveCfg = Debug|Win32
+		{3640605D-6F82-493D-879F-8F30762DA554}.Release_static|Win32.ActiveCfg = Release|Win32
+		{3640605D-6F82-493D-879F-8F30762DA554}.Release_static|Win32.Build.0 = Release|Win32
+		{3640605D-6F82-493D-879F-8F30762DA554}.Release_static|x64.ActiveCfg = Release|Win32
+		{3640605D-6F82-493D-879F-8F30762DA554}.Release|Win32.ActiveCfg = Release|Win32
+		{3640605D-6F82-493D-879F-8F30762DA554}.Release|Win32.Build.0 = Release|Win32
+		{3640605D-6F82-493D-879F-8F30762DA554}.Release|x64.ActiveCfg = Release|Win32
+		{2C1770A4-4AC3-4102-9D36-E652DBB686D8}.Debug_static|Win32.ActiveCfg = Debug|Win32
+		{2C1770A4-4AC3-4102-9D36-E652DBB686D8}.Debug_static|Win32.Build.0 = Debug|Win32
+		{2C1770A4-4AC3-4102-9D36-E652DBB686D8}.Debug_static|x64.ActiveCfg = Debug|Win32
+		{2C1770A4-4AC3-4102-9D36-E652DBB686D8}.Debug|Win32.ActiveCfg = Debug|Win32
+		{2C1770A4-4AC3-4102-9D36-E652DBB686D8}.Debug|Win32.Build.0 = Debug|Win32
+		{2C1770A4-4AC3-4102-9D36-E652DBB686D8}.Debug|x64.ActiveCfg = Debug|Win32
+		{2C1770A4-4AC3-4102-9D36-E652DBB686D8}.Release_static|Win32.ActiveCfg = Release|Win32
+		{2C1770A4-4AC3-4102-9D36-E652DBB686D8}.Release_static|Win32.Build.0 = Release|Win32
+		{2C1770A4-4AC3-4102-9D36-E652DBB686D8}.Release_static|x64.ActiveCfg = Release|Win32
+		{2C1770A4-4AC3-4102-9D36-E652DBB686D8}.Release|Win32.ActiveCfg = Release|Win32
+		{2C1770A4-4AC3-4102-9D36-E652DBB686D8}.Release|Win32.Build.0 = Release|Win32
+		{2C1770A4-4AC3-4102-9D36-E652DBB686D8}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
