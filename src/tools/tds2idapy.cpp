@@ -1543,12 +1543,12 @@ static void GenerateSymbols(const TDS& tds, FILE* const scriptOutput, FILE* cons
 
             if (returnType.isPascalArray() || returnType.isPascalString())
             {
-                fprintf(headerOutput, "%s%s[%i] %s();\n", headerPrefix.c_str(),
+                fprintf(headerOutput, "%s%s[%i] %s(/*...*/);\n", headerPrefix.c_str(),
                     returnTypeName.c_str(), returnType.size / GetElementSize(tds, type.recordWord), symbolName);
             }
             else
             {
-                fprintf(headerOutput, "%s%s %s();\n", headerPrefix.c_str(), returnTypeName.c_str(), symbolName);
+                fprintf(headerOutput, "%s%s %s(/*...*/);\n", headerPrefix.c_str(), returnTypeName.c_str(), symbolName);
             }
 
             for (auto scope = tds.scopes.begin(), last = tds.scopes.end();
