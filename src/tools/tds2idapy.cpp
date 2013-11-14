@@ -1257,31 +1257,31 @@ static std::string GetTypeName(const TDS& tds, const size_t typeIndex)
         return "void";
 
     case TDS::TYPE_PASCAL_STRING:
-        return "char";
+        return "OCString::value_type";
 
     case TDS::TYPE_SIGNED_CHAR:
-        return "int8_t";
+        return "Sint8";
 
     case TDS::TYPE_SIGNED_INT:
-        return "int16_t";
+        return "Sint16";
 
     case TDS::TYPE_SIGNED_LONG:
-        return "int32_t";
+        return "Sint32";
 
     case TDS::TYPE_SIGNED_QUAD:
-        return "int64_t";
+        return "Sint64";
 
     case TDS::TYPE_UNSIGNED_CHAR:
-        return "uint8_t";
+        return "Uint8";
 
     case TDS::TYPE_UNSIGNED_INT:
-        return "uint16_t";
+        return "Uint16";
 
     case TDS::TYPE_UNSIGNED_LONG:
-        return "uint32_t";
+        return "Uint32";
 
     case TDS::TYPE_UNSIGNED_QUAD:
-        return "uint64_t";
+        return "Uint64";
 
     case TDS::TYPE_PASCAL_CHARACTER:
         return "char";
@@ -1290,7 +1290,7 @@ static std::string GetTypeName(const TDS& tds, const size_t typeIndex)
         return "float";
 
     case TDS::TYPE_PASCAL_6BYTE_REAL:
-        return "real_t";
+        return "OCReal";
 
     case TDS::TYPE_DOUBLE:
         return "double";
