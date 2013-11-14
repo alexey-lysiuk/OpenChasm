@@ -22,5 +22,82 @@
 #ifndef OPENCHASM_CSBRIF_H_INCLUDED
 #define OPENCHASM_CSBRIF_H_INCLUDED
 
+namespace CSPBIO
+{
+    struct TOHeader;
+    struct TPoint3di;
+};
+
+namespace CSBrif
+{
+
+#pragma pack(push, 1)
+
+struct TCharacter
+{
+    Sint16 XPos;
+    Sint16 YPos;
+    Sint16 ZPos;
+    Uint16 DFi;
+    CSPBIO::TOHeader* Model;
+    CSPBIO::TPoint3di* PAni[16];
+    Uint16 AniTime[16];
+    Uint16 Phase;
+    Uint16 FTime;
+};
+
+struct Camera__Type
+{
+    Sint16 camx;
+    Sint16 camy;
+    Sint16 CamZ;
+    Uint16 camfi;
+    Sint16 MvTime;
+    Sint16 mvSpeed;
+    Sint16 mvx;
+    Sint16 mvy;
+    Sint16 mvz;
+    Uint16 mvfi;
+};
+
+#pragma pack(pop)
+
+
+void PlayBrifing(/*...*/);
+
+extern void (*BuildSceneRout)();
+
+void DeInitBrifing(/*...*/);
+void ReinitBrifView(/*...*/);
+void LoadVoice(/*...*/);
+void StopSounds(/*...*/);
+void SetAni(/*...*/);
+void AddText(/*...*/);
+void ReadRealMul(/*...*/);
+
+OCString ReadCommand(/*...*/);
+
+void LoadCharacter(/*...*/);
+void LoadSetup(/*...*/);
+void GotoProc(/*...*/);
+void ExecNextCommand(/*...*/);
+void PreProcessBrif(/*...*/);
+void ProcessBrif(/*...*/);
+
+extern bool GoSkip;
+extern Uint16 CurState;
+extern Sint16 CurDelay;
+extern Sint16 CurCar;
+extern Sint16 CurVoice;
+extern TCharacter Characters[3];
+extern OCString::value_type Command[41];
+extern OCString::value_type* BrText;
+extern Sint16 Room;
+extern Sint16 CurTop;
+extern Sint16 CurLine;
+extern void* BrifBar;
+extern Camera__Type Camera;
+
+} // namespace CSBrif
 
 #endif // OPENCHASM_CSBRIF_H_INCLUDED

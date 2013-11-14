@@ -22,5 +22,41 @@
 #ifndef OPENCHASM_CSPRNDR_H_INCLUDED
 #define OPENCHASM_CSPRNDR_H_INCLUDED
 
+namespace CSPRNDR
+{
+
+void ProcessLights(/*...*/);
+void AddLightSource(/*...*/);
+void BackRender(/*...*/);
+Uint16 QPifagorP16(/*...*/);
+Uint16 QPifagorA32(/*...*/);
+Sint16 MulVectors(/*...*/);
+void RestoreLights(/*...*/);
+void RenderLightOnMap(/*...*/);
+
+extern Uint16 Wx1;
+extern Uint16 Wy1;
+extern Uint16 Wx2;
+extern Uint16 Wy2;
+extern Uint16 os;
+extern Uint16 R;
+extern Uint16 ccx;
+extern Uint16 ccy;
+extern Uint16 N;
+extern Uint16 CurR;
+extern Uint16 CurR2;
+extern Uint16 CurL;
+extern Sint16 LLX;
+extern Sint16 LLY;
+extern Sint16 k;
+extern Sint16 Wx;
+extern Sint16 Wy;
+extern Sint16 DWx;
+extern Sint16 Dwy;
+extern bool V;
+extern Uint8 B;
+extern Uint8 PifTab[1024];
+
+} // namespace CSPRNDR
 
 #endif // OPENCHASM_CSPRNDR_H_INCLUDED

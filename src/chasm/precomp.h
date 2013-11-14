@@ -23,7 +23,20 @@
 #define OPENCHASM_PRECOMP_H_INCLUDED
 
 #include <cstdlib>
+#include <string>
+
+#define BOOST_ALL_NO_LIB // disables auto-linking for Boost
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
 
 #include <SDL.h>
+
+
+// TODO: 48-bit Pascal Real type
+typedef double OCReal;
+
+typedef std::string OCString;
+
+typedef boost::filesystem::ifstream OCFile;
 
 #endif // OPENCHASM_PRECOMP_H_INCLUDED
