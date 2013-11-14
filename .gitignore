@@ -1,8 +1,4 @@
 # Windows
-Debug/
-Debug_static/
-Release/
-Release_static/
 *.vcxproj.user
 *.ncb
 *.suo
