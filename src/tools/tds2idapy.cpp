@@ -884,7 +884,7 @@ void TDS::renameReservedWords()
 
         if (reservedNames.end() != reservedNames.find(upperName))
         {
-            name->insert(0, "$");
+            name->insert(0, "__");
         }
     }
 }
@@ -911,7 +911,7 @@ void TDS::makeGlobalSymbolsUnique()
             do
             {
                 char buffer[256];
-                snprintf(buffer, sizeof buffer, "%s$%u", name.c_str(), counter++);
+                snprintf(buffer, sizeof buffer, "%s__%u", name.c_str(), counter++);
 
                 newName = buffer;
             }
@@ -966,14 +966,14 @@ std::string TDS::findNameForType(const std::vector<Item>& collection, const size
 
         if (typeIndex == item.type)
         {
-            return names[item.name] + "$Type";
+            return names[item.name] + "__Type";
         }
 
         const TDS::Type& symbolType = types[item.type];
 
         if (symbolType.isPascalArray() && typeIndex == symbolType.recordWord)
         {
-            return names[item.name] + "$Element";
+            return names[item.name] + "__Element";
         }
     }
 
@@ -982,11 +982,11 @@ std::string TDS::findNameForType(const std::vector<Item>& collection, const size
 
 void TDS::applyPS10Specific()
 {
-    auto name = std::find(names.begin(), names.end(), "A$Type");
+    auto name = std::find(names.begin(), names.end(), "A__Type");
 
     if (names.end() != name)
     {
-        *name = "$PPoint"; // Guessed name, find name heuristic fails on it
+        *name = "__PPoint"; // Guessed name, find name heuristic fails on it
     }
 
     for (TDS::TypeIterator i = typeIterator(); i.hasNext(); ++i)
@@ -999,7 +999,7 @@ void TDS::applyPS10Specific()
         }
 
         types[i.index()].name = uint16_t(names.size());
-        names.push_back("Free_vert$Element");
+        names.push_back("Free_vert__Element");
     }
 }
 
@@ -1235,14 +1235,14 @@ static void GeneratePS10Specifics(FILE* output)
 {
     // Global variable initialization functions for Pascal units
     fputs(
-        "make_func(2, 0x2070, '$CspRndrInit', '')\n"
-        "make_func(3, 0x3756, '$CsDemoInit', '')\n"
-        "make_func(4, 0x32cb, '$Cs3dm2Init', '')\n"
-        "make_func(5, 0x84ea, '$CsActInit', '')\n"
-        "make_func(6, 0x6ff8, '$CspUtlInit', '')\n"
-        "make_func(7, 0x2cdd, '$CsMenuInit', '')\n"
-        "make_func(8, 0x6b43, '$CspBioInit', '')\n"
-        "make_func(9, 0x2685, '$SoundIPInit', '')\n"
+        "make_func(2, 0x2070, '__CspRndrInit', '')\n"
+        "make_func(3, 0x3756, '__CsDemoInit', '')\n"
+        "make_func(4, 0x32cb, '__Cs3dm2Init', '')\n"
+        "make_func(5, 0x84ea, '__CsActInit', '')\n"
+        "make_func(6, 0x6ff8, '__CspUtlInit', '')\n"
+        "make_func(7, 0x2cdd, '__CsMenuInit', '')\n"
+        "make_func(8, 0x6b43, '__CspBioInit', '')\n"
+        "make_func(9, 0x2685, '__SoundIPInit', '')\n"
         "\n", output);
 }
 
