@@ -21,3 +21,12 @@
 
 #include "cs3dm2.h"
 
+namespace CS3DM2
+{
+
+void Draw3DObject(/*...*/);
+void Show3DObject(/*...*/);
+void DrawHi3D(/*...*/);
+void Morph3d(/*...*/);
+
+} // namespace CS3DM2

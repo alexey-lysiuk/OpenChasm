@@ -21,3 +21,39 @@
 
 #include "csprndr.h"
 
+namespace CSPRNDR
+{
+
+void ProcessLights(/*...*/);
+void AddLightSource(/*...*/);
+void BackRender(/*...*/);
+Uint16 QPifagorP16(/*...*/);
+Uint16 QPifagorA32(/*...*/);
+Sint16 MulVectors(/*...*/);
+void RestoreLights(/*...*/);
+void RenderLightOnMap(/*...*/);
+
+Uint16 Wx1;
+Uint16 Wy1;
+Uint16 Wx2;
+Uint16 Wy2;
+Uint16 os;
+Uint16 R;
+Uint16 ccx;
+Uint16 ccy;
+Uint16 N;
+Uint16 CurR;
+Uint16 CurR2;
+Uint16 CurL;
+Sint16 LLX;
+Sint16 LLY;
+Sint16 k;
+Sint16 Wx;
+Sint16 Wy;
+Sint16 DWx;
+Sint16 Dwy;
+bool V;
+Uint8 B;
+Uint8 PifTab[1024];
+
+} // namespace CSPRNDR

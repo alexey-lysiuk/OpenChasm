@@ -21,3 +21,79 @@
 
 #include "csputl.h"
 
+namespace CSPUTL
+{
+
+bool iswater(/*...*/);
+void Bar(/*...*/);
+void ShowVesaScreen(/*...*/);
+void ShowVESATime(/*...*/);
+void ShowVesaConsole(/*...*/);
+void ShowScreen(/*...*/);
+void UpDateInfo(/*...*/);
+void ScrollGun(/*...*/);
+void SavePicture(/*...*/);
+void SaveMPicture(/*...*/);
+void GetJoyStatus(/*...*/);
+void CheckJoyStick(/*...*/);
+void InitJoyStick(/*...*/);
+void GetMouseStatus(/*...*/);
+void FillStartInfo(/*...*/);
+void InitMessageSystem(/*...*/);
+void RemoveLight(/*...*/);
+void AddGreatBlow(/*...*/);
+void AddSuperGreatBlow(/*...*/);
+void ExplodeMine(/*...*/);
+void AnimateRespawnObjects(/*...*/);
+void AnimateObjects(/*...*/);
+void AddRocket(/*...*/);
+Sint16 FindVectorFi(/*...*/);
+void SendRocketToMe(/*...*/);
+void CheckSwitchShoot(/*...*/);
+void MakeBlow(/*...*/);
+void Blow3dObjAt(/*...*/);
+void AnimateBlows(/*...*/);
+void ShootMonster(/*...*/);
+Uint8 CheckMonsterContact(/*...*/);
+void InsertObject(/*...*/);
+void InsertMonsters(/*...*/);
+void AddHole(/*...*/);
+void SendFastRocket(/*...*/);
+Uint8 GetBrightAt(/*...*/);
+Sint16 GetSmoothBrightAt(/*...*/);
+bool PathToMe(/*...*/);
+bool LookToMe(/*...*/);
+void WeakUpMonstersTo(/*...*/);
+void SetWeapon(/*...*/);
+void AddAmmoToPlayer(/*...*/);
+void CenterView(/*...*/);
+void RespawnMonster(/*...*/);
+Sint16 MulVectors(/*...*/);
+void Movxb(/*...*/);
+void MoveDB(/*...*/);
+bool Test2Vectors(/*...*/);
+void UpDateRanking(/*...*/);
+void UpDateIndy(/*...*/);
+void PutPlayerInf(/*...*/);
+void ShowMessages(/*...*/);
+void PutBigChar(/*...*/);
+void PutBigString(/*...*/);
+void PutLitChar(/*...*/);
+void PutLitString(/*...*/);
+void PutWLitString(/*...*/);
+bool Pr_WallCheck(/*...*/);
+Sint16 FindTarget(/*...*/);
+void MakeGreatBlow(/*...*/);
+void SCalcBPoint(/*...*/);
+
+Uint16 CelSaved;
+
+// /* nested */ void InsertByte(/*...*/);
+// /* nested */ Uint8 GetB(/*...*/);
+// /* nested */ void InsertByte__0(/*...*/);
+// /* nested */ Uint8 GetB__0(/*...*/);
+// /* nested */ void TryToGo(/*...*/);
+// /* nested */ void TryToGo2B(/*...*/);
+// /* nested */ Sint16 CalcRZ(/*...*/);
+
+} // namespace CSPUTL

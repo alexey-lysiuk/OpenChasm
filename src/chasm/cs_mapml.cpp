@@ -21,3 +21,41 @@
 
 #include "cs3dm2.h"
 
+namespace CS3DM2
+{
+
+void movsD(/*...*/);
+void VLineT_Recolor(/*...*/);
+void VLineTGlass_Recolor(/*...*/);
+void VLineT(/*...*/);
+void VLineTGlass(/*...*/);
+void VLineTGlass60(/*...*/);
+void VLineTFF(/*...*/);
+void VLineD(/*...*/);
+void DrawTriFace(/*...*/);
+void DrawFourFace1234(/*...*/);
+void DrawFourFace1243(/*...*/);
+void DrawFourFace(/*...*/);
+void DrawFaces(/*...*/);
+void DrawFacesNoCheck(/*...*/);
+void RotateModelCopy(/*...*/);
+void RotateModelASM(/*...*/);
+void RotateModelASM_HiDet(/*...*/);
+void RotateModelASM_XZ(/*...*/);
+void ProcToScrASM_Far(/*...*/);
+void ProcToScrMinMax(/*...*/);
+void ProcToScrASM_Clip(/*...*/);
+void ProcToScrASM_Clip_hi(/*...*/);
+void BuildTreeAsm_Far(/*...*/);
+void BuildTreeAsm_NoSort(/*...*/);
+void BuildTreeAsm_Clip(/*...*/);
+void DrawTriFaceSh(/*...*/);
+void DrawFourFaceSh1234(/*...*/);
+void DrawFourFaceSh1243(/*...*/);
+void DrawFourFaceSh(/*...*/);
+void CreateShadow(/*...*/);
+void ProcToScrShadow_Clip(/*...*/);
+void DrawShadowFaces(/*...*/);
+void SetFreeVert(/*...*/);
+
+} // namespace CS3DM2

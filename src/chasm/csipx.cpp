@@ -21,3 +21,38 @@
 
 #include "chasm.h"
 
+namespace Chasm
+{
+
+void GetRealModeIntVector(/*...*/);
+void RealInt60h(/*...*/);
+void DO_CD_Play(/*...*/);
+void DO_CD_Stop(/*...*/);
+void ProcessCD(/*...*/);
+void RefreshMachineMode(/*...*/);
+void ReInstallFreeECB(/*...*/);
+void ReinitPlayer(/*...*/);
+void MakeChanges(/*...*/);
+void DoneChanges(/*...*/);
+void CorrectProcesses(/*...*/);
+void DoneProcesses(/*...*/);
+Uint8 GetFreeNetNumber(/*...*/);
+void ConnectIPXProcessor(/*...*/);
+void CheckNP(/*...*/);
+void INIT_IPX_SERVER(/*...*/);
+void INIT_IPX_CLIENT(/*...*/);
+void CloseIPXChannel(/*...*/);
+void CheckSendComplette(/*...*/);
+void SendServerPatch(/*...*/);
+void LoadClientPatch(/*...*/);
+void LoadServerPatch(/*...*/);
+void SendClientPatch(/*...*/);
+bool CheckIDsConflict(/*...*/);
+void LookForServer(/*...*/);
+void ScanNet(/*...*/);
+void JoinNetworkGame(/*...*/);
+void SendServerPost(/*...*/);
+void SyncroTime(/*...*/);
+void WaitServer(/*...*/);
+
+} // namespace Chasm

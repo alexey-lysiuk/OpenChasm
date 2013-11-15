@@ -21,3 +21,34 @@
 
 #include "chasm.h"
 
+namespace Chasm
+{
+
+Sint16 MulVectors(/*...*/);
+bool Test2Vectors(/*...*/);
+void VILineL(/*...*/);
+void VILineL_hi(/*...*/);
+void ShowLine(/*...*/);
+void ShowLine2(/*...*/);
+void ShowGlassLine(/*...*/);
+void ShowGlassLine2(/*...*/);
+void ShowGlassLine4(/*...*/);
+void ShowSegment(/*...*/);
+void ShowSegment2(/*...*/);
+void VIlinePack(/*...*/);
+void VIlineUpPack(/*...*/);
+void Draw_Cell1(/*...*/);
+void Draw_Cell2(/*...*/);
+void Draw_Cell3(/*...*/);
+void CellVHi(/*...*/);
+void Draw_Floor1(/*...*/);
+void Draw_Floor2(/*...*/);
+void Draw_Floor3(/*...*/);
+void FloorVHi(/*...*/);
+void MovEX(/*...*/);
+void BuildSky(/*...*/);
+void BuildFloorCell(/*...*/);
+void DrawCross(/*...*/);
+void ShowValue(/*...*/);
+
+} // namespace CSPUTL

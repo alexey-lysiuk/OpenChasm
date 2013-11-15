@@ -21,3 +21,42 @@
 
 #include "csbrif.h"
 
+namespace CSBrif
+{
+
+void PlayBrifing(/*...*/);
+
+void (*BuildSceneRout)();
+
+void DeInitBrifing(/*...*/);
+void ReinitBrifView(/*...*/);
+void LoadVoice(/*...*/);
+void StopSounds(/*...*/);
+void SetAni(/*...*/);
+void AddText(/*...*/);
+void ReadRealMul(/*...*/);
+
+OCString ReadCommand(/*...*/);
+
+void LoadCharacter(/*...*/);
+void LoadSetup(/*...*/);
+void GotoProc(/*...*/);
+void ExecNextCommand(/*...*/);
+void PreProcessBrif(/*...*/);
+void ProcessBrif(/*...*/);
+
+bool GoSkip;
+Uint16 CurState;
+Sint16 CurDelay;
+Sint16 CurCar;
+Sint16 CurVoice;
+TCharacter Characters[3];
+OCString::value_type Command[41];
+OCString::value_type* BrText;
+Sint16 Room;
+Sint16 CurTop;
+Sint16 CurLine;
+void* BrifBar;
+Camera__Type Camera;
+
+} // namespace CSBrif

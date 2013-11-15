@@ -21,3 +21,21 @@
 
 #include "cspbio.h"
 
+namespace CSPBIO
+{
+
+void MovsED(/*...*/);
+void MovsEW(/*...*/);
+void SetVESAMode(/*...*/);
+void SwitchBank(/*...*/);
+void VESA_PutImage(/*...*/);
+void VESA_Line(/*...*/);
+void ClearUnusedScreens(/*...*/);
+void InitVESAMonitor(/*...*/);
+void VESA_TileScreen(/*...*/);
+void vesa_DrawKey(/*...*/);
+void ReDrawGround(/*...*/);
+void ShowVideoBuffer(/*...*/);
+void SetVideoMode(/*...*/);
+
+} // namespace CSPBIO

@@ -21,3 +21,48 @@
 
 #include "cs_demo.h"
 
+#include "cspbio.h"
+
+namespace CS_DEMO
+{
+
+void ExecuteEvent(/*...*/);
+void DeInit_DemoSystem(/*...*/);
+void EndDemo(/*...*/);
+void StartDemo(/*...*/);
+void GetNextDemoNumber(/*...*/);
+void Demo_RecordNext(/*...*/);
+void Demo_ReadNext(/*...*/);
+bool Rocket_WallCheck(/*...*/);
+void InitMZPosition(/*...*/);
+void AnimateZMovement(/*...*/);
+void AnimateMonsters(/*...*/);
+
+Sint32 demotime;
+
+void Init_DemoSystem(/*...*/);
+void Demo_ReadNextQuant(/*...*/);
+void CorrectPlayerPos(/*...*/);
+bool GetTarget(/*...*/);
+bool MakePunch(/*...*/);
+void GetPlayerTo(/*...*/);
+Uint8 GetAttack(/*...*/);
+void AnimateExternal(/*...*/);
+
+Uint16 DemoTakts;
+Uint16 DemoOfs;
+Uint16 DBlockSize;
+void* DemoPtr;
+Uint16 DmSeg;
+Uint16 DTakt;
+bool MemoActive;
+TPlayerState* PPS;
+CSPBIO::TEvent DEvent;
+CSPBIO::TMonster M;
+Sint16 plx;
+Sint16 ply;
+
+// /* nested */ void TryToGo(/*...*/);
+// /* nested */ void TryToGo2B(/*...*/);
+
+}

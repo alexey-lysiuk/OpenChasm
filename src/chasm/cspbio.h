@@ -689,6 +689,7 @@ void vesa_DrawKey(/*...*/);
 void ReDrawGround(/*...*/);
 void ShowVideoBuffer(/*...*/);
 void SetVideoMode(/*...*/);
+
 Uint16 QPifagorA32(/*...*/);
 void getmousestate(/*...*/);
 Sint16 GetJoyX(/*...*/);

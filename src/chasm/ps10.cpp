@@ -21,16 +21,86 @@
 
 #include "chasm.h"
 
+namespace Chasm
+{
+
+void WhatKey(/*...*/);
+void TimerFM(/*...*/);
+void LoadConfig(/*...*/);
+void CalcYMin(/*...*/);
+void StartPaint(/*...*/);
+void UpDateRedShade(/*...*/);
+void UpDateGreenShade(/*...*/);
+void UpdateBlueShade(/*...*/);
+void DrawItems(/*...*/);
+void EndPaint(/*...*/);
+bool ExpandWall(/*...*/);
+void ExpandFrame(/*...*/);
+bool ExpandPicture(/*...*/);
+void ExpandObject(/*...*/);
+void DrawHoles(/*...*/);
+void Expand3dObject(/*...*/);
+void ExpandRocket(/*...*/);
+void ExpandMine(/*...*/);
+void ExpandSepPart(/*...*/);
+void ExpandAmmoBag(/*...*/);
+void ExpandBlow(/*...*/);
+void ExpandPlayer(/*...*/);
+void ExpandMonster(/*...*/);
+void MapXY(/*...*/);
+void MoveRocket(/*...*/);
+void AnimateRockets(/*...*/);
+bool GetNearestWall(/*...*/);
+void AddClientProcesses(/*...*/);
+void AnimateSwitches(/*...*/);
+void MakeTeleBlow(/*...*/);
+void CheckTelePorts(/*...*/);
+void CheckFloorLinks(/*...*/);
+void DeinitMonitor(/*...*/);
+void SwitchMonitor(/*...*/);
+void ReInitOwners(/*...*/);
+void InsertPlayers(/*...*/);
+void NewGame(/*...*/);
+void MenuStartNet(/*...*/);
+void MenuJoinNet(/*...*/);
+void ExecConsole(/*...*/);
+void ProcessConsole(/*...*/);
+void LeftRight(/*...*/);
+void LR_Roll(/*...*/);
+void LookForLevel(/*...*/);
+void RemoveMouse(/*...*/);
+void ProcessMenu(/*...*/);
+void Build3dScene(/*...*/);
+void SwitchToNextWeapon(/*...*/);
+bool WeaponAvail(/*...*/);
+void ChangeWeapon(/*...*/);
+void ProcessDevices(/*...*/);
+void ProcessPreKeyboard(/*...*/);
+void SetPFlags(/*...*/);
+void MoveServerPlayers(/*...*/);
+void CorrectPlayerPosition(/*...*/);
+void CorrectRocketPosition(/*...*/);
+void CorrectMonstersPosition(/*...*/);
+void RedrawWindowSelection(/*...*/);
+void AnimateKeyboard(/*...*/);
+void StopSound(/*...*/);
+void DoGame(/*...*/);
+void CheckQuit(/*...*/);
+void ShowIntro1(/*...*/);
+
+}
+
+
 int main(int argc, char** argv)
 {
-	if (0 != SDL_Init(SDL_INIT_EVERYTHING))
-	{
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal Error", SDL_GetError(), NULL);
-		return EXIT_FAILURE;
-	}
+    if (0 != SDL_Init(SDL_INIT_EVERYTHING))
+    {
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal Error", SDL_GetError(), NULL);
+        return EXIT_FAILURE;
+    }
 
 
-	SDL_Quit();
+    SDL_Quit();
 
-	return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }

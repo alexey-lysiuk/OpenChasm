@@ -154,6 +154,7 @@ void JoinNetworkGame(/*...*/);
 void SendServerPost(/*...*/);
 void SyncroTime(/*...*/);
 void WaitServer(/*...*/);
+
 Sint16 MulVectors(/*...*/);
 bool Test2Vectors(/*...*/);
 void VILineL(/*...*/);
@@ -180,6 +181,7 @@ void BuildSky(/*...*/);
 void BuildFloorCell(/*...*/);
 void DrawCross(/*...*/);
 void ShowValue(/*...*/);
+
 void WhatKey(/*...*/);
 void TimerFM(/*...*/);
 void LoadConfig(/*...*/);
