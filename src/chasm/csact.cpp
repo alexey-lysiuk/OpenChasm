@@ -24,6 +24,11 @@
 namespace csact
 {
 
+void InitModule()
+{
+    // TODO...
+}
+
 void MoveOn(/*...*/);
 void GetMFloorZ(/*...*/);
 bool MS_WallCheck(/*...*/);
@@ -83,7 +88,7 @@ void ReloadFloors(/*...*/);
 void LoadGFXIndex(/*...*/);
 void InitZPositions(/*...*/);
 void InitChanges(/*...*/);
-OCString ReadCommand(/*...*/);
+oc::string ReadCommand(/*...*/);
 void ReadRealMul(/*...*/);
 void LoadLinks(/*...*/);
 void LoadTeleports(/*...*/);

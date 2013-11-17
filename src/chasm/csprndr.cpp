@@ -24,6 +24,11 @@
 namespace CSPRNDR
 {
 
+void InitModule()
+{
+    // TODO...
+}
+
 void ProcessLights(/*...*/);
 void AddLightSource(/*...*/);
 void BackRender(/*...*/);

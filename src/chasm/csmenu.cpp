@@ -26,6 +26,11 @@
 namespace CSMENU
 {
 
+void InitModule()
+{
+    // TODO...
+}
+
 void CreateRecolorMap(/*...*/);
 void PutString(/*...*/);
 void PutStringFloat(/*...*/);

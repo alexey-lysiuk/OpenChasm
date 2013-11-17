@@ -38,4 +38,21 @@ void ReDrawGround(/*...*/);
 void ShowVideoBuffer(/*...*/);
 void SetVideoMode(/*...*/);
 
+void VESAGetDosMem(/*...*/);
+void VESAFreeDosMem(/*...*/);
+void ProcedError(/*...*/);
+void RealInt10h(/*...*/);
+void GetVESAInfo(/*...*/);
+void GetModeInfo(/*...*/);
+void OnlySwitchBank(/*...*/);
+
+void InitVideo()
+{
+    // TODO...
+}
+
+void ClearMonitorWindow(/*...*/);
+void Init320x200(/*...*/);
+void Init_HiMode(/*...*/);
+
 } // namespace CSPBIO

@@ -15,6 +15,7 @@
 		8A35F140182FC4D100C11D0C /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A35F13F182FC4D100C11D0C /* CoreAudio.framework */; };
 		8A35F142182FC4E200C11D0C /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A35F141182FC4E200C11D0C /* IOKit.framework */; };
 		8A35F144182FC4F800C11D0C /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A35F143182FC4F800C11D0C /* Carbon.framework */; };
+		8A77FE991837928A00172E10 /* utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A77FE971837928A00172E10 /* utils.cpp */; };
 		8AB539341837706300C3D98E /* libSDL2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A3B68D91837701B0088E6D3 /* libSDL2.a */; };
 		8AB539EE183772D800C3D98E /* codecvt_error_category.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AB5397A183772D800C3D98E /* codecvt_error_category.cpp */; };
 		8AB539EF183772D800C3D98E /* operations.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AB5397B183772D800C3D98E /* operations.cpp */; };
@@ -94,6 +95,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		8A0008541838BF67001AA739 /* types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = types.h; sourceTree = "<group>"; };
 		8A215F3617D32DC800C0A000 /* asmsplit.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = asmsplit.py; sourceTree = "<group>"; };
 		8A215F3717D32DC800C0A000 /* tds2ida.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = tds2ida.py; sourceTree = "<group>"; };
 		8A2E439217B7633300EEC482 /* OpenChasm.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OpenChasm.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -107,6 +109,8 @@
 		8A3ACEF617F841C5002E550F /* precomp.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = precomp.cpp; sourceTree = "<group>"; };
 		8A3ACEF717F841C5002E550F /* precomp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = precomp.h; sourceTree = "<group>"; };
 		8A3B68CF1837701A0088E6D3 /* SDL.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = SDL.xcodeproj; path = thirdparty/SDL/Xcode/SDL/SDL.xcodeproj; sourceTree = "<group>"; };
+		8A77FE971837928A00172E10 /* utils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = utils.cpp; sourceTree = "<group>"; };
+		8A77FE981837928A00172E10 /* utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utils.h; sourceTree = "<group>"; };
 		8AB53939183770EA00C3D98E /* libfilesystem.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libfilesystem.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		8AB5397A183772D800C3D98E /* codecvt_error_category.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = codecvt_error_category.cpp; path = src/codecvt_error_category.cpp; sourceTree = "<group>"; };
 		8AB5397B183772D800C3D98E /* operations.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = operations.cpp; path = src/operations.cpp; sourceTree = "<group>"; };
@@ -239,6 +243,16 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		8A77FE961837928A00172E10 /* oc */ = {
+			isa = PBXGroup;
+			children = (
+				8A0008541838BF67001AA739 /* types.h */,
+				8A77FE971837928A00172E10 /* utils.cpp */,
+				8A77FE981837928A00172E10 /* utils.h */,
+			);
+			path = oc;
+			sourceTree = "<group>";
+		};
 		8AB53944183772D800C3D98E /* filesystem */ = {
 			isa = PBXGroup;
 			children = (
@@ -298,6 +312,7 @@
 		8ACD55E517B76C3000C2640A /* chasm */ = {
 			isa = PBXGroup;
 			children = (
+				8A77FE961837928A00172E10 /* oc */,
 				8ACD55FF17B76C3100C2640A /* soundip */,
 				8A3ACEEC17F829C1002E550F /* chasm.h */,
 				8ACD55E617B76C3000C2640A /* cs3dm2.cpp */,
@@ -553,6 +568,7 @@
 				8ACD561617B76C3100C2640A /* sound_gs.cpp in Sources */,
 				8ACD561717B76C3100C2640A /* sound_sb.cpp in Sources */,
 				8ACD561817B76C3100C2640A /* soundip.cpp in Sources */,
+				8A77FE991837928A00172E10 /* utils.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

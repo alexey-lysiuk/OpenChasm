@@ -57,6 +57,8 @@ struct Free_vert__Element
 #pragma pack(pop)
 
 
+void InitModule();
+
 void Draw3DObject(/*...*/);
 void Show3DObject(/*...*/);
 void DrawHi3D(/*...*/);

@@ -82,6 +82,8 @@ struct DMA_Entry
 #pragma pack(pop)
 
 
+void InitModule();
+
 void DisableSFXIRQ(/*...*/);
 void EnableSFXIRQ(/*...*/);
 void AddAmbient(/*...*/);

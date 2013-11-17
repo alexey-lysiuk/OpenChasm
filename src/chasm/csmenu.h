@@ -42,41 +42,43 @@ struct MenuRect
 
 struct TMenuText
 {
-    OCString::value_type Main[16];
+    oc::string::value_type Main[16];
     MenuRect MainPos;
-    OCString::value_type Skl[16];
+    oc::string::value_type Skl[16];
     MenuRect SklPos;
-    OCString::value_type Net[16];
+    oc::string::value_type Net[16];
     MenuRect NetPos;
-    OCString::value_type Save[16];
-    OCString::value_type Load[16];
+    oc::string::value_type Save[16];
+    oc::string::value_type Load[16];
     MenuRect SavePos;
-    OCString::value_type Opti[338];
+    oc::string::value_type Opti[338];
     MenuRect OptiPos;
-    OCString::value_type Disp[104];
+    oc::string::value_type Disp[104];
     MenuRect DispPos;
-    OCString::value_type Resl[782];
+    oc::string::value_type Resl[782];
     MenuRect ReslPos;
-    OCString::value_type Cont[442];
+    oc::string::value_type Cont[442];
     MenuRect ContPos;
-    OCString::value_type Quit[128];
+    oc::string::value_type Quit[128];
     MenuRect QuitPos;
-    OCString::value_type Newg[96];
+    oc::string::value_type Newg[96];
     MenuRect NewgPos;
-    OCString::value_type NGSt[144];
+    oc::string::value_type NGSt[144];
     MenuRect NGStPos;
-    OCString::value_type NGModes[66];
-    OCString::value_type NGSkill[48];
-    OCString::value_type NJst[96];
+    oc::string::value_type NGModes[66];
+    oc::string::value_type NGSkill[48];
+    oc::string::value_type NJst[96];
     MenuRect NJStPos;
-    OCString::value_type NOpt[84];
+    oc::string::value_type NOpt[84];
     MenuRect NOptPos;
-    OCString::value_type KName[1408];
-    OCString::value_type GameNames[400];
+    oc::string::value_type KName[1408];
+    oc::string::value_type GameNames[400];
 };
 
 #pragma pack(pop)
 
+
+void InitModule();
 
 void CreateRecolorMap(/*...*/);
 void PutString(/*...*/);

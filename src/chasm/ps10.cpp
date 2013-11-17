@@ -21,6 +21,16 @@
 
 #include "chasm.h"
 
+#include "soundip/soundip.h"
+#include "cs3dm2.h"
+#include "cs_demo.h"
+#include "csact.h"
+#include "csmenu.h"
+#include "cspbio.h"
+#include "csprndr.h"
+#include "csputl.h"
+
+
 namespace Chasm
 {
 
@@ -99,8 +109,18 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
+    atexit(SDL_Quit);
 
-    SDL_Quit();
+    SoundIP::InitModule();
+    CSPBIO::InitModule();
+    CSPRNDR::InitModule();
+    CSMENU::InitModule();
+    CSPUTL::InitModule();
+    csact::InitModule();
+    CS3DM2::InitModule();
+    CS_DEMO::InitModule();
+
+    // TODO...
 
     return EXIT_SUCCESS;
 }

@@ -21,3 +21,12 @@
 
 #include "soundip/soundip.h"
 
+namespace SoundIP
+{
+
+void InitModule()
+{
+    // TODO...
+}
+
+}

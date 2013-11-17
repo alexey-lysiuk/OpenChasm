@@ -50,6 +50,8 @@ struct TPlayerState
 #pragma pack(pop)
 
 
+void InitModule();
+
 void ExecuteEvent(/*...*/);
 void DeInit_DemoSystem(/*...*/);
 void EndDemo(/*...*/);

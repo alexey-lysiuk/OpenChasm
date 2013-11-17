@@ -26,6 +26,11 @@
 namespace CS_DEMO
 {
 
+void InitModule()
+{
+    // TODO...
+}
+
 void ExecuteEvent(/*...*/);
 void DeInit_DemoSystem(/*...*/);
 void EndDemo(/*...*/);

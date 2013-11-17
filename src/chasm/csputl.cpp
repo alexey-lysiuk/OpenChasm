@@ -24,6 +24,11 @@
 namespace CSPUTL
 {
 
+void InitModule()
+{
+    // TODO...
+}
+
 bool iswater(/*...*/);
 void Bar(/*...*/);
 void ShowVesaScreen(/*...*/);

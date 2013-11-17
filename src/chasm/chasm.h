@@ -54,7 +54,7 @@ struct TClient_Patch
     Uint8 iUpDated;
     Uint16 iPlayerID;
     Sint16 iPlNumber;
-    OCString::value_type iPName[11];
+    oc::string::value_type iPName[11];
     Uint16 iksFlags;
     Uint16 iPlFi;
     Uint16 iColor;
@@ -68,7 +68,7 @@ struct TClient_Patch
 struct TMPlayerInfo
 {
     bool iActive;
-    OCString::value_type iPName[9];
+    oc::string::value_type iPName[9];
     Sint16 iPlHx;
     Sint16 iPlHy;
     Sint16 iPlhz0;

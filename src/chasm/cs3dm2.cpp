@@ -24,6 +24,11 @@
 namespace CS3DM2
 {
 
+void InitModule()
+{
+    // TODO...
+}
+
 void Draw3DObject(/*...*/);
 void Show3DObject(/*...*/);
 void DrawHi3D(/*...*/);
