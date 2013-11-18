@@ -319,9 +319,11 @@ struct FIB
 
 struct TFileTableEntry
 {
-    oc::string FName;
+    char FName[13]; // ????????.??? format + terminating zero
     Sint32 FSize;
     Sint32 FBase;
+
+    TFileTableEntry();
 };
 
 BFile& operator>>(BFile& file, TFileTableEntry& entry);

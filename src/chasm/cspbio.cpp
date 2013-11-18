@@ -119,18 +119,23 @@ OC_BINARY_FILE_READ_LITTLE(Uint32, SDL_SwapLE32)
 
 #undef OC_BINARY_FILE_READ_LITTLE
 
+TFileTableEntry::TFileTableEntry()
+: FSize(0)
+, FBase(0)
+{
+    SDL_zero(FName);
+}
+
 BFile& operator>>(BFile& file, TFileTableEntry& entry)
 {
+    Uint8 length;
+
     // Read Pascal string:
     // first byte is length of filename in ????????.??? (8.3) format
     // next 12 bytes is the name itself WITHOUT terminating zero
 
-    Uint8 length;
     file >> length;
-
-    char nameBuffer[13] = {}; // 8.3 + terminating zero
-    file.read(nameBuffer, sizeof nameBuffer - 1);
-    entry.FName = nameBuffer;
+    file.read(entry.FName, sizeof entry.FName - 1);
 
     file >> entry.FSize;
     file >> entry.FBase;
