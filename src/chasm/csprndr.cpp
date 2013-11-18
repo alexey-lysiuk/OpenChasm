@@ -24,15 +24,35 @@
 namespace CSPRNDR
 {
 
+static Uint8 QPifagorP16(const Sint16 XX, const Sint16 YY)
+{
+    int16_t result = XX + YY;
+
+    if (0 != XX && 0 != YY)
+    {
+        // TODO: integer overflow in original code, bug or feature?
+        //result -= static_cast<Uint16>(7 * XX * YY) / (6 * result);
+
+        result -= 7 * XX * YY / (6 * result);
+    }
+
+    return static_cast<Uint8>(result);
+}
+
 void InitModule()
 {
-    // TODO...
+    for (Wy = 0; Wy < 32; ++Wy)
+    {
+        for (Wx = 0; Wx < 32; ++Wx)
+        {
+            PifTab[Wy][Wx] = QPifagorP16(Wx * 4, Wy * 4);
+        }
+    }
 }
 
 void ProcessLights(/*...*/);
 void AddLightSource(/*...*/);
 void BackRender(/*...*/);
-Uint16 QPifagorP16(/*...*/);
 Uint16 QPifagorA32(/*...*/);
 Sint16 MulVectors(/*...*/);
 void RestoreLights(/*...*/);
@@ -59,6 +79,6 @@ Sint16 DWx;
 Sint16 Dwy;
 bool V;
 Uint8 B;
-Uint8 PifTab[1024];
+Uint8 PifTab[32][32];
 
 } // namespace CSPRNDR

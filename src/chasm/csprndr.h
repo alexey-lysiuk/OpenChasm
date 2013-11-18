@@ -30,7 +30,6 @@ void InitModule();
 void ProcessLights(/*...*/);
 void AddLightSource(/*...*/);
 void BackRender(/*...*/);
-Uint16 QPifagorP16(/*...*/);
 Uint16 QPifagorA32(/*...*/);
 Sint16 MulVectors(/*...*/);
 void RestoreLights(/*...*/);
@@ -57,7 +56,7 @@ extern Sint16 DWx;
 extern Sint16 Dwy;
 extern bool V;
 extern Uint8 B;
-extern Uint8 PifTab[1024];
+extern Uint8 PifTab[32][32];
 
 } // namespace CSPRNDR
 
