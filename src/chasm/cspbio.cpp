@@ -28,8 +28,6 @@ void InitModule()
 {
     InitVideo();
 
-    CurVideoMode = 1;
-
     static const oc::wstring DATA_FILE_NAME      = L"csm.bin";
     static const oc::wstring DATA_DIRECTORY_NAME = L"chasmdat/";
 
@@ -94,7 +92,7 @@ void InitModule()
         }
     }
 
-    // TODO: "Loading from:" log
+    SDL_Log("Loading from: %s", BaseFile.string().c_str());
 }
 
 #define OC_BINARY_FILE_READ_LITTLE(TYPE, SWAP_FUNC)             \
@@ -769,7 +767,7 @@ bool NETMonitor;
 bool InBrifing;
 Uint8 VideoOwners[4];
 Uint16 CurOwner;
-Uint16 CurVideoMode;
+Uint16 CurVideoMode = 1;
 Uint16 LastVideoMode;
 ServerSaved__Type ServerSaved;
 Sint16 CurWindow;
