@@ -27,6 +27,9 @@
     <ClCompile Include="soundip\soundip.cpp">
       <Filter>SoundIP</Filter>
     </ClCompile>
+    <ClCompile Include="oc\utils.cpp">
+      <Filter>oc</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cs3dm2.h" />
@@ -42,10 +45,19 @@
       <Filter>SoundIP</Filter>
     </ClInclude>
     <ClInclude Include="chasm.h" />
+    <ClInclude Include="oc\types.h">
+      <Filter>oc</Filter>
+    </ClInclude>
+    <ClInclude Include="oc\utils.h">
+      <Filter>oc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="SoundIP">
       <UniqueIdentifier>{61f81a6a-d9fe-43a7-85c1-99cd5032d981}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="oc">
+      <UniqueIdentifier>{58099d54-3255-4a88-8327-5dad7fdccb4e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
