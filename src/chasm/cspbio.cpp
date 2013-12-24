@@ -79,8 +79,17 @@ FileTable s_fileTable; // FileTable
 
 class EmbeddedFileBuffer : public boost::filesystem::filebuf
 {
+private:
+    typedef boost::filesystem::filebuf Base;
+
 public:
-    explicit EmbeddedFileBuffer(const OC::Path& filePath/*, const ResourceFile::Mode mode*/);
+    explicit EmbeddedFileBuffer(const OC::Path& filePath);
+
+protected:
+    virtual pos_type seekoff(off_type off, std::ios::seekdir way,
+        std::ios::openmode which = std::ios::in | std::ios::out);
+    virtual pos_type seekpos(pos_type pos,
+        std::ios::openmode which = std::ios::in | std::ios::out);
 
 private:
     std::streamsize m_size;
@@ -91,7 +100,7 @@ private:
 };
 
 
-EmbeddedFileBuffer::EmbeddedFileBuffer(const OC::Path& path/*, const ResourceFile::Mode mode*/)
+EmbeddedFileBuffer::EmbeddedFileBuffer(const OC::Path& path)
 : m_size(0)
 , m_offset(0)
 , m_isEmbedded(false)
@@ -129,12 +138,21 @@ EmbeddedFileBuffer::EmbeddedFileBuffer(const OC::Path& path/*, const ResourceFil
         {
             if (entry.filename() == probeName)
             {
+                m_size       = entry.size();
+                m_offset     = entry.offset();
+
+                m_isEmbedded = true;
+
                 open(BaseFile, std::ios::in | std::ios::binary);
-                seekpos(entry.offset());
 
                 // TODO: error handling
 
-                found = true;
+                if (is_open())
+                {
+                    seekpos(0);
+                    found = true;
+                }
+
                 break;
             }
         }
@@ -143,8 +161,6 @@ EmbeddedFileBuffer::EmbeddedFileBuffer(const OC::Path& path/*, const ResourceFil
         {
             DoHalt(OC::Format("Cannot find file %1% within %2%") % path % BaseFile);
         }
-
-        m_isEmbedded = true;
     }
     else
     {
@@ -157,6 +173,47 @@ EmbeddedFileBuffer::EmbeddedFileBuffer(const OC::Path& path/*, const ResourceFil
             DoHalt(OC::Format("Cannot open file %1%, permission denied or file system error.") % probePath);
         }
     }
+}
+
+
+EmbeddedFileBuffer::pos_type EmbeddedFileBuffer::seekoff(off_type off, std::ios::seekdir way, std::ios::openmode which)
+{
+    if (!m_isEmbedded)
+    {
+        return Base::seekoff(off, way, which);
+    }
+
+    if (std::ios::beg == way && off >= 0 && off <= m_size)
+    {
+        return Base::seekoff(m_offset + off, way, which);
+    }
+    else if (std::ios::cur == way)
+    {
+        const pos_type curPos = Base::seekoff(0, way, which) - m_offset;
+
+        if (0 == off)
+        {
+            return curPos;
+        }
+
+        const pos_type newPos = curPos + off;
+
+        if (newPos >= 0 && newPos <= m_size)
+        {
+            return Base::seekoff(newPos, way, which);
+        }
+    }
+    else if (std::ios::end == way && off < 0 && off < m_size)
+    {
+        return Base::seekoff(m_offset + m_size + off, std::ios::beg, which);
+    }
+
+    return pos_type(off_type(-1));
+}
+
+EmbeddedFileBuffer::pos_type EmbeddedFileBuffer::seekpos(pos_type pos, std::ios::openmode which)
+{
+    return seekoff(off_type(pos), std::ios::beg, which);
 }
 
 
