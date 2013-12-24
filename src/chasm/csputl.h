@@ -56,8 +56,6 @@ struct PCXHeader
 #pragma pack(pop)
 
 
-void InitModule();
-
 bool iswater(/*...*/);
 void Bar(/*...*/);
 void ShowVesaScreen(/*...*/);

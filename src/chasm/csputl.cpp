@@ -24,11 +24,6 @@
 namespace CSPUTL
 {
 
-void InitModule()
-{
-    // TODO...
-}
-
 bool iswater(/*...*/);
 void Bar(/*...*/);
 void ShowVesaScreen(/*...*/);
@@ -91,7 +86,7 @@ Sint16 FindTarget(/*...*/);
 void MakeGreatBlow(/*...*/);
 void SCalcBPoint(/*...*/);
 
-Uint16 CelSaved;
+Uint16 CelSaved = 0;
 
 // /* nested */ void InsertByte(/*...*/);
 // /* nested */ Uint8 GetB(/*...*/);

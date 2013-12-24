@@ -115,7 +115,6 @@ int main(int argc, char** argv)
     CSPBIO::InitModule();
     CSPRNDR::InitModule();
     CSMENU::InitModule();
-    CSPUTL::InitModule();
     csact::InitModule();
     CS3DM2::InitModule();
     CS_DEMO::InitModule();
