@@ -106,12 +106,25 @@ struct TSepPartInfo
     TPoint3di* PAniB;
 };
 
-struct TPic
+static const ResourceFile::pos_type CEL_DATA_OFFSET = 0x320;
+
+class TPic
 {
-    Uint16 XSize;
-    Uint16 YSize;
-    Uint16 CenterX;
-    void* p;
+public:
+    TPic();
+    ~TPic();
+
+    const Uint16 width() const { return m_width; }    // XSize
+    const Uint16 height() const { return m_height; }  // YSize
+    const Uint16 centeX() const { return m_height; }  // CenterX
+    const Uint8* data() const { return m_data; }      // p
+
+    void load(const char* const filename);            // LoadPicFromCel()
+
+private:
+    Uint8* m_data;    // p
+    Uint16 m_width;   // XSize
+    Uint16 m_height;  // YSize
 };
 
 struct TAmmoBag

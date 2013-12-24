@@ -365,6 +365,43 @@ void InitModule()
 }
 
 
+// ===========================================================================
+
+
+TPic::TPic()
+: m_data(NULL)
+, m_width(0)
+, m_height(0)
+{
+
+}
+
+TPic::~TPic()
+{
+    delete[] m_data;
+}
+
+void TPic::load(const char* const filename)
+{
+    ResourceFile celFile(filename);
+
+    celFile.seekg(2); // skip 0x9119 magic
+    celFile.readBinary(m_width);
+    celFile.readBinary(m_height);
+
+    const size_t dataSize = m_width * m_height;
+    m_data = new Uint8[dataSize];
+
+    celFile.seekg(CEL_DATA_OFFSET);
+    celFile.read(reinterpret_cast<char*>(m_data), dataSize);
+
+    CSPBIO::ChI(celFile);
+}
+
+
+// ===========================================================================
+
+
 Uint16 QPifagorA32(/*...*/);
 void getmousestate(/*...*/);
 Sint16 GetJoyX(/*...*/);
