@@ -24,11 +24,6 @@
 namespace csact
 {
 
-void InitModule()
-{
-    // TODO...
-}
-
 void MoveOn(/*...*/);
 void GetMFloorZ(/*...*/);
 bool MS_WallCheck(/*...*/);

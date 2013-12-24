@@ -125,8 +125,6 @@ struct TMT
 #pragma pack(pop)
 
 
-void InitModule();
-
 void MoveOn(/*...*/);
 void GetMFloorZ(/*...*/);
 bool MS_WallCheck(/*...*/);

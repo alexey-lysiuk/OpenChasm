@@ -48,24 +48,10 @@ static void SetFreeVert(const Uint16 a, const Uint16 b)
 
 void InitModule()
 {
-    DrawRout = VLineT;
-
-    DrawRoutOfsTab[0] = VLineT;
-    DrawRoutOfsTab[1] = VLineTFF;
-    DrawRoutOfsTab[2] = VLineTGlass;
-    DrawRoutOfsTab[3] = VLineTGlass;
-    DrawRoutOfsTab[4] = VLineTGlass60;
-    DrawRoutOfsTab[5] = VLineT;
-    DrawRoutOfsTab[6] = VLineT;
-    DrawRoutOfsTab[7] = VLineT;
-
     for (size_t i = 0; i < 256; ++i)
     {
         CSMENU::RecolorMap[i] = Uint8(i);
     }
-
-    ShadowCount = 7;
-    ReColor = 0;
 
     Div_tab[0] = 0x7FFF;
     Div_tab[1] = 0x7FFF;
@@ -83,8 +69,6 @@ void InitModule()
             SetFreeVert(i, j);
         }
     }
-
-    YWrap = false;
 }
 
 void Draw3DObject(/*...*/);
@@ -92,14 +76,14 @@ void Show3DObject(/*...*/);
 void DrawHi3D(/*...*/);
 void Morph3d(/*...*/);
 
-Uint16 ShadowCount;
+Uint16 ShadowCount = 7;
 Uint16 ShLevel;
 Sint16 GlobX;
 Sint16 GlobY;
 Sint16 Curdark;
 Sint16 HPrior;
 Uint8 DrawMask;
-bool YWrap;
+bool YWrap = false;
 bool Invisibility;
 bool HiRot;
 bool XTabUpdated;
@@ -108,7 +92,7 @@ Sint16 Xfiz0;
 Sint16 DepthD;
 Sint16 ShadowZ0;
 Uint16 _dx;
-Uint16 ReColor;
+Uint16 ReColor = 0;
 Uint16 LocalFi;
 Sint16 WallHhi;
 Sint16 WallWhi;
@@ -256,8 +240,14 @@ Uint16 v1;
 Uint16 v2;
 Uint16 v3;
 Uint16 v4;
-void (*DrawRoutOfsTab[8])();
-void (*DrawRout)();
+
+void (*DrawRoutOfsTab[8])() = 
+{
+    VLineT, VLineTFF, VLineTGlass, VLineTGlass, VLineTGlass60, VLineT, VLineT, VLineT
+};
+
+void (*DrawRout)() = VLineT;
+
 Uint16 Div_tab[1024];
 Free_vert__Element Free_vert[16];
 

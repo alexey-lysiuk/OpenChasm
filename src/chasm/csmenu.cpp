@@ -67,7 +67,7 @@ void ScanSavedNames()
     }
 }
 
-Sint16 KbWait;
+Sint16 KbWait = -1;
 TMenuText PM;
 CSPBIO::TPic MainMenu;
 CSPBIO::TPic SklMenu;
@@ -211,9 +211,6 @@ void LoadMenuResourses()
 {
     ParseMenuDescriptionFile();
     ScanSavedNames();
-
-    KbWait = -1;
-
     LoadMenuAssets();
 }
 

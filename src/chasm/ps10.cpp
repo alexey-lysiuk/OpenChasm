@@ -115,8 +115,9 @@ int main(int argc, char** argv)
     CSPBIO::InitModule();
     CSPRNDR::InitModule();
     CSMENU::InitModule();
-    csact::InitModule();
     CS3DM2::InitModule();
+
+    srand(static_cast<unsigned int>(CSPBIO::StartUpRandSeed));
 
     // TODO...
 
