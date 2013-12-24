@@ -31,46 +31,8 @@ typedef double Real;
 typedef std::string  String;
 typedef std::wstring WideString;
 
-
-// TODO: template alias from C++11, in Visual Studio starting from 2013 :(
-template <typename T, typename Alloc = std::allocator<T> >
-class Array : public std::vector<T, Alloc>
-{
-private:
-    typedef std::vector<T, Alloc> Base;
-
-public:
-    explicit Array(const allocator_type& alloc = allocator_type())
-    : Base(alloc)
-    {
-    }
-
-    explicit Array(const size_type count, const value_type& value = value_type(), const allocator_type& alloc = allocator_type())
-    : Base(count, value, alloc)
-    {
-    }
-
-    template <class InputIterator>
-    Array(InputIterator first, InputIterator last, const allocator_type& alloc = allocator_type())
-    : Base(first, last, alloc)
-    {
-    }
-
-    Array(const Array& other)
-    : Base(other)
-    {
-    }
-
-    inline Array& operator=(const Array& other)
-    {
-        Base::operator=(other);
-        return *this;
-    }
-};
-
-typedef Array<String>     StringArray;
-typedef Array<WideString> WideStringArray;
-
+typedef std::vector<String>     StringArray;
+typedef std::vector<WideString> WideStringArray;
 
 typedef boost::filesystem::path Path;
 

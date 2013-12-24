@@ -156,10 +156,10 @@ void StartProcess(/*...*/);
 void AnimateProcesses(/*...*/);
 void StartUpProcesses(/*...*/);
 
-extern OC::Array<TProcess> PProc;
-extern OC::Array<TLinksList__Element> PLinks;
-extern OC::Array<TMessage> PMList;
-extern OC::Array<TChangesList__Element> PChanges;
+extern std::vector<TProcess> PProc;
+extern std::vector<TLinksList__Element> PLinks;
+extern std::vector<TMessage> PMList;
+extern std::vector<TChangesList__Element> PChanges;
 extern Sint16 MortalTimer;
 extern bool MortalTick;
 

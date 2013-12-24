@@ -55,10 +55,10 @@ void StartProcess(/*...*/);
 void AnimateProcesses(/*...*/);
 void StartUpProcesses(/*...*/);
 
-OC::Array<TProcess> PProc;
-OC::Array<TLinksList__Element> PLinks;
-OC::Array<TMessage> PMList;
-OC::Array<TChangesList__Element> PChanges;
+std::vector<TProcess> PProc;
+std::vector<TLinksList__Element> PLinks;
+std::vector<TMessage> PMList;
+std::vector<TChangesList__Element> PChanges;
 Sint16 MortalTimer;
 bool MortalTick;
 

@@ -68,7 +68,7 @@ void FileTableEntry::read(OC::File& stream)
 }
 
 
-typedef OC::Array<FileTableEntry> FileTable;
+typedef std::vector<FileTableEntry> FileTable;
 FileTable s_fileTable; // FileTable
 
 } // unnamed namespace
@@ -578,8 +578,8 @@ TMonsterInfo MonstersInfo[23];
 TRocketInfo RocketsInfo[32];
 TSepPartInfo SepPartInfo[90];
 TBlowInfo BlowsInfo[24];
-OC::Array<TReObject> ReObjects;
-OC::Array<TAmmoBag> AmmoBags;
+std::vector<TReObject> ReObjects;
+std::vector<TAmmoBag> AmmoBags;
 bool FFlags[64];
 Uint8* Fonts;
 Uint8* BigFont;
