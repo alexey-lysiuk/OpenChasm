@@ -117,7 +117,6 @@ int main(int argc, char** argv)
     CSMENU::InitModule();
     csact::InitModule();
     CS3DM2::InitModule();
-    CS_DEMO::InitModule();
 
     // TODO...
 

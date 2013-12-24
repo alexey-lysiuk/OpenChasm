@@ -26,11 +26,6 @@
 namespace CS_DEMO
 {
 
-void InitModule()
-{
-    // TODO...
-}
-
 void ExecuteEvent(/*...*/);
 void DeInit_DemoSystem(/*...*/);
 void EndDemo(/*...*/);
@@ -60,7 +55,7 @@ Uint16 DBlockSize;
 void* DemoPtr;
 Uint16 DmSeg;
 Uint16 DTakt;
-bool MemoActive;
+bool MemoActive = false;
 TPlayerState* PPS;
 CSPBIO::TEvent DEvent;
 CSPBIO::TMonster M;
