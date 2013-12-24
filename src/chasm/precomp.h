@@ -30,11 +30,13 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 
 #include <SDL.h>
 
 #include "oc/types.h"
+#include "oc/filesystem.h"
 #include "oc/utils.h"
 
 #endif // OPENCHASM_PRECOMP_H_INCLUDED

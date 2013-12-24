@@ -23,6 +23,7 @@
     <ClCompile Include="csvesa.cpp" />
     <ClCompile Include="cs_demo.cpp" />
     <ClCompile Include="cs_mapml.cpp" />
+    <ClCompile Include="oc\filesystem.cpp" />
     <ClCompile Include="oc\utils.cpp" />
     <ClCompile Include="precomp.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -44,6 +45,7 @@
     <ClInclude Include="csprndr.h" />
     <ClInclude Include="csputl.h" />
     <ClInclude Include="cs_demo.h" />
+    <ClInclude Include="oc\filesystem.h" />
     <ClInclude Include="oc\types.h" />
     <ClInclude Include="oc\utils.h" />
     <ClInclude Include="precomp.h" />

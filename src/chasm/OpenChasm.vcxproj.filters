@@ -30,6 +30,9 @@
     <ClCompile Include="oc\utils.cpp">
       <Filter>oc</Filter>
     </ClCompile>
+    <ClCompile Include="oc\filesystem.cpp">
+      <Filter>oc</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cs3dm2.h" />
@@ -49,6 +52,9 @@
       <Filter>oc</Filter>
     </ClInclude>
     <ClInclude Include="oc\utils.h">
+      <Filter>oc</Filter>
+    </ClInclude>
+    <ClInclude Include="oc\filesystem.h">
       <Filter>oc</Filter>
     </ClInclude>
   </ItemGroup>

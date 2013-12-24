@@ -88,7 +88,7 @@ void ReloadFloors(/*...*/);
 void LoadGFXIndex(/*...*/);
 void InitZPositions(/*...*/);
 void InitChanges(/*...*/);
-oc::string ReadCommand(/*...*/);
+OC::String ReadCommand(/*...*/);
 void ReadRealMul(/*...*/);
 void LoadLinks(/*...*/);
 void LoadTeleports(/*...*/);

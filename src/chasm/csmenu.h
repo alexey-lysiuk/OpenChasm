@@ -42,37 +42,51 @@ struct MenuRect
 
 struct TMenuText
 {
-    oc::string::value_type Main[16];
+    OC::String Main;
     MenuRect MainPos;
-    oc::string::value_type Skl[16];
+
+    OC::String Skl;
     MenuRect SklPos;
-    oc::string::value_type Net[16];
+
+    OC::String Net;
     MenuRect NetPos;
-    oc::string::value_type Save[16];
-    oc::string::value_type Load[16];
+    
+    OC::String Save;
+    OC::String Load;
     MenuRect SavePos;
-    oc::string::value_type Opti[338];
+
+    OC::StringArray Opti;
     MenuRect OptiPos;
-    oc::string::value_type Disp[104];
+
+    OC::StringArray Disp;
     MenuRect DispPos;
-    oc::string::value_type Resl[782];
+
+    OC::StringArray Resl;
     MenuRect ReslPos;
-    oc::string::value_type Cont[442];
+
+    OC::StringArray Cont;
     MenuRect ContPos;
-    oc::string::value_type Quit[128];
+
+    OC::StringArray Quit;
     MenuRect QuitPos;
-    oc::string::value_type Newg[96];
+
+    OC::StringArray Newg;
     MenuRect NewgPos;
-    oc::string::value_type NGSt[144];
+
+    OC::StringArray NGSt;
     MenuRect NGStPos;
-    oc::string::value_type NGModes[66];
-    oc::string::value_type NGSkill[48];
-    oc::string::value_type NJst[96];
+
+    OC::StringArray NGModes;
+    OC::StringArray NGSkill;
+    OC::StringArray NJst;
     MenuRect NJStPos;
-    oc::string::value_type NOpt[84];
+
+    OC::StringArray NOpt;
     MenuRect NOptPos;
-    oc::string::value_type KName[1408];
-    oc::string::value_type GameNames[400];
+
+    OC::StringArray KName;
+
+    OC::StringArray GameNames;
 };
 
 #pragma pack(pop)
@@ -91,10 +105,10 @@ void DrawMenuRect(/*...*/);
 void UpDateMenu(/*...*/);
 void UpdatePause(/*...*/);
 void CorrectMenuPos(/*...*/);
-void ScanSavedNames(/*...*/);
+void ScanSavedNames();
 
 extern Sint16 KbWait;
-extern TMenuText* PM;
+extern TMenuText PM;
 extern CSPBIO::TPic MainMenu;
 extern CSPBIO::TPic SklMenu;
 extern CSPBIO::TPic NetMenu;

@@ -22,35 +22,25 @@
 #ifndef OPENCHASM_OC_UTILS_H_INCLUDED
 #define OPENCHASM_OC_UTILS_H_INCLUDED
 
-namespace oc
+#include "oc/types.h"
+
+namespace OC
 {
 
-wstring ExpandString(const char* const utf8String);
+WideString ExpandString(const char* const utf8String);
 
-path GetBasePath();
-
-template <typename T>
-inline path GetBasePath(const T& subPath)
+template <typename Element, typename Traits>
+inline std::basic_string<Element, Traits> ReadLine(std::basic_istream<Element, Traits>& stream)
 {
-    path result = GetBasePath();
+    std::basic_string<Element, Traits> result;
 
-    result += subPath;
+    std::getline(stream, result);
 
     return result;
 }
 
-path GetUserPath();
+} // namespace OC
 
-template <typename T>
-inline path GetUserPath(const T& subPath)
-{
-    path result = GetUserPath();
-
-    result += subPath;
-    
-    return result;
-}
-
-} // namespace oc
+#define OC_FOREACH BOOST_FOREACH
 
 #endif // OPENCHASM_OC_UTILS_H_INCLUDED

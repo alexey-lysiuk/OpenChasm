@@ -45,7 +45,7 @@ struct TProLine
 {
     Sint16 LX;
     Sint16 LY;
-    oc::string::value_type LText[50];
+    OC::String::value_type LText[50];
 };
 
 struct TMessage
@@ -186,7 +186,7 @@ void ReloadFloors(/*...*/);
 void LoadGFXIndex(/*...*/);
 void InitZPositions(/*...*/);
 void InitChanges(/*...*/);
-oc::string ReadCommand(/*...*/);
+OC::String ReadCommand(/*...*/);
 void ReadRealMul(/*...*/);
 void LoadLinks(/*...*/);
 void LoadTeleports(/*...*/);

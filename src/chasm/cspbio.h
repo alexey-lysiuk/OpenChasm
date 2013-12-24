@@ -25,6 +25,28 @@
 namespace CSPBIO
 {
 
+class EmbeddedFileBuffer;
+
+// Resource file stream, read only
+// Can be a part of big file (csm.bin) or a separate external file
+// Replaces BFile type, F and Ft objects, TOpen() and FOpen() functions
+
+class ResourceFile: public OC::BinaryStream
+{
+private:
+    typedef OC::BinaryStream Base;
+
+public:
+    explicit ResourceFile(const OC::Path& filePath);
+    virtual ~ResourceFile();
+
+    bool is_open() const;
+
+private:
+    EmbeddedFileBuffer* fileBuffer() const;
+};
+
+
 #pragma pack(push, 1)
 
 struct TFace
@@ -112,7 +134,7 @@ struct TAmmoBag
 struct TPlayerInfo
 {
     bool Active;
-    oc::string::value_type PName[9];
+    OC::String::value_type PName[9];
     Sint16 PlHx;
     Sint16 PlHy;
     Sint16 Plhz0;
@@ -196,40 +218,6 @@ struct NetPlace__Element
     Sint16 ply;
     Uint16 PFI;
 };
-
-struct BFile
-{
-    oc::file F;
-
-    Sint32 Base;
-    Sint32 Size;
-
-    inline void open(const oc::path& path, const std::ios_base::openmode mode)
-    {
-        F.open(path, mode);
-    }
-
-    inline void read(void* const buffer, const std::streamsize count)
-    {
-        F.read(static_cast<char*>(buffer), count);
-    }
-
-    inline bool operator!() const
-    {
-        return !F;
-    }
-};
-
-// Binary little endian read operators
-
-BFile& operator>>(BFile& file, Sint8& value);
-BFile& operator>>(BFile& file, Uint8& value);
-
-BFile& operator>>(BFile& file, Sint16& value);
-BFile& operator>>(BFile& file, Uint16& value);
-
-BFile& operator>>(BFile& file, Sint32& value);
-BFile& operator>>(BFile& file, Uint32& value);
 
 struct TLight
 {
@@ -317,17 +305,6 @@ struct FIB
     char Buffer[128];
 };
 
-struct TFileTableEntry
-{
-    char FName[13]; // ????????.??? format + terminating zero
-    Sint32 FSize;
-    Sint32 FBase;
-
-    TFileTableEntry();
-};
-
-BFile& operator>>(BFile& file, TFileTableEntry& entry);
-
 struct TLinesBuf
 {
     Uint16 LinesS[1024];
@@ -339,7 +316,7 @@ struct TLinesBuf
 
 struct MessageRec__Element
 {
-    oc::string::value_type Line[61];
+    OC::String::value_type Line[61];
     Uint16 LTime;
 };
 
@@ -372,7 +349,7 @@ struct TInfo_Struct
     Uint16 Baud;
     Uint16 Port;
     Sint32 OwnerTime;
-    oc::string::value_type InfoMessage[41];
+    OC::String::value_type InfoMessage[41];
     Uint16 NetError;
     Uint16 MSCDEXVersion;
     Uint8 CDinfo;
@@ -421,7 +398,7 @@ struct TMonsterInfo
     Sint16 Rocket;
     Sint16 SepLimit;
     bool Present;
-    oc::string::value_type CarName[13];
+    OC::String::value_type CarName[13];
     TOHeader* POH;
     TPoint3di* Phases[20];
     Uint16 PTimes[20];
@@ -512,7 +489,7 @@ struct THoleItem
     Uint16 RMode;
     Sint16 wmx;
     Sint16 wmy;
-    oc::real wl;
+    OC::Real wl;
 };
 
 struct TTPort__Element
@@ -731,21 +708,17 @@ bool ExistFile(/*...*/);
 void movsD(/*...*/);
 void settimer(/*...*/);
 void Beep(/*...*/);
-void FSeek(/*...*/);
-void FClose(/*...*/);
-void FOpen(/*...*/);
-void TOpen(/*...*/);
 bool FExistFile(/*...*/);
 void FadeOut(/*...*/);
 void FadeIn(/*...*/);
 
 void DoHalt(const char* const message);
-void DoHalt(const oc::string& message);
-void DoHalt(const oc::format& message);
+void DoHalt(const OC::String& message);
+void DoHalt(const OC::Format& message);
 
-void ChI(/*...*/);
-void GetMem16(/*...*/);
-void FreeMem16(/*...*/);
+void ChI(const OC::BinaryStream& stream);
+//void GetMem16(/*...*/);
+//void FreeMem16(/*...*/);
 void CalcDir(/*...*/);
 Sint16 Max(/*...*/);
 Sint16 Min(/*...*/);
@@ -797,17 +770,13 @@ void PutConsMessage3(/*...*/);
 extern Uint16 ServerVersion;
 extern Sint32 Long1;
 extern Uint8 LB;
-extern bool Internal;
-extern bool UserMaps;
-extern Uint16 intFCnt;
-extern Sint32 CSMid;
-extern oc::string::value_type ConsoleCommands[546];
-extern oc::string::value_type ncNames[24];
+extern OC::String::value_type ConsoleCommands[546];
+extern OC::String::value_type ncNames[24];
 extern Sint16 ncSDivs[5];
 extern Sint16 ncYDelta[3];
 extern VideoPos__Element VideoPos[4];
 extern Uint8 ReColorShift[8];
-extern oc::string::value_type OnOff[10];
+extern OC::String::value_type OnOff[10];
 extern Sint16 Fr;
 extern Sint16 Fr2;
 extern Sint16 Frr;
@@ -827,10 +796,9 @@ extern Uint16 cwc;
 extern Uint16 CurShOfs;
 extern Uint16 CMP0;
 extern Uint16 XORMask;
-extern oc::vector<TFileTableEntry> FileTable;
-extern oc::string::value_type* GFXindex;
-extern oc::string::value_type* ShortNames;
-extern oc::string::value_type* LevelNames;
+extern OC::String::value_type* GFXindex;
+extern OC::String::value_type* ShortNames;
+extern OC::String::value_type* LevelNames;
 extern Uint8 ColorMap[13312];
 extern Uint8 FloorMap[4096];
 extern Uint8 CellMap[4096];
@@ -851,7 +819,7 @@ extern Uint16 Mul320[201];
 extern Sint32 MulSW[701];
 extern Sint16 SinTab[1024];
 extern TLoc* Map;
-extern oc::string::value_type* ConsHistory;
+extern OC::String::value_type* ConsHistory;
 extern Uint8* VMask;
 extern Uint8* Flags;
 extern Uint8* DarkMap;
@@ -895,9 +863,8 @@ extern void* RGBTab60;
 extern Uint16 LoadPos;
 extern Uint16 LoadingH;
 extern Uint16 LoadingW;
-extern oc::string::value_type AddonPath[41];
-extern oc::real ca;
-extern oc::real sa;
+extern OC::Real ca;
+extern OC::Real sa;
 extern Sint16 RShadeDir;
 extern Sint16 RShadeLev;
 extern Sint16 LastRShadeLev;
@@ -920,7 +887,7 @@ extern Sint16 MyNetN;
 extern Sint16 bpx;
 extern Sint16 bpy;
 extern void* ConsolePtr;
-extern oc::string::value_type ConsoleComm[287];
+extern OC::String::value_type ConsoleComm[287];
 extern Sint16 ConsY;
 extern Sint16 ConsDY;
 extern Sint16 ConsMode;
@@ -1071,8 +1038,6 @@ extern Sint16 HMy;
 extern Sint16 ehx;
 extern Sint16 ehy;
 extern Sint16 ehz;
-extern Sint16 n;
-extern Sint16 i;
 extern Sint16 x;
 extern Sint16 y;
 extern Sint16 mi;
@@ -1117,8 +1082,6 @@ extern bool GameActive;
 extern Uint8 SecCounter;
 extern void (*TimerInt)();
 extern void (*KbdInt)();
-extern BFile F;
-extern oc::file Ft;
 extern Sint32 EDI0;
 extern Sint32 Edi1;
 extern Sint32 mEDX;
@@ -1255,8 +1218,7 @@ extern Uint8 c;
 extern Uint8 kod;
 extern Uint8 key;
 extern Uint8 ASCII_Tab[256];
-extern oc::string::value_type S[256];
-extern oc::string::value_type LastFName[256];
+extern OC::String::value_type S[256];
 //extern Dos::Registers Regs;
 extern Sint16 JoyX;
 extern Sint16 JoyY;
@@ -1296,8 +1258,8 @@ extern Uint8 NGCard;
 extern Uint8 NGPort;
 extern Uint8 NGBaud;
 extern Uint8 NGColor;
-extern oc::string::value_type NGNick[9];
-extern oc::string::value_type SelfNick[9];
+extern OC::String::value_type NGNick[9];
+extern OC::String::value_type SelfNick[9];
 extern Uint8 SelfColor;
 extern TInfo_Struct* PInfoStruct;
 extern bool MSCDEX;
@@ -1308,7 +1270,7 @@ extern TPlayerInfo Players[8];
 extern Uint8 LastBorn;
 extern Uint8 LevelChanges[16];
 extern Uint16 ProcState[4];
-extern oc::string::value_type NetMessage[33];
+extern OC::String::value_type NetMessage[33];
 extern MessageRec__Element MessageRec[4];
 extern ProcMessage__Type ProcMessage;
 extern Uint8 VESAError;
@@ -1363,7 +1325,7 @@ void HBrline0(/*...*/);
 void InitNormalViewHi(/*...*/);
 void InitMonitorView(/*...*/);
 
-extern oc::path BaseFile;
+extern OC::Path BaseFile;
 
 // /* nested */ void AddMode(/*...*/);
 // /* nested */ void WriteS(/*...*/);

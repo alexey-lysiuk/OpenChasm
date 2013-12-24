@@ -24,38 +24,245 @@
 namespace CSPBIO
 {
 
+namespace
+{
+
+bool     s_isInternal;   // Internal
+
+OC::Path s_lastFilePath; // LastFName
+
+OC::Path s_addonPath;    // AddonPath
+bool     s_isUserMaps;   // UserMaps
+
+
+class FileTableEntry
+{
+public:
+    FileTableEntry()
+    : m_size(0)
+    , m_offset(0)
+    {
+    }
+
+    const OC::String&  filename() const { return m_filename; }
+
+    const std::streamsize  size() const { return m_size;   }
+    const std::streamoff offset() const { return m_offset; }
+
+    void read(OC::File& stream);
+
+private:
+    OC::String      m_filename;
+
+    std::streamsize m_size;
+    std::streamoff  m_offset;
+};
+
+
+void FileTableEntry::read(OC::File& stream)
+{
+    m_filename = stream.readPascalString(12); // filename in 8.3 format
+
+    m_size   = stream.readBinary<Sint32>();
+    m_offset = stream.readBinary<Sint32>();
+}
+
+
+typedef OC::Array<FileTableEntry> FileTable;
+FileTable s_fileTable; // FileTable
+
+} // unnamed namespace
+
+
+// ===========================================================================
+
+
+class EmbeddedFileBuffer : public boost::filesystem::filebuf
+{
+public:
+    explicit EmbeddedFileBuffer(const OC::Path& filePath/*, const ResourceFile::Mode mode*/);
+
+private:
+    std::streamsize m_size;
+    std::streamoff  m_offset;
+
+    bool m_isEmbedded;
+
+};
+
+
+EmbeddedFileBuffer::EmbeddedFileBuffer(const OC::Path& path/*, const ResourceFile::Mode mode*/)
+: m_size(0)
+, m_offset(0)
+, m_isEmbedded(false)
+{
+    s_lastFilePath = path;
+    
+    if (s_isUserMaps)
+    {
+        const OC::Path probePath = s_addonPath / path;
+    
+        if (OC::FileSystem::IsPathExist(probePath))
+        {
+            open(probePath, std::ios::in | std::ios::binary);
+    
+            if (is_open())
+            {
+                return;
+            }
+            else
+            {
+                DoHalt(OC::Format("Cannot open file %1%, permission denied or file system error.") % probePath);
+            }
+        }
+    }
+    
+    if (s_isInternal)
+    {
+        OC::String probeName = path.filename().generic_string();
+        boost::algorithm::to_upper(probeName);
+    
+        s_lastFilePath = probeName;
+        bool found = false;
+    
+        OC_FOREACH(const FileTableEntry& entry, s_fileTable)
+        {
+            if (entry.filename() == probeName)
+            {
+                open(BaseFile, std::ios::in | std::ios::binary);
+                seekpos(entry.offset());
+
+                // TODO: error handling
+
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            DoHalt(OC::Format("Cannot find file %1% within %2%") % path % BaseFile);
+        }
+
+        m_isEmbedded = true;
+    }
+    else
+    {
+        const OC::Path probePath = BaseFile / path;
+    
+        open(probePath, std::ios::in | std::ios::binary);
+    
+        if (!is_open())
+        {
+            DoHalt(OC::Format("Cannot open file %1%, permission denied or file system error.") % probePath);
+        }
+    }
+}
+
+
+// ===========================================================================
+
+
+ResourceFile::ResourceFile(const OC::Path& filePath/*, const Mode mode*/)
+: Base(new EmbeddedFileBuffer(filePath))
+{
+}
+
+ResourceFile::~ResourceFile()
+{
+    delete rdbuf();
+}
+
+bool ResourceFile::is_open() const
+{
+    return fileBuffer()->is_open();
+}
+
+EmbeddedFileBuffer* ResourceFile::fileBuffer() const
+{
+    return static_cast<EmbeddedFileBuffer*>(rdbuf());
+}
+
+
+// ===========================================================================
+
+
+namespace
+{
+
+void DumpBigFileContent(OC::File& bigFile)
+{
+    static bool isDumpEnabled = false;
+
+    if (isDumpEnabled)
+    {
+        SDL_assert(s_isInternal);
+        SDL_assert(!s_fileTable.empty());
+        SDL_assert(bigFile.is_open());
+
+        static const OC::Path DUMP_SUBDIR = OC::FileSystem::GetUserPath("dump");
+        //const OC::Path DUMP_SUBDIR = "e:\\scm_bin_dump";
+        OC::FileSystem::CreateDirectory(DUMP_SUBDIR);
+
+        OC_FOREACH(const FileTableEntry& entry, s_fileTable)
+        {
+            bigFile.seekg(entry.offset());
+
+            const OC::Path outPath = DUMP_SUBDIR / entry.filename();
+            OC::File outFile(outPath, std::ios::out);
+
+            for (std::streamsize bytesLeft = entry.size(); bytesLeft > 0; /* EMPTY */)
+            {
+                char buffer[4096];
+
+                const std::streamsize bytesToRead = std::min(bytesLeft, std::streamsize(sizeof buffer));
+                bigFile.read(buffer, bytesToRead);
+
+                const std::streamsize bytesRead = bigFile.gcount();
+                outFile.write(buffer, bytesRead);
+
+                bytesLeft -= bytesRead;
+            }
+        }
+    }
+}
+
+} // unnamed namespace
+
+
+// ===========================================================================
+
+
 void InitModule()
 {
     InitVideo();
 
-    static const oc::wstring DATA_FILE_NAME      = L"csm.bin";
-    static const oc::wstring DATA_DIRECTORY_NAME = L"chasmdat/";
+    static const OC::String DATA_FILE_NAME      = "csm.bin";
+    static const OC::String DATA_DIRECTORY_NAME = "chasmdat/";
 
-    oc::system::error_code error;
+    BaseFile = OC::FileSystem::GetBasePath(DATA_FILE_NAME);
 
-    BaseFile = oc::GetBasePath(DATA_FILE_NAME);
-
-    if (oc::filesystem::exists(BaseFile, error))
+    if (OC::FileSystem::IsPathExist(BaseFile))
     {
-        Internal = true;
+        s_isInternal = true;
     }
     else
     {
-        BaseFile = oc::GetUserPath(DATA_FILE_NAME);
+        BaseFile = OC::FileSystem::GetUserPath(DATA_FILE_NAME);
 
-        if (oc::filesystem::exists(BaseFile, error))
+        if (OC::FileSystem::IsPathExist(BaseFile))
         {
-            Internal = true;
+            s_isInternal = true;
         }
         else
         {
-            BaseFile = oc::GetBasePath(DATA_DIRECTORY_NAME);
+            BaseFile = OC::FileSystem::GetBasePath(DATA_DIRECTORY_NAME);
 
-            if (!oc::filesystem::exists(BaseFile, error))
+            if (!OC::FileSystem::IsPathExist(BaseFile))
             {
-                BaseFile = oc::GetUserPath(DATA_DIRECTORY_NAME);
+                BaseFile = OC::FileSystem::GetUserPath(DATA_DIRECTORY_NAME);
 
-                if (!oc::filesystem::exists(BaseFile, error))
+                if (!OC::FileSystem::IsPathExist(BaseFile))
                 {
                     // TODO: more detailed message
                     DoHalt("Cannot find game resource file or directory.");
@@ -64,84 +271,42 @@ void InitModule()
         }
     }
 
-    if (Internal)
+    if (s_isInternal)
     {
-        F.open(BaseFile, std::ios::in | std::ios::binary);
+        OC::File bigFile(BaseFile);
 
-        if (!F)
+        if (!bigFile)
         {
-            DoHalt(oc::format("Cannot open file %1%, permission denied or file system error.") % BaseFile);
+            DoHalt(OC::Format("Cannot open file %1%, permission denied or file system error.") % BaseFile);
         }
 
-        F >> Ll;
+        Uint32 magic;
+        bigFile.readBinary(magic);
 
         static const Sint32 CSM_ID = 0x64695343; // 'CSid'
 
-        if (CSM_ID != Ll)
+        if (CSM_ID != magic)
         {
-            DoHalt(oc::format("Bad header in file %1%.") % BaseFile);
+            DoHalt(OC::Format("Bad header in file %1%.") % BaseFile);
         }
 
-        F >> intFCnt;
+        Uint16 fileCount;
+        bigFile.readBinary(fileCount);
 
-        for (i = 0; i < intFCnt; ++i)
+        for (Uint16 i = 0; i < fileCount; ++i)
         {
-            TFileTableEntry entry;
-            F >> entry;
-            FileTable.push_back(entry);
+            FileTableEntry entry;
+            entry.read(bigFile);
+
+            s_fileTable.push_back(entry);
         }
+
+        DumpBigFileContent(bigFile);
     }
 
     SDL_Log("Loading from: %s", BaseFile.string().c_str());
 }
 
-#define OC_BINARY_FILE_READ_LITTLE(TYPE, SWAP_FUNC)             \
-    BFile& operator>>(BFile& file, TYPE& value)                 \
-    {                                                           \
-        char* const valuePtr = reinterpret_cast<char*>(&value); \
-        file.F.read(valuePtr, sizeof value);                    \
-        value = SWAP_FUNC(value);                               \
-        return file;                                            \
-    }
-
-#define OC_NO_FUNC(X) (X)
-
-OC_BINARY_FILE_READ_LITTLE(Sint8, OC_NO_FUNC)
-OC_BINARY_FILE_READ_LITTLE(Uint8, OC_NO_FUNC)
-
-OC_BINARY_FILE_READ_LITTLE(Sint16, SDL_SwapLE16)
-OC_BINARY_FILE_READ_LITTLE(Uint16, SDL_SwapLE16)
-
-OC_BINARY_FILE_READ_LITTLE(Sint32, SDL_SwapLE32)
-OC_BINARY_FILE_READ_LITTLE(Uint32, SDL_SwapLE32)
-
-#undef OC_NO_FUNC
-
-#undef OC_BINARY_FILE_READ_LITTLE
-
-TFileTableEntry::TFileTableEntry()
-: FSize(0)
-, FBase(0)
-{
-    SDL_zero(FName);
-}
-
-BFile& operator>>(BFile& file, TFileTableEntry& entry)
-{
-    Uint8 length;
-
-    // Read Pascal string:
-    // first byte is length of filename in ????????.??? (8.3) format
-    // next 12 bytes is the name itself WITHOUT terminating zero
-
-    file >> length;
-    file.read(entry.FName, sizeof entry.FName - 1);
-
-    file >> entry.FSize;
-    file >> entry.FBase;
-
-    return file;
-}
 
 Uint16 QPifagorA32(/*...*/);
 void getmousestate(/*...*/);
@@ -154,10 +319,6 @@ bool ExistFile(/*...*/);
 void movsD(/*...*/);
 void settimer(/*...*/);
 void Beep(/*...*/);
-void FSeek(/*...*/);
-void FClose(/*...*/);
-void FOpen(/*...*/);
-void TOpen(/*...*/);
 bool FExistFile(/*...*/);
 void FadeOut(/*...*/);
 void FadeIn(/*...*/);
@@ -178,19 +339,29 @@ void DoHalt(const char* const message)
     exit(EXIT_FAILURE);
 }
 
-void DoHalt(const oc::string& message)
+void DoHalt(const OC::String& message)
 {
     DoHalt(message.c_str());
 }
 
-void DoHalt(const oc::format& message)
+void DoHalt(const OC::Format& message)
 {
     DoHalt(message.str());
 }
 
-void ChI(/*...*/);
-void GetMem16(/*...*/);
-void FreeMem16(/*...*/);
+
+void ChI(const OC::BinaryStream& stream)
+{
+    SDL_assert(stream.good());
+
+    if (!stream.good())
+    {
+        DoHalt(OC::Format("Error while reading %1%, permission denied or file system error.") % s_lastFilePath);
+    }
+}
+
+//void GetMem16(/*...*/);
+//void FreeMem16(/*...*/);
 void CalcDir(/*...*/);
 Sint16 Max(/*...*/);
 Sint16 Min(/*...*/);
@@ -242,17 +413,13 @@ void PutConsMessage3(/*...*/);
 Uint16 ServerVersion;
 Sint32 Long1;
 Uint8 LB;
-bool Internal;
-bool UserMaps;
-Uint16 intFCnt;
-Sint32 CSMid;
-oc::string::value_type ConsoleCommands[546];
-oc::string::value_type ncNames[24];
+OC::String::value_type ConsoleCommands[546];
+OC::String::value_type ncNames[24];
 Sint16 ncSDivs[5];
 Sint16 ncYDelta[3];
 VideoPos__Element VideoPos[4];
 Uint8 ReColorShift[8];
-oc::string::value_type OnOff[10];
+OC::String::value_type OnOff[10];
 Sint16 Fr;
 Sint16 Fr2;
 Sint16 Frr;
@@ -272,10 +439,10 @@ Uint16 cwc;
 Uint16 CurShOfs;
 Uint16 CMP0;
 Uint16 XORMask;
-oc::vector<TFileTableEntry> FileTable;
-oc::string::value_type* GFXindex;
-oc::string::value_type* ShortNames;
-oc::string::value_type* LevelNames;
+
+OC::String::value_type* GFXindex;
+OC::String::value_type* ShortNames;
+OC::String::value_type* LevelNames;
 Uint8 ColorMap[13312];
 Uint8 FloorMap[4096];
 Uint8 CellMap[4096];
@@ -296,7 +463,7 @@ Uint16 Mul320[201];
 Sint32 MulSW[701];
 Sint16 SinTab[1024];
 TLoc* Map;
-oc::string::value_type* ConsHistory;
+OC::String::value_type* ConsHistory;
 Uint8* VMask;
 Uint8* Flags;
 Uint8* DarkMap;
@@ -340,9 +507,8 @@ void* RGBTab60;
 Uint16 LoadPos;
 Uint16 LoadingH;
 Uint16 LoadingW;
-oc::string::value_type AddonPath[41];
-oc::real ca;
-oc::real sa;
+OC::Real ca;
+OC::Real sa;
 Sint16 RShadeDir;
 Sint16 RShadeLev;
 Sint16 LastRShadeLev;
@@ -365,7 +531,7 @@ Sint16 MyNetN;
 Sint16 bpx;
 Sint16 bpy;
 void* ConsolePtr;
-oc::string::value_type ConsoleComm[287];
+OC::String::value_type ConsoleComm[287];
 Sint16 ConsY;
 Sint16 ConsDY;
 Sint16 ConsMode;
@@ -516,8 +682,6 @@ Sint16 HMy;
 Sint16 ehx;
 Sint16 ehy;
 Sint16 ehz;
-Sint16 n;
-Sint16 i;
 Sint16 x;
 Sint16 y;
 Sint16 mi;
@@ -562,8 +726,6 @@ bool GameActive;
 Uint8 SecCounter;
 void (*TimerInt)();
 void (*KbdInt)();
-BFile F;
-oc::file Ft;
 Sint32 EDI0;
 Sint32 Edi1;
 Sint32 mEDX;
@@ -700,8 +862,7 @@ Uint8 c;
 Uint8 kod;
 Uint8 key;
 Uint8 ASCII_Tab[256];
-oc::string::value_type S[256];
-oc::string::value_type LastFName[256];
+OC::String::value_type S[256];
 //Dos::Registers Regs;
 Sint16 JoyX;
 Sint16 JoyY;
@@ -741,8 +902,8 @@ Uint8 NGCard;
 Uint8 NGPort;
 Uint8 NGBaud;
 Uint8 NGColor;
-oc::string::value_type NGNick[9];
-oc::string::value_type SelfNick[9];
+OC::String::value_type NGNick[9];
+OC::String::value_type SelfNick[9];
 Uint8 SelfColor;
 TInfo_Struct* PInfoStruct;
 bool MSCDEX;
@@ -753,7 +914,7 @@ TPlayerInfo Players[8];
 Uint8 LastBorn;
 Uint8 LevelChanges[16];
 Uint16 ProcState[4];
-oc::string::value_type NetMessage[33];
+OC::String::value_type NetMessage[33];
 MessageRec__Element MessageRec[4];
 ProcMessage__Type ProcMessage;
 Uint8 VESAError;
@@ -797,6 +958,6 @@ void HBrline0(/*...*/);
 void InitNormalViewHi(/*...*/);
 void InitMonitorView(/*...*/);
 
-oc::path BaseFile;
+OC::Path BaseFile;
 
 } // namespace CSPBIO

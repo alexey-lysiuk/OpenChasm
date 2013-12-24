@@ -21,10 +21,10 @@
 
 #include "oc/utils.h"
 
-namespace oc
+namespace OC
 {
 
-wstring ExpandString(const char* const utf8String)
+WideString ExpandString(const char* const utf8String)
 {
     SDL_assert(NULL != utf8String);
 
@@ -34,7 +34,7 @@ wstring ExpandString(const char* const utf8String)
     void* wideString = SDL_iconv_utf8_ucs2(utf8String);
 #endif
 
-    wstring result;
+    WideString result;
 
     if (NULL != wideString)
     {
@@ -44,47 +44,4 @@ wstring ExpandString(const char* const utf8String)
     return result;
 }
 
-
-path GetBasePath()
-{
-    static path result;
-
-    if (result.empty())
-    {
-        char* const pathUtf8 = SDL_GetBasePath();
-
-        if (NULL != pathUtf8)
-        {
-            result = ExpandString(pathUtf8);
-
-            SDL_free(pathUtf8);
-        }
-    }
-
-    return result;
-}
-
-path GetUserPath()
-{
-    static path result;
-
-    if (result.empty())
-    {
-        char* const pathUtf8 = SDL_GetPrefPath("", "OpenChasm");
-
-        if (NULL != pathUtf8)
-        {
-            wstring pathWide = ExpandString(pathUtf8);
-            algorithm::replace_all(pathWide, "//", "/");
-            algorithm::replace_all(pathWide, "\\\\", "\\");
-
-            result = pathWide;
-
-            SDL_free(pathUtf8);
-        }
-    }
-    
-    return result;
-}
-
-} // namespace oc
+} // namespace OC

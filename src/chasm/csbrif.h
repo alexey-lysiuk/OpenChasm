@@ -75,7 +75,7 @@ void SetAni(/*...*/);
 void AddText(/*...*/);
 void ReadRealMul(/*...*/);
 
-oc::string ReadCommand(/*...*/);
+OC::String ReadCommand(/*...*/);
 
 void LoadCharacter(/*...*/);
 void LoadSetup(/*...*/);
@@ -90,8 +90,8 @@ extern Sint16 CurDelay;
 extern Sint16 CurCar;
 extern Sint16 CurVoice;
 extern TCharacter Characters[3];
-extern oc::string::value_type Command[41];
-extern oc::string::value_type* BrText;
+extern OC::String::value_type Command[41];
+extern OC::String::value_type* BrText;
 extern Sint16 Room;
 extern Sint16 CurTop;
 extern Sint16 CurLine;

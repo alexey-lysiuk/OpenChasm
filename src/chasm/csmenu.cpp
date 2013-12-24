@@ -28,7 +28,7 @@ namespace CSMENU
 
 void InitModule()
 {
-    // TODO...
+    LoadMenuResourses();
 }
 
 void CreateRecolorMap(/*...*/);
@@ -42,10 +42,33 @@ void DrawMenuRect(/*...*/);
 void UpDateMenu(/*...*/);
 void UpdatePause(/*...*/);
 void CorrectMenuPos(/*...*/);
-void ScanSavedNames(/*...*/);
+
+void ScanSavedNames()
+{
+    for (size_t i = 0; i < 9; ++i)
+    {
+        const OC::String saveFileName = (OC::Format("chasm%1$02i.sav") % i).str();
+        const OC::Path savePath = OC::FileSystem::GetUserPath(saveFileName);
+
+        OC::String saveName = "...";
+
+        if (OC::FileSystem::IsPathExist(savePath))
+        {
+            OC::File saveFile(savePath);
+
+            if (saveFile.is_open())
+            {
+                // TODO: handle read error
+                saveName = saveFile.readPascalString(39);
+            }
+        }
+        
+        PM.GameNames.push_back(saveName);
+    }
+}
 
 Sint16 KbWait;
-TMenuText* PM;
+TMenuText PM;
 CSPBIO::TPic MainMenu;
 CSPBIO::TPic SklMenu;
 CSPBIO::TPic NetMenu;
@@ -70,7 +93,113 @@ void DrawMenuBar(/*...*/);
 void PutScroller(/*...*/);
 void PutScroller15(/*...*/);
 void LoadPicFromCel(/*...*/);
-void LoadMenuResourses(/*...*/);
+
+CSPBIO::ResourceFile& operator>>(CSPBIO::ResourceFile& file, MenuRect& rect)
+{
+    file >> rect.x1;
+    file >> rect.y1;
+    file >> rect.x2;
+    file >> rect.y2;
+
+    // Skip comment
+    OC::ReadLine(file);
+    
+    return file;
+}
+
+static OC::String ReadMenuString(CSPBIO::ResourceFile& file)
+{
+    OC::String result = OC::ReadLine(file);
+    const OC::String::size_type length = result.size();
+
+    if (length > 0 && '\r' == result[length - 1])
+    {
+        result.resize(length - 1);
+    }
+
+    return result;
+}
+
+static OC::StringArray ReadMenuStringArray(CSPBIO::ResourceFile& file, const size_t count)
+{
+    OC::StringArray result;
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        const OC::String line = ReadMenuString(file);
+        result.push_back(line);
+    }
+
+    return result;
+}
+
+static void ParseMenuDescriptionFile()
+{
+    CSPBIO::ResourceFile menuFile("menu/menu.txt");
+
+    menuFile >> PM.MainPos;
+    PM.Main = ReadMenuString(menuFile);
+
+    menuFile >> PM.SklPos;
+    PM.Skl = ReadMenuString(menuFile);
+
+    menuFile >> PM.NetPos;
+    PM.Net = ReadMenuString(menuFile);
+
+    menuFile >> PM.SavePos;
+    PM.Save = ReadMenuString(menuFile);
+    PM.Load = ReadMenuString(menuFile);
+
+    menuFile >> PM.OptiPos;
+    PM.Opti = ReadMenuStringArray(menuFile, 13);
+
+    menuFile >> PM.DispPos;
+    PM.Disp = ReadMenuStringArray(menuFile, 4);
+
+    menuFile >> PM.ReslPos;
+    PM.Resl = ReadMenuStringArray(menuFile, 13);
+
+    menuFile >> PM.ContPos;
+    PM.Cont = ReadMenuStringArray(menuFile, 17);
+
+    menuFile >> PM.QuitPos;
+    PM.Quit = ReadMenuStringArray(menuFile, 4);
+
+    menuFile >> PM.NewgPos;
+    PM.Newg = ReadMenuStringArray(menuFile, 3);
+
+    menuFile >> PM.NGStPos;
+    PM.NGSt = ReadMenuStringArray(menuFile, 9);
+    PM.NGModes = ReadMenuStringArray(menuFile, 3);
+    PM.NGSkill = ReadMenuStringArray(menuFile, 3);
+
+    menuFile >> PM.NJStPos;
+    PM.NJst = ReadMenuStringArray(menuFile, 6);
+
+    menuFile >> PM.NOptPos;
+    PM.NOpt = ReadMenuStringArray(menuFile, 4);
+
+    OC::ReadLine(menuFile);
+    PM.KName = ReadMenuStringArray(menuFile, 88);
+
+    CSPBIO::ChI(menuFile);
+}
+
+static void LoadMenuAssets()
+{
+
+}
+
+void LoadMenuResourses()
+{
+    ParseMenuDescriptionFile();
+    ScanSavedNames();
+
+    KbWait = -1;
+
+    LoadMenuAssets();
+}
+
 // /* nested */ void ShiftRect(/*...*/);
 
 } // namespace CSMENU
