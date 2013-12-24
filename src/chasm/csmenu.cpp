@@ -75,7 +75,7 @@ CSPBIO::TPic NetMenu;
 CSPBIO::TPic m_pause;
 CSPBIO::TPic PTors;
 Sint16 MnSY;
-void* MenuTiler;
+Uint8 MenuTiler[4096];
 Uint8 ColorShift;
 Uint8 ColorZero;
 Uint8 RecolorMap[256];
@@ -92,7 +92,9 @@ void PutStrBackOn(/*...*/);
 void DrawMenuBar(/*...*/);
 void PutScroller(/*...*/);
 void PutScroller15(/*...*/);
-void LoadPicFromCel(/*...*/);
+
+namespace
+{
 
 CSPBIO::ResourceFile& operator>>(CSPBIO::ResourceFile& file, MenuRect& rect)
 {
@@ -106,6 +108,8 @@ CSPBIO::ResourceFile& operator>>(CSPBIO::ResourceFile& file, MenuRect& rect)
     
     return file;
 }
+
+} // unnamed namespace
 
 static OC::String ReadMenuString(CSPBIO::ResourceFile& file)
 {
@@ -183,11 +187,24 @@ static void ParseMenuDescriptionFile()
     PM.KName = ReadMenuStringArray(menuFile, 88);
 
     CSPBIO::ChI(menuFile);
+
+    // TODO: init resolutions
 }
 
 static void LoadMenuAssets()
 {
+    CSPBIO::ResourceFile tileFile("menu/m_tile1.cel");
 
+    tileFile.seekg(CSPBIO::CEL_DATA_OFFSET);
+    tileFile.read(reinterpret_cast<char*>(MenuTiler), sizeof MenuTiler);
+
+    CSPBIO::ChI(tileFile);
+
+    MainMenu.load("menu/m_main.cel");
+    SklMenu.load("menu/m_new.cel");
+    NetMenu.load("menu/m_netwrk.cel");
+    m_pause.load("menu/m_pause.cel");
+    PTors.load("menu/ptors.cel");
 }
 
 void LoadMenuResourses()

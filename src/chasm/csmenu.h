@@ -24,7 +24,7 @@
 
 namespace CSPBIO
 {
-    struct TPic;
+    class TPic;
 }
 
 namespace CSMENU
@@ -115,7 +115,7 @@ extern CSPBIO::TPic NetMenu;
 extern CSPBIO::TPic m_pause;
 extern CSPBIO::TPic PTors;
 extern Sint16 MnSY;
-extern void* MenuTiler;
+extern Uint8 MenuTiler[4096];
 extern Uint8 ColorShift;
 extern Uint8 ColorZero;
 extern Uint8 RecolorMap[256];
@@ -132,8 +132,7 @@ void PutStrBackOn(/*...*/);
 void DrawMenuBar(/*...*/);
 void PutScroller(/*...*/);
 void PutScroller15(/*...*/);
-void LoadPicFromCel(/*...*/);
-void LoadMenuResourses(/*...*/);
+void LoadMenuResourses();
 // /* nested */ void ShiftRect(/*...*/);
 
 } // namespace CSMENU
