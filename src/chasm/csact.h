@@ -158,16 +158,10 @@ void StartProcess(/*...*/);
 void AnimateProcesses(/*...*/);
 void StartUpProcesses(/*...*/);
 
-extern TProcess* PProc;
-extern TLinksList__Element* PLinks;
-extern TMessage* PMList;
-extern TChangesList__Element* PChanges;
-extern Sint16 LinksCount;
-extern Sint16 NetOnCount;
-extern Sint16 NetOffCount;
-extern Sint16 ChangesCount;
-extern Sint16 pnum;
-extern Sint16 i;
+extern OC::Array<TProcess> PProc;
+extern OC::Array<TLinksList__Element> PLinks;
+extern OC::Array<TMessage> PMList;
+extern OC::Array<TChangesList__Element> PChanges;
 extern Sint16 MortalTimer;
 extern bool MortalTick;
 
