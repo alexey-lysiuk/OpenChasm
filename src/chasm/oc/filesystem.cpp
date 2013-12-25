@@ -30,6 +30,36 @@ BinaryStream::BinaryStream(std::streambuf* const buffer)
 
 }
 
+BinaryStream& BinaryStream::readBinary(bool& value)
+{
+    value = 0 != readBinary<Uint8>();
+
+    return *this;
+}
+
+#define OC_BINARY_FILE_READ_LITTLE(TYPE, SWAP_FUNC)             \
+    BinaryStream& BinaryStream::readBinary(TYPE& value)         \
+    {                                                           \
+        char* const valuePtr = reinterpret_cast<char*>(&value); \
+        read(valuePtr, sizeof value);                           \
+        value = SWAP_FUNC(value);                               \
+        return *this;                                           \
+    }
+
+#define OC_NO_SWAP_FUNC(X) (X)
+
+OC_BINARY_FILE_READ_LITTLE(Sint8, OC_NO_SWAP_FUNC)
+OC_BINARY_FILE_READ_LITTLE(Uint8, OC_NO_SWAP_FUNC)
+
+OC_BINARY_FILE_READ_LITTLE(Sint16, SDL_SwapLE16)
+OC_BINARY_FILE_READ_LITTLE(Uint16, SDL_SwapLE16)
+
+OC_BINARY_FILE_READ_LITTLE(Sint32, SDL_SwapLE32)
+OC_BINARY_FILE_READ_LITTLE(Uint32, SDL_SwapLE32)
+
+#undef OC_NO_SWAP_FUNC
+#undef OC_BINARY_FILE_READ_LITTLE
+
 String BinaryStream::readPascalString(const Uint8 byteCount)
 {
     OC::String result;
@@ -45,7 +75,7 @@ BinaryStream& BinaryStream::readPascalString(String& string, const Uint8 byteCou
 
     if (length > 0)
     {
-        read(&string[0], length);
+        read(&string[0], std::min(length, byteCount));
     }
 
     if (length < byteCount)
@@ -60,10 +90,10 @@ BinaryStream& BinaryStream::readPascalString(String& string, const Uint8 byteCou
 // ===========================================================================
 
 
-File::File(const OC::Path& filePath, const openmode mode)
+File::File(const OC::Path& path, const openmode mode)
 : Base(new FileBuffer)
 {
-    fileBuffer()->open(filePath, mode | std::ios::binary);
+    fileBuffer()->open(path, mode | std::ios::binary);
 }
 
 File::~File()

@@ -46,30 +46,16 @@ public:
         return result;
     }
 
-#define OC_BINARY_FILE_READ_LITTLE(TYPE, SWAP_FUNC)             \
-    BinaryStream& readBinary(TYPE& value)                       \
-    {                                                           \
-        char* const valuePtr = reinterpret_cast<char*>(&value); \
-        read(valuePtr, sizeof value);                           \
-        value = SWAP_FUNC(value);                               \
-        return *this;                                           \
-    }
-
-#define OC_NO_SWAP_FUNC(X) (X)
-
-    OC_BINARY_FILE_READ_LITTLE(Sint8, OC_NO_SWAP_FUNC)
-    OC_BINARY_FILE_READ_LITTLE(Uint8, OC_NO_SWAP_FUNC)
-
-    OC_BINARY_FILE_READ_LITTLE(Sint16, SDL_SwapLE16)
-    OC_BINARY_FILE_READ_LITTLE(Uint16, SDL_SwapLE16)
-
-    OC_BINARY_FILE_READ_LITTLE(Sint32, SDL_SwapLE32)
-    OC_BINARY_FILE_READ_LITTLE(Uint32, SDL_SwapLE32)
-
-#undef OC_NO_SWAP_FUNC
-#undef OC_BINARY_FILE_READ_LITTLE
+    BinaryStream& readBinary(bool& value);
+    BinaryStream& readBinary(Sint8& value);
+    BinaryStream& readBinary(Uint8& value);
+    BinaryStream& readBinary(Sint16& value);
+    BinaryStream& readBinary(Uint16& value);
+    BinaryStream& readBinary(Sint32& value);
+    BinaryStream& readBinary(Uint32& value);
 
     // Reads Pascal string, length byte and up to 255 characters
+    // Length byte is excluded from byteCount parameter
     String readPascalString(const Uint8 byteCount);
     BinaryStream& readPascalString(String& string, const Uint8 byteCount);
 };
@@ -87,7 +73,7 @@ private:
     typedef boost::filesystem::filebuf FileBuffer;
 
 public:
-    explicit File(const OC::Path& filePath, const openmode mode = std::ios::in);
+    explicit File(const OC::Path& path, const openmode mode = std::ios::in);
     ~File();
 
     bool is_open() const;
