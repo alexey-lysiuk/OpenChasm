@@ -21,12 +21,17 @@
 
 #include "csbrif.h"
 
+namespace Chasm
+{
+    void Build3dScene();
+}
+
 namespace CSBrif
 {
 
 void PlayBrifing(/*...*/);
 
-void (*BuildSceneRout)();
+void (*BuildSceneRout)() = Chasm::Build3dScene;
 
 void DeInitBrifing(/*...*/);
 void ReinitBrifView(/*...*/);

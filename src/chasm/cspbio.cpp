@@ -29,8 +29,6 @@ namespace
 
 bool     s_isInternal;   // Internal
 
-OC::Path s_lastFilePath; // LastFName
-
 OC::Path s_addonPath;    // AddonPath
 bool     s_isUserMaps;   // UserMaps
 
@@ -105,7 +103,7 @@ EmbeddedFileBuffer::EmbeddedFileBuffer(const OC::Path& path)
 , m_offset(0)
 , m_isEmbedded(false)
 {
-    s_lastFilePath = path;
+    LastFName = path;
     
     if (s_isUserMaps)
     {
@@ -131,7 +129,7 @@ EmbeddedFileBuffer::EmbeddedFileBuffer(const OC::Path& path)
         OC::String probeName = path.filename().generic_string();
         boost::algorithm::to_upper(probeName);
     
-        s_lastFilePath = probeName;
+        LastFName = probeName;
         bool found = false;
     
         OC_FOREACH(const FileTableEntry& entry, s_fileTable)
@@ -402,6 +400,52 @@ void TPic::load(const char* const filename)
 // ===========================================================================
 
 
+TPlayerInfo::TPlayerInfo()
+: PlHx(0)
+, PlHy(0)
+, Plhz0(0)
+, PlLz(0)
+, v(0)
+, sv(0)
+, rv(0)
+, vz(0)
+, ev(0)
+, evfi(0)
+, PlFi(0)
+, ksFlags(0)
+, FTime(0)
+, Phase(0)
+, WFlags(0)
+, Frags(0)
+, Armor(0)
+, Life(0)
+, PFlags(0)
+, PlayerID(0)
+, Active(false)
+, PColor(0)
+, PliCa(0)
+, PliSa(0)
+, Plhz(0)
+, PlRz(0)
+, ms_dvx(0)
+, ms_dvy(0)
+, PTime(0)
+, PlColorN(0)
+, PlCurGun(0)
+, PlRepairTime(0)
+, ReDelay(0)
+, InvTime(0)
+, GodTime(0)
+, RefTime(0)
+, LastTime(0)
+{
+    SDL_zero(Ammo);
+}
+
+
+// ===========================================================================
+
+
 Uint16 QPifagorA32(/*...*/);
 void getmousestate(/*...*/);
 Sint16 GetJoyX(/*...*/);
@@ -450,7 +494,7 @@ void ChI(const OC::BinaryStream& stream)
 
     if (!stream.good())
     {
-        DoHalt(OC::Format("Error while reading %1%, permission denied or file system error.") % s_lastFilePath);
+        DoHalt(OC::Format("Error while reading %1%, permission denied or file system error.") % LastFName);
     }
 }
 
@@ -500,9 +544,26 @@ void AddBlow(/*...*/);
 void BlowSpark(/*...*/);
 void BlowSmoke(/*...*/);
 void BlowShootSmoke(/*...*/);
-void PutConsMessage(/*...*/);
-void PutConsMessage2(/*...*/);
-void PutConsMessage3(/*...*/);
+
+void PutConsMessage(const OC::String& message)
+{
+    const OC::String lastLine = ConsoleComm.back();
+
+    ConsoleComm.pop_back();
+    ConsoleComm.pop_front();
+    ConsoleComm.push_back(message);
+    ConsoleComm.push_back(lastLine);
+}
+
+void PutConsMessage2(const OC::String& message)
+{
+    PutConsMessage(message); // TODO ...
+}
+
+void PutConsMessage3(const OC::String& message)
+{
+    PutConsMessage(message); // TODO ...
+}
 
 Uint16 ServerVersion;
 Sint32 Long1;
@@ -614,8 +675,8 @@ Sint16 GShadeLev;
 Sint16 LastGShadeLev;
 Uint16 MenuCode = 4;
 Uint16 CSCopy;
-Uint16 LoadSaveY;
-Uint16 OptionsY;
+Uint16 LoadSaveY = 0;
+Uint16 OptionsY = 0;
 Uint8 NetMode;
 Uint8 TeamMode;
 Uint8 SHRC;
@@ -625,11 +686,11 @@ Sint16 MyNetN = 0;
 Sint16 bpx;
 Sint16 bpy;
 void* ConsolePtr;
-OC::String::value_type ConsoleComm[287];
+ConsoleText ConsoleComm(7);
 Sint16 ConsY = 0;
 Sint16 ConsDY = 0;
 Sint16 ConsMode;
-Sint16 ConsMainY;
+Sint16 ConsMainY = 0;
 Sint16 ConsMenu;
 Sint16 HistCnt;
 Sint16 CurHist;
@@ -955,6 +1016,7 @@ Uint8 c;
 Uint8 kod;
 Uint8 key;
 Uint8 ASCII_Tab[256];
+OC::Path LastFName;
 OC::String::value_type S[256];
 //Dos::Registers Regs;
 Sint16 JoyX;

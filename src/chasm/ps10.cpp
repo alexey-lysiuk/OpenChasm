@@ -36,7 +36,99 @@ namespace Chasm
 
 void WhatKey(/*...*/);
 void TimerFM(/*...*/);
-void LoadConfig(/*...*/);
+
+void LoadConfig(const bool original)
+{
+    CSPBIO::LastFName = original ? "chasm.cfg" : "chasm.def";
+
+    const OC::Path configPath = OC::FileSystem::GetUserPath(CSPBIO::LastFName);
+    OC::File configFile(configPath);
+
+    // Change from original behavior: 
+    // Do not exit if user config was not found, try to load default one instead
+
+    if (!configFile.is_open())
+    {
+        if (original)
+        {
+            LoadConfig(false);
+            return;
+        }
+        else
+        {
+            CSPBIO::PutConsMessage2("CHASM.DEF not found.");
+            return;
+        }
+    }
+
+    SoundIP::CDVolume = 8;
+    
+    CSPBIO::MSsens = 10;
+    CSPBIO::Ms1ID = 0;
+    CSPBIO::Ms2ID = 1;
+
+    configFile.readBinary(CSPBIO::_FrontOn);
+    configFile.readBinary(CSPBIO::_BackOn);
+    configFile.readBinary(CSPBIO::_LeftOn);
+    configFile.readBinary(CSPBIO::_RightOn);
+    configFile.readBinary(CSPBIO::_SLeftOn);
+    configFile.readBinary(CSPBIO::_SRightOn);
+    configFile.readBinary(CSPBIO::_JumpOn);
+    configFile.readBinary(CSPBIO::_FireOn);
+    configFile.readBinary(CSPBIO::_ChangOn);
+    configFile.readBinary(CSPBIO::_StrafeOn);
+    configFile.readBinary(CSPBIO::_SpeedUpOn);
+    configFile.readBinary(CSPBIO::_MLookOn);
+    configFile.readBinary(CSPBIO::_MLookT);
+    configFile.readBinary(CSPBIO::_ViewUpOn);
+    configFile.readBinary(CSPBIO::_ViewCntrOn);
+    configFile.readBinary(CSPBIO::_ViewDnOn);
+
+    configFile.readBinary(CSPBIO::Ms1ID);
+    configFile.readBinary(CSPBIO::Ms2ID);
+    configFile.readBinary(CSPBIO::ms3id);
+
+    configFile.readBinary(CSPBIO::RespawnTime);
+
+    configFile.readBinary(SoundIP::FXVolume);
+    configFile.readBinary(SoundIP::CDVolume);
+
+    configFile.readBinary(CSPBIO::MSsens);
+    configFile.readBinary(CSPBIO::Bright);
+    configFile.readBinary(CSPBIO::Contrast);
+    configFile.readBinary(CSPBIO::Color);
+    configFile.readBinary(CSPBIO::FloorW);
+    CSPBIO::b0 = configFile.readBinary<Uint8>(); // TODO ??? 2-byte variable but only one byte is read
+    configFile.readBinary(CSPBIO::InfoPage);
+
+    configFile.readPascalString(CSPBIO::SelfNick, 8);
+    configFile.readBinary(CSPBIO::SelfColor);
+
+    configFile.readBinary(CS3DM2::ShadowCount);
+    configFile.readBinary(CSPBIO::EpisodeReset);
+    configFile.readBinary(CSPBIO::Cocpit);
+    configFile.readBinary(CSPBIO::ReverseMouse);
+    configFile.readBinary(CSPBIO::MLookOn);
+    configFile.readBinary(CSPBIO::AlwaysRun);
+
+    configFile.readBinary(CSPBIO::NGCard);
+    configFile.readBinary(CSPBIO::NGPort);
+    configFile.readBinary(CSPBIO::NGBaud);
+
+    configFile.readBinary(CSPBIO::w);
+    configFile.readBinary(CSPBIO::Ll);
+
+    // TODO: validate video mode
+
+    CSPBIO::ChI(configFile);
+
+    //CSPBIO::SetPalette();
+
+    //SoundIP::SetVolumes();
+
+    //CSPBIO::ReInitViewConst();
+}
+
 void CalcYMin(/*...*/);
 void StartPaint(/*...*/);
 void UpDateRedShade(/*...*/);
@@ -80,7 +172,12 @@ void LR_Roll(/*...*/);
 void LookForLevel(/*...*/);
 void RemoveMouse(/*...*/);
 void ProcessMenu(/*...*/);
-void Build3dScene(/*...*/);
+
+void Build3dScene()
+{
+    // TODO ...
+}
+
 void SwitchToNextWeapon(/*...*/);
 bool WeaponAvail(/*...*/);
 void ChangeWeapon(/*...*/);
@@ -118,6 +215,25 @@ int main(int argc, char** argv)
     CS3DM2::InitModule();
 
     srand(static_cast<unsigned int>(CSPBIO::StartUpRandSeed));
+
+    CSPBIO::PutConsMessage("CHASM - The Rift. v1.04");
+    CSPBIO::PutConsMessage("(c) Megamedia Corp,");
+    CSPBIO::PutConsMessage("    Action Forms Ltd.");
+    CSPBIO::PutConsMessage("");
+
+    // TODO: CheckNP(), IPX?
+
+    for (size_t i = 0; i < SDL_TABLESIZE(CSPBIO::Players); ++i)
+    {
+        CSPBIO::Players[i].PlColorN = Sint16(i);
+    }
+
+    for (size_t i = 0; i < SDL_TABLESIZE(CSPBIO::Mul320); ++i)
+    {
+        CSPBIO::Mul320[i] = Uint16(i * 320);
+    }
+
+    Chasm::LoadConfig(true);
 
     // TODO...
 

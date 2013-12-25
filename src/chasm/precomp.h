@@ -25,6 +25,7 @@
 #include <cstdlib>
 #include <string>
 #include <vector>
+#include <list>
 
 #define BOOST_ALL_NO_LIB // disables auto-linking for Boost
 #include <boost/algorithm/string.hpp>

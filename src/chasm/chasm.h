@@ -184,7 +184,7 @@ void ShowValue(/*...*/);
 
 void WhatKey(/*...*/);
 void TimerFM(/*...*/);
-void LoadConfig(/*...*/);
+void LoadConfig(const bool original);
 void CalcYMin(/*...*/);
 void StartPaint(/*...*/);
 void UpDateRedShade(/*...*/);
@@ -228,7 +228,7 @@ void LR_Roll(/*...*/);
 void LookForLevel(/*...*/);
 void RemoveMouse(/*...*/);
 void ProcessMenu(/*...*/);
-void Build3dScene(/*...*/);
+void Build3dScene();
 void SwitchToNextWeapon(/*...*/);
 bool WeaponAvail(/*...*/);
 void ChangeWeapon(/*...*/);

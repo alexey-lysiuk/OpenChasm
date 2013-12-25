@@ -146,8 +146,7 @@ struct TAmmoBag
 
 struct TPlayerInfo
 {
-    bool Active;
-    OC::String::value_type PName[9];
+    OC::String PName;
     Sint16 PlHx;
     Sint16 PlHy;
     Sint16 Plhz0;
@@ -169,6 +168,7 @@ struct TPlayerInfo
     Uint16 PFlags;
     Uint16 PlayerID;
     Uint8 Ammo[8];
+    bool Active;
     Uint16 PColor;
     Sint16 PliCa;
     Sint16 PliSa;
@@ -185,6 +185,8 @@ struct TPlayerInfo
     Sint16 GodTime;
     Sint16 RefTime;
     Sint32 LastTime;
+
+    TPlayerInfo();
 };
 
 struct XRPointer
@@ -776,9 +778,10 @@ void AddBlow(/*...*/);
 void BlowSpark(/*...*/);
 void BlowSmoke(/*...*/);
 void BlowShootSmoke(/*...*/);
-void PutConsMessage(/*...*/);
-void PutConsMessage2(/*...*/);
-void PutConsMessage3(/*...*/);
+
+void PutConsMessage(const OC::String& message);
+void PutConsMessage2(const OC::String& message);
+void PutConsMessage3(const OC::String& message);
 
 extern Uint16 ServerVersion;
 extern Sint32 Long1;
@@ -900,7 +903,10 @@ extern Sint16 MyNetN;
 extern Sint16 bpx;
 extern Sint16 bpy;
 extern void* ConsolePtr;
-extern OC::String::value_type ConsoleComm[287];
+
+typedef std::list<OC::String> ConsoleText;
+extern ConsoleText ConsoleComm;
+
 extern Sint16 ConsY;
 extern Sint16 ConsDY;
 extern Sint16 ConsMode;
@@ -1230,6 +1236,7 @@ extern Uint8 c;
 extern Uint8 kod;
 extern Uint8 key;
 extern Uint8 ASCII_Tab[256];
+extern OC::Path LastFName;
 extern OC::String::value_type S[256];
 //extern Dos::Registers Regs;
 extern Sint16 JoyX;
