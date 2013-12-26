@@ -54,6 +54,13 @@ public:
     BinaryStream& readBinary(Sint32& value);
     BinaryStream& readBinary(Uint32& value);
 
+    template <typename T>
+    BinaryStream& readBinary(T* const ptr, const std::streamsize count)
+    {
+        read(static_cast<char*>(static_cast<void*>(ptr)), count);
+        return *this;
+    }
+
     // Reads Pascal string, length byte and up to 255 characters
     // Length byte is excluded from byteCount parameter
     String readPascalString(const Uint8 byteCount);
