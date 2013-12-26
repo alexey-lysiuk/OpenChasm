@@ -112,17 +112,32 @@ class TPic
 {
 public:
     TPic();
-    ~TPic();
+    explicit TPic(const char* const filename);
 
     const Uint16 width() const { return m_width; }    // XSize
     const Uint16 height() const { return m_height; }  // YSize
     const Uint16 centeX() const { return m_height; }  // CenterX
-    const Uint8* data() const { return m_data; }      // p
+    
+    const Uint8* data() const  // p
+    {
+        return &m_data[0];
+    }
+
+    const Uint8 data(const size_t index) const  // p
+    {
+        return m_data[index];
+    }
+
+    void setData(const size_t index, const Uint8 value)  // p
+    {
+        m_data[index] = value;
+    }
 
     void load(const char* const filename);            // LoadPicFromCel()
 
 private:
-    Uint8* m_data;    // p
+    std::vector<Uint8> m_data; // p
+
     Uint16 m_width;   // XSize
     Uint16 m_height;  // YSize
 };
@@ -751,13 +766,13 @@ void LoadSound(/*...*/);
 void LoadAmb(/*...*/);
 void AllocVideo(/*...*/);
 void AllocMemory(/*...*/);
-void LoadCommonParts(/*...*/);
+void LoadCommonParts();
 void CheckMouse(/*...*/);
 void RemoveEqual(/*...*/);
 void ScanLevels(/*...*/);
 void FindNextLevel(/*...*/);
 void LoadGraphics(/*...*/);
-void LoadGround(/*...*/);
+void LoadGround();
 void DoSetPalette(/*...*/);
 void SetPalette();
 void AddEvent(/*...*/);
@@ -816,7 +831,7 @@ extern Uint16 XORMask;
 extern OC::String::value_type* GFXindex;
 extern OC::String::value_type* ShortNames;
 extern OC::String::value_type* LevelNames;
-extern Uint8 ColorMap[13312];
+extern TPic ColorMap;
 extern Uint8 FloorMap[4096];
 extern Uint8 CellMap[4096];
 extern Uint8* AltXTab;
@@ -860,10 +875,11 @@ extern TBlowInfo BlowsInfo[24];
 extern std::vector<TReObject> ReObjects;
 extern std::vector<TAmmoBag> AmmoBags;
 extern bool FFlags[64];
-extern Uint8* Fonts;
-extern Uint8* BigFont;
-extern Uint8* LitFont;
-extern Uint8* WIcons;
+
+extern TPic Fonts;
+extern TPic BigFont;
+extern TPic LitFont;
+extern TPic WIcons;
 
 struct RGB
 {
@@ -885,13 +901,16 @@ extern Uint16 CharSize[256];
 extern TGunInfo GunsInfo[9];
 extern NetPlace__Element NetPlace[32];
 extern void* VGA;
-extern void* Ground;
-extern void* Status;
-extern void* Loading;
-extern void* VesaTiler;
+extern std::vector<Uint8> Ground;
+extern TPic Status;
+extern TPic Loading;
+extern TPic VesaTiler;
 extern void* SkyPtr;
-extern void* RGBTab25;
-extern void* RGBTab60;
+
+typedef std::vector<Uint8> RGBTable;
+extern RGBTable RGBTab25;
+extern RGBTable RGBTab60;
+
 extern Uint16 LoadPos;
 extern Uint16 LoadingH;
 extern Uint16 LoadingW;
@@ -919,7 +938,7 @@ extern Sint16 Skill;
 extern Sint16 MyNetN;
 extern Sint16 bpx;
 extern Sint16 bpy;
-extern void* ConsolePtr;
+extern TPic ConsolePtr;
 
 typedef std::list<OC::String> ConsoleText;
 extern ConsoleText ConsoleComm;
@@ -1003,8 +1022,6 @@ extern Uint16 BlevelC;
 extern Uint16 BLevelF;
 extern Uint16 VgaSeg;
 extern Uint16 RGBSeg;
-extern Uint16 RGBSeg25;
-extern Uint16 RGBSeg60;
 extern Uint16 PSeg;
 extern Uint16 POfs;
 extern Uint16 PImBSeg;
@@ -1030,7 +1047,6 @@ extern Uint16 Nlines;
 extern Uint16 NLines1;
 extern Uint16 takt;
 extern Uint16 MsTakt;
-extern Uint16 cm_ofs;
 extern Uint16 b0;
 extern Uint16 b1;
 extern bool WeaponActive;

@@ -363,16 +363,17 @@ void InitModule()
 
 
 TPic::TPic()
-: m_data(NULL)
-, m_width(0)
+: m_width(0)
 , m_height(0)
 {
 
 }
 
-TPic::~TPic()
+TPic::TPic(const char* const filename)
+: m_width(0)
+, m_height(0)
 {
-    delete[] m_data;
+    load(filename);
 }
 
 void TPic::load(const char* const filename)
@@ -384,10 +385,10 @@ void TPic::load(const char* const filename)
     celFile.readBinary(m_height);
 
     const size_t dataSize = m_width * m_height;
-    m_data = new Uint8[dataSize];
+    m_data.resize(dataSize);
 
     celFile.seekg(CEL_DATA_OFFSET);
-    celFile.read(reinterpret_cast<char*>(m_data), dataSize);
+    celFile.readBinary(&m_data[0], dataSize);
 
     CSPBIO::ChI(celFile);
 }
@@ -513,13 +514,128 @@ void LoadSound(/*...*/);
 void LoadAmb(/*...*/);
 void AllocVideo(/*...*/);
 void AllocMemory(/*...*/);
-void LoadCommonParts(/*...*/);
+
+namespace
+{
+
+void LoadRGBTable(const char* const filename, RGBTable& table)
+{
+    ResourceFile tableFile(filename);
+    tableFile.readBinary(&table[0], 0xFF00);
+}
+
+} // unnamed namespace
+
+void LoadCommonParts()
+{
+    // NOTE: some values in SinTab are (by +-1) from corresponding value from original game
+    // This is caused by discrepancy in calculation using hardware floating point numbers
+    // (IEEE 754 in most cases) and Pascal's Real type
+
+    for (size_t i = 0; i < SDL_TABLESIZE(SinTab); ++i)
+    {
+        static const OC::Float op1 = OC::Float(M_PI); // OC::Real(0x2182, 0xDAA2, 0x490F).convert<OC::Float>();
+        static const OC::Float op2 = 2.0f;            // OC::Real(0x0082, 0x0000, 0x0000).convert<OC::Float>();
+        static const OC::Float op3 = 1024.0f;         // OC::Real(0x008B, 0x0000, 0x0000).convert<OC::Float>();
+        static const OC::Float op4 = 4096.0f;         // OC::Real(0x008D, 0x0000, 0x0000).convert<OC::Float>();
+
+        SinTab[i] = Sint16(SDL_sin(op1 * op2 * i / op3) * op4);
+    }
+
+    SDL_Log("Loading environment...");
+
+    ConsolePtr.load("common/console.cel");
+
+    LoadRGBTable("common/chasm.rgb",   RGBTab25);
+    LoadRGBTable("common/chasm60.rgb", RGBTab60);
+
+    for (size_t i = 0; i < 256; ++i)
+    {
+        RGBTab60[0xFF00 + i] = RGBTab60[(i << 8) + 0xFF] = Sint8(i);
+    }
+
+    for (size_t i = 0; i < 255; ++i)  // TODO: ??? 256
+    {
+        RGBTab60[i] = RGBTab25[i] = Sint8(i);
+    }
+
+    Fonts.load("common/font256.cel");
+
+    for (Uint16 j = 0; j < 256; ++j)
+    {
+        Uint16 w = 0;
+
+        const Uint16 x = j & 15;
+        const Uint16 y = j / 16;
+
+        for (Uint16 xx = 1; xx < 11; ++xx)
+        {
+            for (Uint16 yy = 0; yy < 7; ++yy)
+            {
+                const size_t pos = y * 2560 + yy * 256 + x * 16 + xx + 2 + 512;
+
+                if (Fonts.data(pos) != 0xFF)
+                {
+                    w = xx;
+                }
+            }
+        }
+
+        CharSize[j] = ++w;
+    }
+
+    BigFont.load("common/bfont2.cel");
+    LitFont.load("common/lfont2.cel");
+    WIcons.load("common/wicons.cel");
+    ColorMap.load("common/fadetab.cel");
+
+    for (size_t n = 0; n < 52; ++n)
+    {
+        ColorMap.setData(n * 256 + 255, 0xFF);
+    }
+
+    LoadGround();
+
+    {
+        ResourceFile paletteFile("common/chasm2.pal");
+        paletteFile.readBinary(Palette, sizeof Palette);
+    }
+
+    {
+        ResourceFile asciiTableFile("common/chasm.key");
+        asciiTableFile.readBinary(ASCII_Tab, sizeof ASCII_Tab);
+    }
+}
+
 void CheckMouse(/*...*/);
 void RemoveEqual(/*...*/);
 void ScanLevels(/*...*/);
 void FindNextLevel(/*...*/);
 void LoadGraphics(/*...*/);
-void LoadGround(/*...*/);
+
+void LoadGround()
+{
+    VesaTiler.load("common/vesatile.cel");
+    Status.load("common/status2.cel");
+    
+    const TPic groundPic("common/ground.cel");
+
+    for (size_t x = 0; x < 5; ++x)
+    {
+        for (size_t y = 0; y < 64; ++y)
+        {
+            const Uint8* const groundSrc = groundPic.data() + y * 64;
+            Uint8* const groundDst = &Ground[0] + y * 320 + x * 64;
+
+            SDL_memcpy(groundDst, groundSrc, 64);
+        }
+    }
+
+    Loading.load("common/loading.cel");
+    LoadingW = Loading.width();
+    LoadingH = Loading.height();
+}
+
 void DoSetPalette(/*...*/);
 
 namespace
@@ -631,7 +747,7 @@ Uint16 XORMask;
 OC::String::value_type* GFXindex;
 OC::String::value_type* ShortNames;
 OC::String::value_type* LevelNames;
-Uint8 ColorMap[13312];
+TPic ColorMap; // cm_ofs
 Uint8 FloorMap[4096];
 Uint8 CellMap[4096];
 Uint8* AltXTab;
@@ -675,10 +791,11 @@ TBlowInfo BlowsInfo[24];
 std::vector<TReObject> ReObjects;
 std::vector<TAmmoBag> AmmoBags;
 bool FFlags[64];
-Uint8* Fonts;
-Uint8* BigFont;
-Uint8* LitFont;
-Uint8* WIcons;
+
+TPic Fonts;
+TPic BigFont;
+TPic LitFont;
+TPic WIcons;
 
 RGB Palette[256];
 RGB Pal[256];
@@ -687,13 +804,15 @@ Uint16 CharSize[256];
 TGunInfo GunsInfo[9];
 NetPlace__Element NetPlace[32];
 void* VGA;
-void* Ground;
-void* Status;
-void* Loading;
-void* VesaTiler;
+std::vector<Uint8> Ground(0x5000, 0);
+TPic Status;
+TPic Loading;
+TPic VesaTiler;
 void* SkyPtr;
-void* RGBTab25;
-void* RGBTab60;
+
+RGBTable RGBTab25(0x10000, 0);
+RGBTable RGBTab60(0x10000, 0);
+
 Uint16 LoadPos;
 Uint16 LoadingH;
 Uint16 LoadingW;
@@ -721,7 +840,7 @@ Sint16 Skill = 1;
 Sint16 MyNetN = 0;
 Sint16 bpx;
 Sint16 bpy;
-void* ConsolePtr;
+TPic ConsolePtr;
 ConsoleText ConsoleComm(7);
 Sint16 ConsY = 0;
 Sint16 ConsDY = 0;
@@ -802,8 +921,6 @@ Uint16 BlevelC;
 Uint16 BLevelF;
 Uint16 VgaSeg;
 Uint16 RGBSeg;
-Uint16 RGBSeg25;
-Uint16 RGBSeg60;
 Uint16 PSeg;
 Uint16 POfs;
 Uint16 PImBSeg;
@@ -829,7 +946,6 @@ Uint16 Nlines;
 Uint16 NLines1;
 Uint16 takt;
 Uint16 MsTakt;
-Uint16 cm_ofs;
 Uint16 b0;
 Uint16 b1;
 bool WeaponActive;
