@@ -759,7 +759,7 @@ void FindNextLevel(/*...*/);
 void LoadGraphics(/*...*/);
 void LoadGround(/*...*/);
 void DoSetPalette(/*...*/);
-void SetPalette(/*...*/);
+void SetPalette();
 void AddEvent(/*...*/);
 void AddEvVoice(/*...*/);
 void Hline(/*...*/);
@@ -863,8 +863,23 @@ extern Uint8* Fonts;
 extern Uint8* BigFont;
 extern Uint8* LitFont;
 extern Uint8* WIcons;
-extern Sint8 Palette[768];
-extern Sint8 Pal[768];
+
+struct RGB
+{
+    Uint8 red;
+    Uint8 green;
+    Uint8 blue;
+
+    explicit RGB(Uint8 red = 0, Uint8 green = 0, Uint8 blue = 0)
+    : red(red)
+    , green(green)
+    , blue(blue)
+    { }
+};
+
+extern RGB Palette[256];
+extern RGB Pal[256];
+
 extern Uint16 CharSize[256];
 extern TGunInfo GunsInfo[9];
 extern NetPlace__Element NetPlace[32];

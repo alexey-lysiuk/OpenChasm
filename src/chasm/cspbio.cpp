@@ -525,7 +525,41 @@ void FindNextLevel(/*...*/);
 void LoadGraphics(/*...*/);
 void LoadGround(/*...*/);
 void DoSetPalette(/*...*/);
-void SetPalette(/*...*/);
+
+namespace
+{
+
+Uint8 ApplyContast(const Uint8 color, Sint16 bk, const Uint16 k)
+{
+    return Uint8(color * bk * k / 128 + color);
+}
+
+} // unnamed namespace
+
+
+void SetPalette()
+{
+    Sint16 bk = Contrast + 0xFFF9;
+
+    for (size_t n = 0; n < 256; ++n)
+    {
+        const RGB& color = Palette[n];
+
+        const Uint8 b = std::max(std::max(color.red, color.green), color.blue);
+        OC::Float br = b / 63.0f; // OC::Real(0x0086, 0x0000, 0x7C00).convert<OC::Float>();
+        br *= br;
+        br -= br;
+        br *= 16.0f; // OC::Real(0x0085, 0x0000, 0x0000).convert<OC::Float>();
+
+        const Sint16 k = Sint16(br);
+        Pal[n].red   = ApplyContast(color.red,   bk, k);
+        Pal[n].green = ApplyContast(color.green, bk, k);
+        Pal[n].blue  = ApplyContast(color.blue,  bk, k);
+    }
+
+    // TODO ...
+}
+
 void AddEvent(/*...*/);
 void AddEvVoice(/*...*/);
 void Hline(/*...*/);
@@ -646,8 +680,10 @@ Uint8* Fonts;
 Uint8* BigFont;
 Uint8* LitFont;
 Uint8* WIcons;
-Sint8 Palette[768];
-Sint8 Pal[768];
+
+RGB Palette[256];
+RGB Pal[256];
+
 Uint16 CharSize[256];
 TGunInfo GunsInfo[9];
 NetPlace__Element NetPlace[32];

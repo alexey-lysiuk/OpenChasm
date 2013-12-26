@@ -122,11 +122,14 @@ void LoadConfig(const bool original)
 
     CSPBIO::ChI(configFile);
 
-    //CSPBIO::SetPalette();
+    if (!original)
+    {
+        CSPBIO::SetPalette();
 
-    //SoundIP::SetVolumes();
+        //SoundIP::SetVolumes();
 
-    //CSPBIO::ReInitViewConst();
+        //CSPBIO::ReInitViewConst();
+    }
 }
 
 void CalcYMin(/*...*/);
