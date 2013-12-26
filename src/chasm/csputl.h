@@ -71,7 +71,7 @@ void CheckJoyStick(/*...*/);
 void InitJoyStick(/*...*/);
 void GetMouseStatus(/*...*/);
 void FillStartInfo(/*...*/);
-void InitMessageSystem(/*...*/);
+void InitMessageSystem();
 void RemoveLight(/*...*/);
 void AddGreatBlow(/*...*/);
 void AddSuperGreatBlow(/*...*/);

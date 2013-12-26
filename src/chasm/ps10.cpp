@@ -201,6 +201,96 @@ void ShowIntro1(/*...*/);
 }
 
 
+namespace
+{
+
+void ParseCommandLine(const int argc, const char* const* const argv)
+{
+    for (int i = 1; i < argc; ++i)
+    {
+        OC::String parameter = argv[i];
+        boost::algorithm::to_lower_copy(parameter);
+
+        if ("-safe" == parameter)
+        {
+            CSPBIO::SafeLoad = true;
+        }
+        else if ("-nomonsters" == parameter)
+        {
+            CSPBIO::Monsters = false;
+        }
+        else if ("-chojin" == parameter)
+        {
+            CSPBIO::Chojin = false;
+        }
+        else if ("-nodemo" == parameter)
+        {
+            CSPBIO::PlayDemo = false;
+        }
+        else if ("-monitor" == parameter)
+        {
+            CSPBIO::NETMonitor = CSPBIO::VESAPresent;
+        }
+        else if (boost::algorithm::starts_with(parameter, "-addon:"))
+        {
+            CSPBIO::AddonPath = parameter.substr(sizeof "-addon:" - 1);
+            CSPBIO::UserMaps  = true;
+        }
+        else if ("-vmode" == parameter)
+        {
+            // TODO: video mode
+        }
+        else if ("-kalirate" == parameter)
+        {
+            // TODO: network
+        }
+        else if (boost::algorithm::starts_with(parameter, "-warp"))
+        {
+            const int level = SDL_atoi(parameter.c_str() + sizeof "-warp" - 1);
+
+            if (level > 0 && level < 40)
+            {
+                CSPBIO::LevelN = Sint16(level);
+            }
+
+            CSPBIO::PlayDemo = 0;
+            CSPBIO::MenuMode = 4;
+        }
+        else if (boost::algorithm::starts_with(parameter, "-skill"))
+        {
+            const int skill = SDL_atoi(parameter.c_str() + sizeof "-skill" - 1);
+
+            if (skill >= 0 && skill <= 2)
+            {
+                CSPBIO::Skill = Sint16(skill);
+            }
+        }
+        else if (boost::algorithm::starts_with(parameter, "-color"))
+        {
+            const int color = SDL_atoi(parameter.c_str() + sizeof "-color" - 1);
+
+            if (color > 0 && color <= 8)
+            {
+                CSPBIO::SelfColor = Uint8(color);
+            }
+        }
+        else if ("-nojoy" == parameter)
+        {
+            CSPBIO::JoyStick = false;
+        }
+        else if ("-nosound" == parameter)
+        {
+            SoundIP::sCard = 0;
+        }
+        else if ("-nomouse" == parameter)
+        {
+            CSPBIO::MouseD = false;
+        }
+    }
+}
+
+}
+
 int main(int argc, char** argv)
 {
     if (0 != SDL_Init(SDL_INIT_EVERYTHING))
@@ -237,6 +327,27 @@ int main(int argc, char** argv)
     }
 
     Chasm::LoadConfig(true);
+
+    CSPBIO::Players[0].PName  = CSPBIO::SelfNick;
+    CSPBIO::Players[0].PColor = CSPBIO::SelfColor;
+
+    CSPUTL::InitMessageSystem();
+
+    ParseCommandLine(argc, argv);
+
+    if (CSPBIO::SafeLoad)
+    {
+        // TODO: safe mode
+    }
+
+    if (CSPBIO::UserMaps)
+    {
+        SDL_Log("Add levels from: %s", CSPBIO::AddonPath.string().c_str());
+    }
+
+    // TODO: output hardware and diagnostic information
+
+
 
     // TODO...
 

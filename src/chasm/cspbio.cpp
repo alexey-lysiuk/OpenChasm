@@ -29,10 +29,6 @@ namespace
 
 bool     s_isInternal;   // Internal
 
-OC::Path s_addonPath;    // AddonPath
-bool     s_isUserMaps;   // UserMaps
-
-
 class FileTableEntry
 {
 public:
@@ -105,9 +101,9 @@ EmbeddedFileBuffer::EmbeddedFileBuffer(const OC::Path& path)
 {
     LastFName = path;
     
-    if (s_isUserMaps)
+    if (UserMaps)
     {
-        const OC::Path probePath = s_addonPath / path;
+        const OC::Path probePath = AddonPath / path;
     
         if (OC::FileSystem::IsPathExist(probePath))
         {
@@ -587,6 +583,8 @@ void PutConsMessage(const OC::String& message)
     ConsoleComm.pop_front();
     ConsoleComm.push_back(message);
     ConsoleComm.push_back(lastLine);
+
+    SDL_Log(message.c_str());
 }
 
 void PutConsMessage2(const OC::String& message)
@@ -602,6 +600,7 @@ void PutConsMessage3(const OC::String& message)
 Uint16 ServerVersion;
 Sint32 Long1;
 Uint8 LB;
+bool UserMaps;
 OC::String::value_type ConsoleCommands[546];
 OC::String::value_type ncNames[24];
 Sint16 ncSDivs[5];
@@ -652,7 +651,7 @@ Uint16 Mul320[201];
 Sint32 MulSW[701];
 Sint16 SinTab[1024];
 TLoc* Map;
-OC::String::value_type* ConsHistory;
+std::list<OC::String> ConsHistory;
 Uint8* VMask;
 Uint8* Flags;
 Uint8* DarkMap;
@@ -698,6 +697,7 @@ void* RGBTab60;
 Uint16 LoadPos;
 Uint16 LoadingH;
 Uint16 LoadingW;
+OC::Path AddonPath;
 OC::Real ca;
 OC::Real sa;
 Sint16 RShadeDir;
@@ -728,8 +728,8 @@ Sint16 ConsDY = 0;
 Sint16 ConsMode;
 Sint16 ConsMainY = 0;
 Sint16 ConsMenu;
-Sint16 HistCnt;
-Sint16 CurHist;
+Sint16 HistCnt = 4;
+Sint16 CurHist = 5;
 Sint16 MenuMode;
 Sint16 MenuMainY;
 Uint8 MSsens;
@@ -915,8 +915,8 @@ bool Console = false;
 bool Cocpit = true;
 bool GameActive;
 Uint8 SecCounter;
-void (*TimerInt)();
-void (*KbdInt)();
+void (*TimerInt)() = NULL;
+void (*KbdInt)() = NULL;
 Sint32 EDI0;
 Sint32 Edi1;
 Sint32 mEDX;
@@ -1083,7 +1083,7 @@ bool MsKeyB;
 bool MsKeyC;
 bool MLookOn;
 bool RecordDemo = false;
-bool PlayDemo = false;
+bool PlayDemo = true;
 bool IPXPresent;
 Uint8 NGMode = 0;
 Uint8 NGTeam;

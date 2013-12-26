@@ -21,6 +21,8 @@
 
 #include "csputl.h"
 
+#include "cspbio.h"
+
 namespace CSPUTL
 {
 
@@ -39,7 +41,15 @@ void CheckJoyStick(/*...*/);
 void InitJoyStick(/*...*/);
 void GetMouseStatus(/*...*/);
 void FillStartInfo(/*...*/);
-void InitMessageSystem(/*...*/);
+
+void InitMessageSystem()
+{
+    CSPBIO::ConsHistory.push_back("KILL");
+    CSPBIO::ConsHistory.push_back("AMMO");
+    CSPBIO::ConsHistory.push_back("WEAPON");
+    CSPBIO::ConsHistory.push_back("CHOJIN");
+}
+
 void RemoveLight(/*...*/);
 void AddGreatBlow(/*...*/);
 void AddSuperGreatBlow(/*...*/);
