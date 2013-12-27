@@ -26,7 +26,7 @@ namespace CSPRNDR
 
 static Uint8 QPifagorP16(const Sint16 XX, const Sint16 YY)
 {
-    int16_t result = XX + YY;
+    Sint16 result = XX + YY;
 
     if (0 != XX && 0 != YY)
     {
