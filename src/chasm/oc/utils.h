@@ -28,6 +28,12 @@
 namespace OC
 {
 
+template <typename T>
+T Abs(const T& value)
+{
+    return value < 0 ? -value : value;
+}
+
 WideString ExpandString(const char* const utf8String);
 
 OC::String ReadLine(OC::BinaryStream& stream);
