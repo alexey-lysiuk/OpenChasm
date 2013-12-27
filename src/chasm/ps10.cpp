@@ -348,6 +348,9 @@ int main(int argc, char** argv)
     // TODO: output hardware and diagnostic information
 
     CSPBIO::LoadCommonParts();
+    CSPBIO::ScanLevels();
+
+    // TODO: init sound
 
     // TODO...
 

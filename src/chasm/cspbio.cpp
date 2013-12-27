@@ -77,7 +77,7 @@ private:
     typedef boost::filesystem::filebuf Base;
 
 public:
-    explicit EmbeddedFileBuffer(const OC::Path& filePath);
+    explicit EmbeddedFileBuffer(const OC::Path& filePath, const unsigned int flags = ResourceFile::FILE_MUST_EXIST);
 
 protected:
     virtual pos_type seekoff(off_type off, std::ios::seekdir way,
@@ -94,7 +94,7 @@ private:
 };
 
 
-EmbeddedFileBuffer::EmbeddedFileBuffer(const OC::Path& path)
+EmbeddedFileBuffer::EmbeddedFileBuffer(const OC::Path& path, const unsigned int flags)
 : m_size(0)
 , m_offset(0)
 , m_isEmbedded(false)
@@ -151,7 +151,7 @@ EmbeddedFileBuffer::EmbeddedFileBuffer(const OC::Path& path)
             }
         }
 
-        if (!found)
+        if ((flags & ResourceFile::FILE_MUST_EXIST) && !found)
         {
             DoHalt(OC::Format("Cannot find file %1% within %2%") % path % BaseFile);
         }
@@ -162,7 +162,7 @@ EmbeddedFileBuffer::EmbeddedFileBuffer(const OC::Path& path)
     
         open(probePath, std::ios::in | std::ios::binary);
     
-        if (!is_open())
+        if ((flags & ResourceFile::FILE_MUST_EXIST) && !is_open())
         {
             DoHalt(OC::Format("Cannot open file %1%, permission denied or file system error.") % probePath);
         }
@@ -214,8 +214,8 @@ EmbeddedFileBuffer::pos_type EmbeddedFileBuffer::seekpos(pos_type pos, std::ios:
 // ===========================================================================
 
 
-ResourceFile::ResourceFile(const OC::Path& filePath/*, const Mode mode*/)
-: Base(new EmbeddedFileBuffer(filePath))
+ResourceFile::ResourceFile(const OC::Path& filePath, const unsigned int flags)
+: Base(new EmbeddedFileBuffer(filePath, flags))
 {
 }
 
@@ -609,7 +609,62 @@ void LoadCommonParts()
 
 void CheckMouse(/*...*/);
 void RemoveEqual(/*...*/);
-void ScanLevels(/*...*/);
+
+void ScanLevels()
+{
+    for (size_t i = 0, count = LevelNames.size(); i < count; ++i)
+    {
+        OC::String& levelName = LevelNames[i];
+        levelName = ".";
+
+        const OC::String filename = (OC::Format("level%1$02i/resource.%1$02i") % (i + 1)).str();
+        ResourceFile levelFile(filename, ResourceFile::FILE_MAY_NOT_EXIST);
+
+        if (!levelFile.is_open())
+        {
+            continue;
+        }
+
+        for (;;)
+        {
+            levelName = OC::ReadLine(levelFile);
+            boost::algorithm::trim(levelName);
+
+            ChI(levelFile);
+
+            if (!levelName.empty())
+            {
+                break;
+            }
+        }
+
+        static const char* const NAME_PREFIX = "#name=";
+        static size_t NAME_PREFIX_LENGTH = SDL_strlen(NAME_PREFIX);
+
+        if (levelName.find(NAME_PREFIX) != 0)
+        {
+            continue;
+        }
+
+        levelName = levelName.substr(NAME_PREFIX_LENGTH);
+        boost::algorithm::trim(levelName);
+
+        OC::String& shortName = ShortNames[i];
+        shortName = levelName;
+
+        if (CalcStringLen(shortName) > 132)
+        {
+            do
+            {
+                shortName.resize(shortName.size() - 1);
+            }
+            while (CalcStringLen(shortName) > 122);
+
+            shortName += "...";
+        }
+    }
+}
+
 void FindNextLevel(/*...*/);
 void LoadGraphics(/*...*/);
 
@@ -682,7 +737,19 @@ void DrawKey(/*...*/);
 void DrawBrKey(/*...*/);
 void BrightBar(/*...*/);
 void ShowMap(/*...*/);
-Uint16 CalcStringLen(/*...*/);
+
+Uint16 CalcStringLen(const OC::String& string)
+{
+    Uint16 result = 0;
+
+    OC_FOREACH(const OC::String::value_type ch, string)
+    {
+        result += ' ' == ch ? 4 : CharSize[ch];
+    }
+
+    return result;
+}
+
 void ReInitViewConst(/*...*/);
 void AddBlowLight(/*...*/);
 void _AddBlowLight(/*...*/);
@@ -745,8 +812,8 @@ Uint16 CMP0;
 Uint16 XORMask;
 
 OC::String::value_type* GFXindex;
-OC::String::value_type* ShortNames;
-OC::String::value_type* LevelNames;
+boost::array<OC::String, 64> ShortNames;
+boost::array<OC::String, 64> LevelNames;
 TPic ColorMap; // cm_ofs
 Uint8 FloorMap[4096];
 Uint8 CellMap[4096];
@@ -804,14 +871,14 @@ Uint16 CharSize[256];
 TGunInfo GunsInfo[9];
 NetPlace__Element NetPlace[32];
 void* VGA;
-std::vector<Uint8> Ground(0x5000, 0);
+boost::array<Uint8, 0x5000> Ground;
 TPic Status;
 TPic Loading;
 TPic VesaTiler;
 void* SkyPtr;
 
-RGBTable RGBTab25(0x10000, 0);
-RGBTable RGBTab60(0x10000, 0);
+RGBTable RGBTab25;
+RGBTable RGBTab60;
 
 Uint16 LoadPos;
 Uint16 LoadingH;

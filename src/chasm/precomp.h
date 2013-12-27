@@ -28,6 +28,7 @@
 #include <list>
 
 #define BOOST_ALL_NO_LIB // disables auto-linking for Boost
+#include <boost/array.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>

@@ -37,7 +37,13 @@ private:
     typedef OC::BinaryStream Base;
 
 public:
-    explicit ResourceFile(const OC::Path& filePath);
+    enum OpenModeType
+    {
+        FILE_MUST_EXIST    = 1, // Halt if file was not found
+        FILE_MAY_NOT_EXIST = 2  // Do not halt if file was not found, use is_open() to check
+    };
+
+    explicit ResourceFile(const OC::Path& filePath, const unsigned int flags = FILE_MUST_EXIST);
     virtual ~ResourceFile();
 
     bool is_open() const;
@@ -785,7 +791,7 @@ void DrawKey(/*...*/);
 void DrawBrKey(/*...*/);
 void BrightBar(/*...*/);
 void ShowMap(/*...*/);
-Uint16 CalcStringLen(/*...*/);
+Uint16 CalcStringLen(const OC::String& string);
 void ReInitViewConst(/*...*/);
 void AddBlowLight(/*...*/);
 void _AddBlowLight(/*...*/);
@@ -829,8 +835,8 @@ extern Uint16 CurShOfs;
 extern Uint16 CMP0;
 extern Uint16 XORMask;
 extern OC::String::value_type* GFXindex;
-extern OC::String::value_type* ShortNames;
-extern OC::String::value_type* LevelNames;
+extern boost::array<OC::String, 64> ShortNames;
+extern boost::array<OC::String, 64> LevelNames;
 extern TPic ColorMap;
 extern Uint8 FloorMap[4096];
 extern Uint8 CellMap[4096];
@@ -901,13 +907,13 @@ extern Uint16 CharSize[256];
 extern TGunInfo GunsInfo[9];
 extern NetPlace__Element NetPlace[32];
 extern void* VGA;
-extern std::vector<Uint8> Ground;
+extern boost::array<Uint8, 0x5000> Ground;
 extern TPic Status;
 extern TPic Loading;
 extern TPic VesaTiler;
 extern void* SkyPtr;
 
-typedef std::vector<Uint8> RGBTable;
+typedef boost::array<Uint8, 0x10000> RGBTable;
 extern RGBTable RGBTab25;
 extern RGBTable RGBTab60;
 
