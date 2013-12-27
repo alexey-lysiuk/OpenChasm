@@ -109,50 +109,35 @@ CSPBIO::ResourceFile& operator>>(CSPBIO::ResourceFile& file, MenuRect& rect)
     return file;
 }
 
-} // unnamed namespace
-
-static OC::String ReadMenuString(CSPBIO::ResourceFile& file)
-{
-    OC::String result = OC::ReadLine(file);
-    const OC::String::size_type length = result.size();
-
-    if (length > 0 && '\r' == result[length - 1])
-    {
-        result.resize(length - 1);
-    }
-
-    return result;
-}
-
-static OC::StringArray ReadMenuStringArray(CSPBIO::ResourceFile& file, const size_t count)
+OC::StringArray ReadMenuStringArray(CSPBIO::ResourceFile& file, const size_t count)
 {
     OC::StringArray result;
 
     for (size_t i = 0; i < count; ++i)
     {
-        const OC::String line = ReadMenuString(file);
+        const OC::String line = ReadLine(file);
         result.push_back(line);
     }
 
     return result;
 }
 
-static void ParseMenuDescriptionFile()
+void ParseMenuDescriptionFile()
 {
     CSPBIO::ResourceFile menuFile("menu/menu.txt");
 
     menuFile >> PM.MainPos;
-    PM.Main = ReadMenuString(menuFile);
+    PM.Main = ReadLine(menuFile);
 
     menuFile >> PM.SklPos;
-    PM.Skl = ReadMenuString(menuFile);
+    PM.Skl = ReadLine(menuFile);
 
     menuFile >> PM.NetPos;
-    PM.Net = ReadMenuString(menuFile);
+    PM.Net = ReadLine(menuFile);
 
     menuFile >> PM.SavePos;
-    PM.Save = ReadMenuString(menuFile);
-    PM.Load = ReadMenuString(menuFile);
+    PM.Save = ReadLine(menuFile);
+    PM.Load = ReadLine(menuFile);
 
     menuFile >> PM.OptiPos;
     PM.Opti = ReadMenuStringArray(menuFile, 13);
@@ -191,7 +176,7 @@ static void ParseMenuDescriptionFile()
     // TODO: init resolutions
 }
 
-static void LoadMenuAssets()
+void LoadMenuAssets()
 {
     CSPBIO::ResourceFile tileFile("menu/m_tile1.cel");
 
@@ -206,6 +191,8 @@ static void LoadMenuAssets()
     m_pause.load("menu/m_pause.cel");
     PTors.load("menu/ptors.cel");
 }
+
+} // unnamed namespace
 
 void LoadMenuResourses()
 {

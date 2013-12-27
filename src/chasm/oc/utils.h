@@ -23,21 +23,14 @@
 #define OPENCHASM_OC_UTILS_H_INCLUDED
 
 #include "oc/types.h"
+#include "oc/filesystem.h"
 
 namespace OC
 {
 
 WideString ExpandString(const char* const utf8String);
 
-template <typename Element, typename Traits>
-inline std::basic_string<Element, Traits> ReadLine(std::basic_istream<Element, Traits>& stream)
-{
-    std::basic_string<Element, Traits> result;
-
-    std::getline(stream, result);
-
-    return result;
-}
+OC::String ReadLine(OC::BinaryStream& stream);
 
 } // namespace OC
 
