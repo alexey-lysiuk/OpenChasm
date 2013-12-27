@@ -194,10 +194,10 @@ EmbeddedFileBuffer::pos_type EmbeddedFileBuffer::seekoff(off_type off, std::ios:
 
         if (newPos >= 0 && newPos <= m_size)
         {
-            return Base::seekoff(newPos, way, which);
+            return Base::seekoff(off, way, which);
         }
     }
-    else if (std::ios::end == way && off < 0 && off < m_size)
+    else if (std::ios::end == way && off < 0 && off > -m_size)
     {
         return Base::seekoff(m_offset + m_size + off, std::ios::beg, which);
     }
@@ -232,6 +232,97 @@ bool ResourceFile::is_open() const
 EmbeddedFileBuffer* ResourceFile::fileBuffer() const
 {
     return static_cast<EmbeddedFileBuffer*>(rdbuf());
+}
+
+
+// ===========================================================================
+
+
+void TPoint3di::read(OC::BinaryStream& stream)
+{
+    stream.readBinary(X);
+    stream.readBinary(Y);
+    stream.readBinary(Z);
+}
+
+
+void TPoint2D::read(OC::BinaryStream& stream)
+{
+    stream.readBinary(sX);
+    stream.readBinary(sY);
+}
+
+
+TFace::TFace()
+{
+    SDL_zerop(this);
+}
+
+void TFace::read(OC::BinaryStream& stream)
+{
+    stream.readBinary(V1);
+    stream.readBinary(V2);
+    stream.readBinary(V3);
+    stream.readBinary(V4);
+
+    stream.readBinary(TAx);
+    stream.readBinary(TAy);
+    stream.readBinary(TBx);
+    stream.readBinary(TBy);
+    stream.readBinary(TCx);
+    stream.readBinary(TCy);
+    stream.readBinary(TDx);
+    stream.readBinary(TDy);
+
+    stream.readBinary(Next);
+    stream.readBinary(Distant);
+
+    stream.readBinary(TNum);
+    stream.readBinary(Flags);
+
+    stream.readBinary(SprOFs);
+}
+
+
+TOHeader::TOHeader()
+: VCount(0)
+, FCount(0)
+, TH(0)
+, TPtr(NULL)
+{
+
+}
+
+void TOHeader::read(OC::BinaryStream& stream)
+{
+    OC_FOREACH(TFace& face, Faces)
+    {
+        face.read(stream);
+    }
+
+    OC_FOREACH(TPoint3di& vertex, OVert)
+    {
+        vertex.read(stream);
+    }
+
+    OC_FOREACH(TPoint3di& vertex, RVert)
+    {
+        vertex.read(stream);
+    }
+
+    OC_FOREACH(TPoint3di& vertex, ShVert)
+    {
+        vertex.read(stream);
+    }
+
+    OC_FOREACH(TPoint2D& vertex, ScVert)
+    {
+        vertex.read(stream);
+    }
+
+    stream.readBinary(VCount);
+    stream.readBinary(FCount);
+    stream.readBinary(TH);
 }
 
 
@@ -505,9 +596,70 @@ void SetCurPicTo(/*...*/);
 void LoadPic(/*...*/);
 void LoadAnimation(/*...*/);
 void LoadPOH(/*...*/);
-void ScanLoHi(/*...*/);
+
+void ScanLoHi(Sint16& loZ, Sint16& hiZ, const TOHeader& model)
+{
+    loZ = Sint16( 10000);
+    hiZ = Sint16(-10000);
+
+    for (Uint16 n = 0; n < model.VCount; ++n)
+    {
+        const Sint16 z = model.OVert[n].Z;
+
+        loZ = std::min(loZ, z);
+        hiZ = std::max(hiZ, z);
+    }
+
+    loZ -= 96;
+
+    if (loZ < 0)
+    {
+        loZ = 0;
+    }
+}
+
 void ScanLowHigh(/*...*/);
-void InitCaracter(/*...*/);
+
+void InitCaracter(const size_t monsterNumber)
+{
+    const size_t monsterIndex = monsterNumber - FIRST_MONSTER_INDEX;
+    SDL_assert(monsterIndex < MonstersInfo.size());
+
+    TMonsterInfo& monster = MonstersInfo[monsterIndex];
+    ResourceFile characterFile("caracter/" + monster.CarName);
+
+    Uint16 sounds[3];
+
+    characterFile.seekg(64);                          // skip AniMap
+    characterFile.readBinary(sounds, sizeof sounds);  // read GSND
+    characterFile.seekg(32, std::ios::cur);           // skip SFXSize and SFXVol
+
+    for (size_t i = 0; i < 3; ++i)
+    {
+        SepPartInfo[monsterIndex + i].FallSound = sounds[i];
+    }
+
+    TOHeader header;
+    header.read(characterFile);
+
+    ChI(characterFile);
+
+    ScanWH(monster.MWidth, monster.MHeight, header);
+
+    Sint16 loZ, hiZ;
+    ScanLoHi(loZ, hiZ, header);
+
+    if (loZ > 320)
+    {
+        monster.MHeight -= loZ;
+    }
+
+    if (120 == monsterNumber)
+    {
+        monster.MWidth = 256;
+    }
+}
+
 void UpLoadCaracter(/*...*/);
 void ReleaseCaracter(/*...*/);
 void LoadSound(/*...*/);
@@ -610,12 +762,14 @@ void LoadCommonParts()
 void CheckMouse(/*...*/);
 void RemoveEqual(/*...*/);
 
+static const char* const EMPTY_LEVEL_NAME = ".";
+
 void ScanLevels()
 {
     for (size_t i = 0, count = LevelNames.size(); i < count; ++i)
     {
         OC::String& levelName = LevelNames[i];
-        levelName = ".";
+        levelName = EMPTY_LEVEL_NAME;
 
         const OC::String filename = (OC::Format("level%1$02i/resource.%1$02i") % (i + 1)).str();
         ResourceFile levelFile(filename, ResourceFile::FILE_MAY_NOT_EXIST);
@@ -666,7 +820,55 @@ void ScanLevels()
 }
 
 void FindNextLevel(/*...*/);
-void LoadGraphics(/*...*/);
+
+void LoadGraphics()
+{
+    SDL_Log("Reading graphics information:");
+
+    ResourceFile infoFile("chasm.inf");
+
+    for (;;)
+    {
+        OC::String line = OC::ReadLine(infoFile);
+
+        ChI(infoFile);
+
+        static const struct
+        {
+            const char* section;
+            void (*function)(ResourceFile&);
+        }
+        loadingFunctions[] =
+        {
+            { "[MONSTERS]",    LoadMonsters   },
+            { "[BMP_OBJECTS]", LoadBMPObjects },
+            { "[3D_OBJECTS]",  Load3dObjects  },
+            { "[ROCKETS]",     LoadRockets    },
+            { "[GIBS]",        LoadGibs       },
+            { "[BLOWS]",       LoadBlows      },
+            { "[WEAPONS]",     LoadGunsInfo   },
+            { "[SOUNDS]",      LoadSounds     }
+        };
+
+        for (size_t i = 0; i < SDL_TABLESIZE(loadingFunctions); ++i)
+        {
+            if (loadingFunctions[i].section == line)
+            {
+                loadingFunctions[i].function(infoFile);
+            }
+        }
+
+        if ("END." == line)
+        {
+            break;
+        }
+    }
+
+    if (EMPTY_LEVEL_NAME == LevelNames[LevelN])
+    {
+        LevelN = 1;
+    }
+}
 
 void LoadGround()
 {
@@ -851,7 +1053,7 @@ TRocket RocketList[64];
 TSepPart SepList[32];
 TMine MinesList[16];
 TBlowLight BlowLights[32];
-TMonsterInfo MonstersInfo[23];
+boost::array<TMonsterInfo, 23> MonstersInfo;
 TRocketInfo RocketsInfo[32];
 TSepPartInfo SepPartInfo[90];
 TBlowInfo BlowsInfo[24];
@@ -1316,16 +1518,102 @@ bool TextSeek(/*...*/);
 void ShowFinalScreen(/*...*/);
 void Wait_R(/*...*/);
 void LoadPicsPacket(/*...*/);
-void ScanWH(/*...*/);
+
+void ScanWH(Sint16& width, Sint16& height, const TOHeader& model)
+{
+    Sint16 wx = 0;
+    Sint16 wy = 0;
+
+    for (Uint16 n = 0; n < model.VCount; ++n)
+    {
+        const TPoint3di& vertex = model.OVert[n];
+
+        wx = std::max(OC::Abs(vertex.X), wx);
+        wy = std::max(OC::Abs(vertex.Y), wy);
+
+        height = std::max(vertex.Z, height);
+    }
+
+    width = (wx + wy) / 12 + 20;
+    height += 32;
+}
+
 void AllocFloors(/*...*/);
-void LoadSounds(/*...*/);
-void LoadBMPObjects(/*...*/);
-void Load3dObjects(/*...*/);
-void LoadRockets(/*...*/);
-void LoadGibs(/*...*/);
-void LoadBlows(/*...*/);
-void LoadMonsters(/*...*/);
-void LoadGunsInfo(/*...*/);
+
+void LoadSounds(ResourceFile& infoFile)
+{
+    // TODO ...
+}
+
+void LoadBMPObjects(ResourceFile& infoFile)
+{
+    // TODO ...
+}
+
+void Load3dObjects(ResourceFile& infoFile)
+{
+    // TODO ...
+}
+
+void LoadRockets(ResourceFile& infoFile)
+{
+    // TODO ...
+}
+
+void LoadGibs(ResourceFile& infoFile)
+{
+    // TODO ...
+}
+
+void LoadBlows(ResourceFile& infoFile)
+{
+    // TODO ...
+}
+
+void LoadMonsters(ResourceFile& infoFile)
+{
+    SDL_Log(" Loading Monsters...");
+
+    Uint16 count;
+    infoFile >> count;
+
+    ReadLine(infoFile);
+
+    const size_t monstersMax = MonstersInfo.size();
+    SDL_assert(monstersMax >= count);
+
+    count = std::min(count, Uint16(monstersMax));
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        TMonsterInfo& monster = MonstersInfo[i];
+
+        infoFile >> monster.CarName;
+
+        infoFile >> monster.Radius;
+        infoFile >> monster.CRad;
+
+        infoFile >> monster.Speed;
+        infoFile >> monster.RSpeed;
+
+        infoFile >> monster.Life;
+        infoFile >> monster.KickPower;
+        infoFile >> monster.Rocket;
+        infoFile >> monster.SepLimit;
+
+        ReadLine(infoFile);
+
+        InitCaracter(i + FIRST_MONSTER_INDEX);
+    }
+
+    MonstersInfo[2].MWidth -= 12;
+}
+
+void LoadGunsInfo(ResourceFile& infoFile)
+{
+    // TODO ...
+}
+
 void CLine(/*...*/);
 void Line(/*...*/);
 void HBrline0(/*...*/);

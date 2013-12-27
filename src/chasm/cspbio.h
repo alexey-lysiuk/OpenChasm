@@ -61,6 +61,7 @@ struct TFace
     Uint16 V2;
     Uint16 V3;
     Uint16 V4;
+
     Uint16 TAx;
     Uint16 TAy;
     Uint16 TBx;
@@ -69,11 +70,18 @@ struct TFace
     Uint16 TCy;
     Uint16 TDx;
     Uint16 TDy;
+
     Sint16 Next;
     Sint16 Distant;
-    Uint8 TNum;
-    Uint8 Flags;
+
+    Uint8  TNum;
+    Uint8  Flags;
+
     Uint16 SprOFs;
+
+    TFace();
+
+    void read(OC::BinaryStream& stream);
 };
 
 struct TPoint3di
@@ -81,25 +89,43 @@ struct TPoint3di
     Sint16 X;
     Sint16 Y;
     Sint16 Z;
+
+    TPoint3di(const Sint16 x = 0, const Sint16 y = 0, const Sint16 z = 0)
+    : X(x), Y(y), Z(z) { }
+
+    void read(OC::BinaryStream& stream);
 };
 
 struct TPoint2D
 {
     Sint16 sX;
     Sint16 sY;
+
+    explicit TPoint2D(const Sint16 sx = 0, const Sint16 sy = 0)
+    : sX(sx), sY(sy) { }
+
+    void read(OC::BinaryStream& stream);
 };
 
 struct TOHeader
 {
-    TFace Faces[400];
-    TPoint3di OVert[256];
-    TPoint3di RVert[256];
-    TPoint3di ShVert[256];
-    TPoint2D ScVert[256];
+    boost::array<TFace,     400> Faces;
+
+    boost::array<TPoint3di, 256> OVert;
+    boost::array<TPoint3di, 256> RVert;
+    boost::array<TPoint3di, 256> ShVert;
+    boost::array<TPoint2D,  256> ScVert;
+
     Uint16 VCount;
     Uint16 FCount;
+    
     Uint16 TH;
+
     void* TPtr;
+
+    TOHeader();
+
+    void read(OC::BinaryStream& stream);
 };
 
 struct TSepPartInfo
@@ -421,6 +447,8 @@ struct _DWord
 
 struct TMonsterInfo
 {
+    OC::String CarName;
+
     Sint16 PhaseTime;
     Sint16 Speed;
     Sint16 RSpeed;
@@ -433,11 +461,12 @@ struct TMonsterInfo
     Sint16 KickPower;
     Sint16 Rocket;
     Sint16 SepLimit;
-    bool Present;
-    OC::String::value_type CarName[13];
+    Uint16 PTimes[20];
+    
     TOHeader* POH;
     TPoint3di* Phases[20];
-    Uint16 PTimes[20];
+
+    bool Present;
 };
 
 struct TSepPart
@@ -763,9 +792,9 @@ void SetCurPicTo(/*...*/);
 void LoadPic(/*...*/);
 void LoadAnimation(/*...*/);
 void LoadPOH(/*...*/);
-void ScanLoHi(/*...*/);
+void ScanLoHi(Sint16& loZ, Sint16& hiZ, const TOHeader& model);
 void ScanLowHigh(/*...*/);
-void InitCaracter(/*...*/);
+void InitCaracter(const size_t monsterNumber);
 void UpLoadCaracter(/*...*/);
 void ReleaseCaracter(/*...*/);
 void LoadSound(/*...*/);
@@ -777,7 +806,7 @@ void CheckMouse(/*...*/);
 void RemoveEqual(/*...*/);
 void ScanLevels(/*...*/);
 void FindNextLevel(/*...*/);
-void LoadGraphics(/*...*/);
+void LoadGraphics();
 void LoadGround();
 void DoSetPalette(/*...*/);
 void SetPalette();
@@ -874,7 +903,12 @@ extern TRocket RocketList[64];
 extern TSepPart SepList[32];
 extern TMine MinesList[16];
 extern TBlowLight BlowLights[32];
-extern TMonsterInfo MonstersInfo[23];
+
+// Monster numbers are 100..122
+static const size_t FIRST_MONSTER_INDEX = 100;
+
+extern boost::array<TMonsterInfo, 23> MonstersInfo;
+
 extern TRocketInfo RocketsInfo[32];
 extern TSepPartInfo SepPartInfo[90];
 extern TBlowInfo BlowsInfo[24];
@@ -1367,16 +1401,18 @@ bool TextSeek(/*...*/);
 void ShowFinalScreen(/*...*/);
 void Wait_R(/*...*/);
 void LoadPicsPacket(/*...*/);
-void ScanWH(/*...*/);
+void ScanWH(Sint16& width, Sint16& height, const TOHeader& model);
 void AllocFloors(/*...*/);
-void LoadSounds(/*...*/);
-void LoadBMPObjects(/*...*/);
-void Load3dObjects(/*...*/);
-void LoadRockets(/*...*/);
-void LoadGibs(/*...*/);
-void LoadBlows(/*...*/);
-void LoadMonsters(/*...*/);
-void LoadGunsInfo(/*...*/);
+
+void LoadSounds(ResourceFile& infoFile);
+void LoadBMPObjects(ResourceFile& infoFile);
+void Load3dObjects(ResourceFile& infoFile);
+void LoadRockets(ResourceFile& infoFile);
+void LoadGibs(ResourceFile& infoFile);
+void LoadBlows(ResourceFile& infoFile);
+void LoadMonsters(ResourceFile& infoFile);
+void LoadGunsInfo(ResourceFile& infoFile);
+
 void CLine(/*...*/);
 void Line(/*...*/);
 void HBrline0(/*...*/);

@@ -352,6 +352,8 @@ int main(int argc, char** argv)
 
     // TODO: init sound
 
+    CSPBIO::LoadGraphics();
+
     // TODO...
 
     return EXIT_SUCCESS;
