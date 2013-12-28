@@ -55,9 +55,19 @@ public:
     BinaryStream& readBinary(Uint32& value);
 
     template <typename T>
-    BinaryStream& readBinary(T* const ptr, const std::streamsize count)
+    BinaryStream& readBinary(T& collection, const typename T::size_type size = typename T::size_type(-1))
     {
-        read(static_cast<char*>(static_cast<void*>(ptr)), count);
+        char* const ptr = static_cast<char*>(static_cast<void*>(&collection[0]));
+
+        const std::streamsize collectionSize = sizeof(collection[0]) * collection.size();
+        const std::streamsize count = typename T::size_type(-1) == size
+            ? collectionSize
+            : size;
+
+        SDL_assert(collectionSize >= count);
+
+        read(ptr, count);
+
         return *this;
     }
 

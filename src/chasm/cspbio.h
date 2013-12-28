@@ -146,9 +146,9 @@ public:
     TPic();
     explicit TPic(const char* const filename);
 
-    const Uint16 width() const { return m_width; }    // XSize
-    const Uint16 height() const { return m_height; }  // YSize
-    const Uint16 centeX() const { return m_height; }  // CenterX
+    const Uint16 width()  const { return m_width;   }  // XSize
+    const Uint16 height() const { return m_height;  }  // YSize
+    const Uint16 centeX() const { return m_centerX; }  // CenterX
     
     const Uint8* data() const  // p
     {
@@ -165,13 +165,20 @@ public:
         m_data[index] = value;
     }
 
-    void load(const char* const filename);            // LoadPicFromCel()
+    // Loads picture object from .cel file by its name
+    // Replaces LoadPicFromCel()
+    void load(const char* const filename);
+
+    // Loads picture object from given binary stream as raw data
+    // Replaces LoadPic()
+    void load(OC::BinaryStream& stream);
 
 private:
-    std::vector<Uint8> m_data; // p
+    std::vector<Uint8> m_data;  // p
 
-    Uint16 m_width;   // XSize
-    Uint16 m_height;  // YSize
+    Uint16 m_width;    // XSize
+    Uint16 m_height;   // YSize
+    Uint16 m_centerX;  // CenterX
 };
 
 struct TAmmoBag
@@ -344,9 +351,13 @@ struct TObjBMPInfo
 {
     Sint16 Oz;
     Uint8 bmpFlags;
+
     Uint8 Frames;
     Uint8 CurFrame;
-    TPic Pics[16];
+
+    boost::array<TPic, 16> Pics;
+
+    TObjBMPInfo();
 };
 
 struct FIB
@@ -789,7 +800,6 @@ Sint16 Max(/*...*/);
 Sint16 Min(/*...*/);
 Sint8 Sgn(/*...*/);
 void SetCurPicTo(/*...*/);
-void LoadPic(/*...*/);
 void LoadAnimation(/*...*/);
 void LoadPOH(/*...*/);
 void ScanLoHi(Sint16& loZ, Sint16& hiZ, const TOHeader& model);
@@ -875,16 +885,16 @@ extern TTPort__Element* Tports;
 extern void* PImPtr[120];
 extern Uint16 PImSeg[120];
 extern Uint8 WallMask[120];
-extern TObjBMPInfo ObjBMPInf[4];
+extern boost::array<TObjBMPInfo, 4> ObjBMPInf;
 extern TObj3DInfo Obj3DInf[96];
 extern Uint16 LinesH1[847];
 extern Uint16 LinesH2[847];
 extern TLinesBuf* LinesBUF;
 extern THoleItem* HolesList;
 extern Uint8 SpryteUsed[120];
-extern Uint16 Mul320[201];
+extern boost::array<Uint16, 201> Mul320;
 extern Sint32 MulSW[701];
-extern Sint16 SinTab[1024];
+extern boost::array<Sint16, 1024> SinTab;
 extern TLoc* Map;
 extern std::list<OC::String> ConsHistory;
 extern Uint8* VMask;
@@ -934,10 +944,10 @@ struct RGB
     { }
 };
 
-extern RGB Palette[256];
-extern RGB Pal[256];
+extern boost::array<RGB, 256> Palette;
+extern boost::array<RGB, 256> Pal;
 
-extern Uint16 CharSize[256];
+extern boost::array<Uint16, 256> CharSize;
 extern TGunInfo GunsInfo[9];
 extern NetPlace__Element NetPlace[32];
 extern void* VGA;
@@ -1308,7 +1318,7 @@ extern bool VCenterMode;
 extern Uint8 c;
 extern Uint8 kod;
 extern Uint8 key;
-extern Uint8 ASCII_Tab[256];
+extern boost::array<Uint8, 256> ASCII_Tab;
 extern OC::Path LastFName;
 extern OC::String::value_type S[256];
 //extern Dos::Registers Regs;
@@ -1358,7 +1368,7 @@ extern bool MSCDEX;
 extern Sint16 LCDTrack;
 extern Sint16 CDTrack;
 extern Sint32 CDTime;
-extern TPlayerInfo Players[8];
+extern boost::array<TPlayerInfo, 8> Players;
 extern Uint8 LastBorn;
 extern Uint8 LevelChanges[16];
 extern Uint16 ProcState[4];

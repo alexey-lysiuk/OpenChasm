@@ -318,12 +318,12 @@ int main(int argc, char** argv)
 
     // TODO: CheckNP(), IPX?
 
-    for (size_t i = 0; i < SDL_TABLESIZE(CSPBIO::Players); ++i)
+    for (size_t i = 0; i < CSPBIO::Players.size(); ++i)
     {
         CSPBIO::Players[i].PlColorN = Sint16(i);
     }
 
-    for (size_t i = 0; i < SDL_TABLESIZE(CSPBIO::Mul320); ++i)
+    for (size_t i = 0; i < CSPBIO::Mul320.size(); ++i)
     {
         CSPBIO::Mul320[i] = Uint16(i * 320);
     }

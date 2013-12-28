@@ -85,6 +85,8 @@ protected:
     virtual pos_type seekpos(pos_type pos,
         std::ios::openmode which = std::ios::in | std::ios::out);
 
+    virtual std::streamsize xsgetn(char* ptr, std::streamsize count);
+
 private:
     std::streamsize m_size;
     std::streamoff  m_offset;
@@ -208,6 +210,17 @@ EmbeddedFileBuffer::pos_type EmbeddedFileBuffer::seekoff(off_type off, std::ios:
 EmbeddedFileBuffer::pos_type EmbeddedFileBuffer::seekpos(pos_type pos, std::ios::openmode which)
 {
     return seekoff(off_type(pos), std::ios::beg, which);
+}
+
+
+std::streamsize EmbeddedFileBuffer::xsgetn(char* ptr, std::streamsize count)
+{
+    const pos_type curPos = Base::seekoff(0, std::ios::cur, std::ios::in) - m_offset;
+    SDL_assert(curPos <= m_size);
+
+    count = std::min(std::streamsize(m_size - curPos), count);
+
+    return Base::xsgetn(ptr, count);
 }
 
 
@@ -479,9 +492,25 @@ void TPic::load(const char* const filename)
     m_data.resize(dataSize);
 
     celFile.seekg(CEL_DATA_OFFSET);
-    celFile.readBinary(&m_data[0], dataSize);
+    celFile.readBinary(m_data);
 
     CSPBIO::ChI(celFile);
+}
+
+void TPic::load(OC::BinaryStream& stream)
+{
+    SDL_assert(stream.good());
+
+    stream.readBinary(m_width);
+    stream.readBinary(m_height);
+    stream.readBinary(m_centerX);
+
+    const size_t dataSize = m_width * m_height;
+    m_data.resize(dataSize);
+
+    stream.readBinary(m_data);
+
+    CSPBIO::ChI(stream);
 }
 
 
@@ -528,6 +557,19 @@ TPlayerInfo::TPlayerInfo()
 , LastTime(0)
 {
     SDL_zero(Ammo);
+}
+
+
+// ===========================================================================
+
+
+TObjBMPInfo::TObjBMPInfo()
+: Oz(0)
+, bmpFlags(0)
+, Frames(0)
+, CurFrame(0)
+{
+
 }
 
 
@@ -586,21 +628,18 @@ void ChI(const OC::BinaryStream& stream)
     }
 }
 
-//void GetMem16(/*...*/);
-//void FreeMem16(/*...*/);
 void CalcDir(/*...*/);
 Sint16 Max(/*...*/);
 Sint16 Min(/*...*/);
 Sint8 Sgn(/*...*/);
 void SetCurPicTo(/*...*/);
-void LoadPic(/*...*/);
 void LoadAnimation(/*...*/);
 void LoadPOH(/*...*/);
 
 void ScanLoHi(Sint16& loZ, Sint16& hiZ, const TOHeader& model)
 {
-    loZ = Sint16( 10000);
-    hiZ = Sint16(-10000);
+    loZ =  10000;
+    hiZ = -10000;
 
     for (Uint16 n = 0; n < model.VCount; ++n)
     {
@@ -628,13 +667,13 @@ void InitCaracter(const size_t monsterNumber)
     TMonsterInfo& monster = MonstersInfo[monsterIndex];
     ResourceFile characterFile("caracter/" + monster.CarName);
 
-    Uint16 sounds[3];
+    boost::array<Uint16, 3> sounds;
 
-    characterFile.seekg(64);                          // skip AniMap
-    characterFile.readBinary(sounds, sizeof sounds);  // read GSND
-    characterFile.seekg(32, std::ios::cur);           // skip SFXSize and SFXVol
+    characterFile.seekg(64);                // skip AniMap
+    characterFile.readBinary(sounds);       // read GSND
+    characterFile.seekg(32, std::ios::cur); // skip SFXSize and SFXVol
 
-    for (size_t i = 0; i < 3; ++i)
+    for (size_t i = 0; i < sounds.size(); ++i)
     {
         SepPartInfo[monsterIndex + i].FallSound = sounds[i];
     }
@@ -673,7 +712,7 @@ namespace
 void LoadRGBTable(const char* const filename, RGBTable& table)
 {
     ResourceFile tableFile(filename);
-    tableFile.readBinary(&table[0], 0xFF00);
+    tableFile.readBinary(table, 0xFF00);
 }
 
 } // unnamed namespace
@@ -684,7 +723,7 @@ void LoadCommonParts()
     // This is caused by discrepancy in calculation using hardware floating point numbers
     // (IEEE 754 in most cases) and Pascal's Real type
 
-    for (size_t i = 0; i < SDL_TABLESIZE(SinTab); ++i)
+    for (size_t i = 0; i < SinTab.size(); ++i)
     {
         static const OC::Float op1 = OC::Float(M_PI); // OC::Real(0x2182, 0xDAA2, 0x490F).convert<OC::Float>();
         static const OC::Float op2 = 2.0f;            // OC::Real(0x0082, 0x0000, 0x0000).convert<OC::Float>();
@@ -713,7 +752,7 @@ void LoadCommonParts()
 
     Fonts.load("common/font256.cel");
 
-    for (Uint16 j = 0; j < 256; ++j)
+    for (Uint16 j = 0; j < CharSize.size(); ++j)
     {
         Uint16 w = 0;
 
@@ -750,12 +789,12 @@ void LoadCommonParts()
 
     {
         ResourceFile paletteFile("common/chasm2.pal");
-        paletteFile.readBinary(Palette, sizeof Palette);
+        paletteFile.readBinary(Palette);
     }
 
     {
         ResourceFile asciiTableFile("common/chasm.key");
-        asciiTableFile.readBinary(ASCII_Tab, sizeof ASCII_Tab);
+        asciiTableFile.readBinary(ASCII_Tab);
     }
 }
 
@@ -1025,16 +1064,16 @@ TTPort__Element* Tports;
 void* PImPtr[120];
 Uint16 PImSeg[120];
 Uint8 WallMask[120];
-TObjBMPInfo ObjBMPInf[4];
+boost::array<TObjBMPInfo, 4> ObjBMPInf;
 TObj3DInfo Obj3DInf[96];
 Uint16 LinesH1[847];
 Uint16 LinesH2[847];
 TLinesBuf* LinesBUF;
 THoleItem* HolesList;
 Uint8 SpryteUsed[120];
-Uint16 Mul320[201];
+boost::array<Uint16, 201> Mul320;
 Sint32 MulSW[701];
-Sint16 SinTab[1024];
+boost::array<Sint16, 1024> SinTab;
 TLoc* Map;
 std::list<OC::String> ConsHistory;
 Uint8* VMask;
@@ -1066,10 +1105,10 @@ TPic BigFont;
 TPic LitFont;
 TPic WIcons;
 
-RGB Palette[256];
-RGB Pal[256];
+boost::array<RGB, 256> Palette;
+boost::array<RGB, 256> Pal;
 
-Uint16 CharSize[256];
+boost::array<Uint16, 256> CharSize;
 TGunInfo GunsInfo[9];
 NetPlace__Element NetPlace[32];
 void* VGA;
@@ -1436,7 +1475,7 @@ bool VCenterMode;
 Uint8 c;
 Uint8 kod;
 Uint8 key;
-Uint8 ASCII_Tab[256];
+boost::array<Uint8, 256> ASCII_Tab;
 OC::Path LastFName;
 OC::String::value_type S[256];
 //Dos::Registers Regs;
@@ -1486,7 +1525,7 @@ bool MSCDEX;
 Sint16 LCDTrack;
 Sint16 CDTrack;
 Sint32 CDTime;
-TPlayerInfo Players[8];
+boost::array<TPlayerInfo, 8> Players;
 Uint8 LastBorn;
 Uint8 LevelChanges[16];
 Uint16 ProcState[4];
@@ -1540,6 +1579,20 @@ void ScanWH(Sint16& width, Sint16& height, const TOHeader& model)
 
 void AllocFloors(/*...*/);
 
+namespace
+{
+
+template <typename CountType, typename StorageType>
+void ValidateCount(CountType& count, const StorageType& objects)
+{
+    const typename StorageType::size_type storageSize = objects.size();
+    SDL_assert(storageSize >= count);
+
+    count = std::min(count, CountType(storageSize));
+}
+
+}; // unnamed namespace
+
 void LoadSounds(ResourceFile& infoFile)
 {
     // TODO ...
@@ -1547,7 +1600,44 @@ void LoadSounds(ResourceFile& infoFile)
 
 void LoadBMPObjects(ResourceFile& infoFile)
 {
-    // TODO ...
+    SDL_Log(" Loading Objects...");
+
+    infoFile >> ObjectsLoaded;
+    ReadLine(infoFile);
+
+    ValidateCount(ObjectsLoaded, ObjBMPInf);
+
+    for (size_t i = 0; i < ObjectsLoaded; ++i)
+    {
+        TObjBMPInfo& bmp = ObjBMPInf[i];
+
+        Uint16 sh, gl, hl, n;
+
+        infoFile >> sh >> gl >> hl;
+        infoFile >> bmp.Oz;
+        infoFile >> n >> n;
+
+        bmp.bmpFlags = (1 == sh ? 2 : 0)
+            + (1 == gl ? 1 : 0)
+            + (1 == hl ? 4 : 0);
+
+        OC::String filename;
+        infoFile >> filename;
+
+        ReadLine(infoFile);
+
+        ResourceFile objectFile("obj/" + filename);
+
+        objectFile.readBinary(bmp.Frames);
+        objectFile.readBinary(bmp.CurFrame);
+
+        ValidateCount(bmp.Frames, bmp.Pics);
+
+        for (size_t j = 0; j < bmp.Frames; ++j)
+        {
+            bmp.Pics[j].load(objectFile);
+        }
+    }
 }
 
 void Load3dObjects(ResourceFile& infoFile)
@@ -1579,10 +1669,7 @@ void LoadMonsters(ResourceFile& infoFile)
 
     ReadLine(infoFile);
 
-    const size_t monstersMax = MonstersInfo.size();
-    SDL_assert(monstersMax >= count);
-
-    count = std::min(count, Uint16(monstersMax));
+    ValidateCount(count, MonstersInfo);
 
     for (size_t i = 0; i < count; ++i)
     {
