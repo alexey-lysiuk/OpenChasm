@@ -51,12 +51,14 @@ void LoadConfig(const bool original)
     {
         if (original)
         {
+            CSPBIO::PutConsMessage2("File chasm.cfg was not found, fallback to default settings...");
+
             LoadConfig(false);
             return;
         }
         else
         {
-            CSPBIO::PutConsMessage2("CHASM.DEF not found.");
+            CSPBIO::PutConsMessage2("File chasm.def was not found");
             return;
         }
     }
