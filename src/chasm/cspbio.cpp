@@ -79,6 +79,8 @@ private:
 public:
     explicit EmbeddedFileBuffer(const OC::Path& filePath, const unsigned int flags = ResourceFile::FILE_MUST_EXIST);
 
+    const std::streamsize size() const { return m_size; }
+
 protected:
     virtual pos_type seekoff(off_type off, std::ios::seekdir way,
         std::ios::openmode which = std::ios::in | std::ios::out);
@@ -169,6 +171,12 @@ EmbeddedFileBuffer::EmbeddedFileBuffer(const OC::Path& path, const unsigned int 
             DoHalt(OC::Format("Cannot open file %1%, permission denied or file system error.") % probePath);
         }
     }
+
+    if (!m_isEmbedded)
+    {
+        m_size = Base::seekoff(0, std::ios::end);
+        Base::seekoff(0, std::ios::beg);
+    }
 }
 
 
@@ -242,6 +250,11 @@ bool ResourceFile::is_open() const
     return fileBuffer()->is_open();
 }
 
+const std::streamsize ResourceFile::size() const
+{
+    return fileBuffer()->size();
+}
+
 EmbeddedFileBuffer* ResourceFile::fileBuffer() const
 {
     return static_cast<EmbeddedFileBuffer*>(rdbuf());
@@ -251,7 +264,7 @@ EmbeddedFileBuffer* ResourceFile::fileBuffer() const
 // ===========================================================================
 
 
-void TPoint3di::read(OC::BinaryStream& stream)
+void TPoint3di::load(OC::BinaryStream& stream)
 {
     stream.readBinary(X);
     stream.readBinary(Y);
@@ -259,7 +272,7 @@ void TPoint3di::read(OC::BinaryStream& stream)
 }
 
 
-void TPoint2D::read(OC::BinaryStream& stream)
+void TPoint2D::load(OC::BinaryStream& stream)
 {
     stream.readBinary(sX);
     stream.readBinary(sY);
@@ -271,7 +284,7 @@ TFace::TFace()
     SDL_zerop(this);
 }
 
-void TFace::read(OC::BinaryStream& stream)
+void TFace::load(OC::BinaryStream& stream)
 {
     stream.readBinary(V1);
     stream.readBinary(V2);
@@ -301,36 +314,73 @@ TOHeader::TOHeader()
 : VCount(0)
 , FCount(0)
 , TH(0)
-, TPtr(NULL)
 {
 
 }
 
-void TOHeader::read(OC::BinaryStream& stream)
+static void AdjustFaceCoord(Uint16& coord)
+{
+    coord = coord * 256 + 128;
+}
+
+void TOHeader::load(const OC::Path& filename)
+{
+    ResourceFile file(filename);
+
+    load(file);
+
+    TH *= 64;
+    TPtr.resize(TH);
+
+    file.readBinary(TPtr);
+
+    ChI(file);
+
+    for (Uint16 i = 0; i < FCount; ++i)
+    {
+        TFace& face = Faces[i];
+
+        const Uint8 b = face.Flags >> 4;
+        face.TNum = 0 == b ? 0 : Uint8(1 << (b - 1));
+
+        face.SprOFs *= 64;
+
+        AdjustFaceCoord(face.TAx);
+        AdjustFaceCoord(face.TAy);
+        AdjustFaceCoord(face.TBx);
+        AdjustFaceCoord(face.TBy);
+        AdjustFaceCoord(face.TCx);
+        AdjustFaceCoord(face.TCy);
+        AdjustFaceCoord(face.TDx);
+        AdjustFaceCoord(face.TDy);
+    }
+}
+
+void TOHeader::load(OC::BinaryStream& stream)
 {
     OC_FOREACH(TFace& face, Faces)
     {
-        face.read(stream);
+        face.load(stream);
     }
 
     OC_FOREACH(TPoint3di& vertex, OVert)
     {
-        vertex.read(stream);
+        vertex.load(stream);
     }
 
     OC_FOREACH(TPoint3di& vertex, RVert)
     {
-        vertex.read(stream);
+        vertex.load(stream);
     }
 
     OC_FOREACH(TPoint3di& vertex, ShVert)
     {
-        vertex.read(stream);
+        vertex.load(stream);
     }
 
     OC_FOREACH(TPoint2D& vertex, ScVert)
     {
-        vertex.read(stream);
+        vertex.load(stream);
     }
 
     stream.readBinary(VCount);
@@ -563,6 +613,30 @@ TPlayerInfo::TPlayerInfo()
 // ===========================================================================
 
 
+TObj3DInfo::TObj3DInfo()
+: GoRad(0)
+, ACode(0)
+, ShadowOn(0)
+, BMPObj(0)
+, BMPz(0)
+, BlowUp(0)
+, BlowLimit(0)
+, SFXid(0)
+, BSFXid(0)
+, LoZ(0)
+, HiZ(0)
+, Animated(false)
+, Morphed(false)
+, FTime(0)
+, ATime(0)
+{
+
+}
+
+
+// ===========================================================================
+
+
 TObjBMPInfo::TObjBMPInfo()
 : Oz(0)
 , bmpFlags(0)
@@ -633,8 +707,59 @@ Sint16 Max(/*...*/);
 Sint16 Min(/*...*/);
 Sint8 Sgn(/*...*/);
 void SetCurPicTo(/*...*/);
-void LoadAnimation(/*...*/);
-void LoadPOH(/*...*/);
+
+void LoadAnimation(const OC::String& filename, const Uint16 modelVertexCount, Point3DList& vertices, Uint16& time)
+{
+    if (filename.empty())
+    {
+        return;
+    }
+
+    const OC::Path animationPath = OC::String::npos == filename.find("ani/")
+        ? "ani/" + filename
+        : filename;
+
+    ResourceFile animationFile(animationPath);
+
+    Uint16 animationVertexCount;
+    animationFile.readBinary(animationVertexCount);
+
+    if (modelVertexCount != animationVertexCount)
+    {
+        DoHalt(OC::Format("Error while loading animation file %1%. "
+            "Animation and Model file contain different vertexes count.") % filename);
+    }
+
+    // Actual vertex count is file size without 2 header bytes divided by size of TPoint3di object
+    // (it's hard-coded to avoid possible alignment issues)
+    animationVertexCount = Uint16((animationFile.size() - 2) / 6);
+
+    vertices.resize(animationVertexCount);
+
+    OC_FOREACH(TPoint3di& vertex, vertices)
+    {
+        vertex.load(animationFile);
+    }
+
+    time = (animationVertexCount / modelVertexCount - 1) * 8;
+
+    ChI(animationFile);
+}
+
+void LoadPOH(const OC::String& filename, TOHeader& model)
+{
+    if (filename.empty())
+    {
+        return;
+    }
+
+    const OC::Path modelPath = filename.size() > 12  // TODO: better check
+        ? filename
+        : "models/" + filename;
+    model.load(modelPath);
+
+    // Most of LoadPOH() code moved to TOHeader::load()
+}
 
 void ScanLoHi(Sint16& loZ, Sint16& hiZ, const TOHeader& model)
 {
@@ -679,7 +804,7 @@ void InitCaracter(const size_t monsterNumber)
     }
 
     TOHeader header;
-    header.read(characterFile);
+    header.load(characterFile);
 
     ChI(characterFile);
 
@@ -742,12 +867,12 @@ void LoadCommonParts()
 
     for (size_t i = 0; i < 256; ++i)
     {
-        RGBTab60[0xFF00 + i] = RGBTab60[(i << 8) + 0xFF] = Sint8(i);
+        RGBTab60[0xFF00 + i] = RGBTab60[(i << 8) + 0xFF] = Uint8(i);
     }
 
     for (size_t i = 0; i < 255; ++i)  // TODO: ??? 256
     {
-        RGBTab60[i] = RGBTab25[i] = Sint8(i);
+        RGBTab60[i] = RGBTab25[i] = Uint8(i);
     }
 
     Fonts.load("common/font256.cel");
@@ -1065,7 +1190,7 @@ void* PImPtr[120];
 Uint16 PImSeg[120];
 Uint8 WallMask[120];
 boost::array<TObjBMPInfo, 4> ObjBMPInf;
-TObj3DInfo Obj3DInf[96];
+boost::array<TObj3DInfo, 96> Obj3DInf;
 Uint16 LinesH1[847];
 Uint16 LinesH2[847];
 TLinesBuf* LinesBUF;
@@ -1642,7 +1767,69 @@ void LoadBMPObjects(ResourceFile& infoFile)
 
 void Load3dObjects(ResourceFile& infoFile)
 {
-    // TODO ...
+    SDL_Log(" Loading 3D Objects...");
+
+    Uint16 count;
+    infoFile >> count;
+
+    ReadLine(infoFile);
+
+    ValidateCount(count, Obj3DInf);
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        while (';' == infoFile.peek())
+        {
+            OC::ReadLine(infoFile);
+        }
+
+        TObj3DInfo& object = Obj3DInf[i];
+
+        infoFile >> object.GoRad;
+        infoFile >> object.ShadowOn;
+
+        infoFile >> object.BMPObj;
+        infoFile >> object.BMPz;
+
+        infoFile >> object.ACode;
+
+        infoFile >> object.BlowUp;
+        infoFile >> object.BlowLimit;
+
+        infoFile >> object.SFXid;
+        infoFile >> object.BSFXid;
+
+        OC::String modelFileName, animationFileName;
+
+        {
+            const OC::String filenames = OC::ReadLine(infoFile);
+            OC::StringStream filenamesStream(filenames);
+            filenamesStream >> modelFileName >> animationFileName;
+        }
+
+        ChI(infoFile);
+
+        object.Morphed = true;
+
+        if (!animationFileName.empty() && '%' == animationFileName[0])
+        {
+            animationFileName.erase(0, 1);
+
+            object.Morphed = false;
+        }
+
+        object.BMPz *= 32;
+
+        if (object.BMPObj > 0)
+        {
+            --object.BMPObj;
+        }
+
+        LoadPOH(modelFileName, object.POH);
+        LoadAnimation(animationFileName, object.POH.VCount, object.PAni, object.ATime);
+
+        ScanLoHi(object.LoZ, object.HiZ, object.POH);
+    }
 }
 
 void LoadRockets(ResourceFile& infoFile)

@@ -48,6 +48,8 @@ public:
 
     bool is_open() const;
 
+    const std::streamsize size() const;
+
 private:
     EmbeddedFileBuffer* fileBuffer() const;
 };
@@ -81,7 +83,7 @@ struct TFace
 
     TFace();
 
-    void read(OC::BinaryStream& stream);
+    void load(OC::BinaryStream& stream);
 };
 
 struct TPoint3di
@@ -93,8 +95,10 @@ struct TPoint3di
     TPoint3di(const Sint16 x = 0, const Sint16 y = 0, const Sint16 z = 0)
     : X(x), Y(y), Z(z) { }
 
-    void read(OC::BinaryStream& stream);
+    void load(OC::BinaryStream& stream);
 };
+
+typedef std::vector<TPoint3di> Point3DList;
 
 struct TPoint2D
 {
@@ -104,7 +108,7 @@ struct TPoint2D
     explicit TPoint2D(const Sint16 sx = 0, const Sint16 sy = 0)
     : sX(sx), sY(sy) { }
 
-    void read(OC::BinaryStream& stream);
+    void load(OC::BinaryStream& stream);
 };
 
 struct TOHeader
@@ -120,12 +124,12 @@ struct TOHeader
     Uint16 FCount;
     
     Uint16 TH;
-
-    void* TPtr;
+    std::vector<Uint8> TPtr;
 
     TOHeader();
 
-    void read(OC::BinaryStream& stream);
+    void load(const OC::Path& filename);
+    void load(OC::BinaryStream& stream);
 };
 
 struct TSepPartInfo
@@ -313,20 +317,30 @@ struct TObj3DInfo
     Sint16 GoRad;
     Sint16 ACode;
     Sint16 ShadowOn;
+
     Sint16 BMPObj;
     Sint16 BMPz;
+
     Sint16 BlowUp;
     Sint16 BlowLimit;
+
     Sint16 SFXid;
     Sint16 BSFXid;
+    
     Sint16 LoZ;
     Sint16 HiZ;
+
     bool Animated;
     bool Morphed;
+
     Uint16 FTime;
     Uint16 ATime;
-    TOHeader* POH;
-    TPoint3di* PAni;
+
+    TOHeader POH;
+
+    Point3DList PAni;
+
+    TObj3DInfo();
 };
 
 struct TPicPack
@@ -793,15 +807,14 @@ void DoHalt(const OC::String& message);
 void DoHalt(const OC::Format& message);
 
 void ChI(const OC::BinaryStream& stream);
-//void GetMem16(/*...*/);
-//void FreeMem16(/*...*/);
+
 void CalcDir(/*...*/);
 Sint16 Max(/*...*/);
 Sint16 Min(/*...*/);
 Sint8 Sgn(/*...*/);
 void SetCurPicTo(/*...*/);
-void LoadAnimation(/*...*/);
-void LoadPOH(/*...*/);
+void LoadAnimation(const OC::String& filename, const Uint16 modelVertexCount, Point3DList& vertices, Uint16& time);
+void LoadPOH(const OC::String& filename, TOHeader& model);
 void ScanLoHi(Sint16& loZ, Sint16& hiZ, const TOHeader& model);
 void ScanLowHigh(/*...*/);
 void InitCaracter(const size_t monsterNumber);
@@ -886,7 +899,7 @@ extern void* PImPtr[120];
 extern Uint16 PImSeg[120];
 extern Uint8 WallMask[120];
 extern boost::array<TObjBMPInfo, 4> ObjBMPInf;
-extern TObj3DInfo Obj3DInf[96];
+extern boost::array<TObj3DInfo, 96> Obj3DInf;
 extern Uint16 LinesH1[847];
 extern Uint16 LinesH2[847];
 extern TLinesBuf* LinesBUF;
