@@ -107,13 +107,13 @@
 		8A35F141182FC4E200C11D0C /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		8A35F143182FC4F800C11D0C /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		8A3ACEEC17F829C1002E550F /* chasm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = chasm.h; sourceTree = "<group>"; };
-		8A3ACEF617F841C5002E550F /* precomp.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = precomp.cpp; sourceTree = "<group>"; };
-		8A3ACEF717F841C5002E550F /* precomp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = precomp.h; sourceTree = "<group>"; };
 		8A3B68CF1837701A0088E6D3 /* SDL.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = SDL.xcodeproj; path = thirdparty/SDL/Xcode/SDL/SDL.xcodeproj; sourceTree = "<group>"; };
 		8A70C81A186EAAAB00B94449 /* filesystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = filesystem.cpp; sourceTree = "<group>"; };
 		8A70C81B186EAAAB00B94449 /* filesystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = filesystem.h; sourceTree = "<group>"; };
 		8A77FE971837928A00172E10 /* utils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = utils.cpp; sourceTree = "<group>"; };
 		8A77FE981837928A00172E10 /* utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utils.h; sourceTree = "<group>"; };
+		8A8A46EC1870065E00BC334C /* precomp.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = precomp.cpp; sourceTree = "<group>"; };
+		8A8A46ED1870065E00BC334C /* precomp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = precomp.h; sourceTree = "<group>"; };
 		8AB53939183770EA00C3D98E /* libfilesystem.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libfilesystem.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		8AB5397A183772D800C3D98E /* codecvt_error_category.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = codecvt_error_category.cpp; path = src/codecvt_error_category.cpp; sourceTree = "<group>"; };
 		8AB5397B183772D800C3D98E /* operations.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = operations.cpp; path = src/operations.cpp; sourceTree = "<group>"; };
@@ -251,6 +251,8 @@
 			children = (
 				8A70C81A186EAAAB00B94449 /* filesystem.cpp */,
 				8A70C81B186EAAAB00B94449 /* filesystem.h */,
+				8A8A46EC1870065E00BC334C /* precomp.cpp */,
+				8A8A46ED1870065E00BC334C /* precomp.h */,
 				8A0008541838BF67001AA739 /* types.h */,
 				8A77FE971837928A00172E10 /* utils.cpp */,
 				8A77FE981837928A00172E10 /* utils.h */,
@@ -340,8 +342,6 @@
 				8ACD55F917B76C3000C2640A /* csputl.h */,
 				8ACD55FA17B76C3100C2640A /* csrtla.cpp */,
 				8ACD55FC17B76C3100C2640A /* csvesa.cpp */,
-				8A3ACEF617F841C5002E550F /* precomp.cpp */,
-				8A3ACEF717F841C5002E550F /* precomp.h */,
 				8ACD55FE17B76C3100C2640A /* ps10.cpp */,
 			);
 			path = chasm;
@@ -570,11 +570,11 @@
 				8ACD561317B76C3100C2640A /* csvesa.cpp in Sources */,
 				8ACD561417B76C3100C2640A /* ps10.cpp in Sources */,
 				8A70C81C186EAAAB00B94449 /* filesystem.cpp in Sources */,
+				8A77FE991837928A00172E10 /* utils.cpp in Sources */,
 				8ACD561517B76C3100C2640A /* common.cpp in Sources */,
 				8ACD561617B76C3100C2640A /* sound_gs.cpp in Sources */,
 				8ACD561717B76C3100C2640A /* sound_sb.cpp in Sources */,
 				8ACD561817B76C3100C2640A /* soundip.cpp in Sources */,
-				8A77FE991837928A00172E10 /* utils.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -683,7 +683,7 @@
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = src/chasm/precomp.h;
+				GCC_PREFIX_HEADER = src/chasm/oc/precomp.h;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					OC_PLATFORM_OSX,
@@ -704,7 +704,7 @@
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = src/chasm/precomp.h;
+				GCC_PREFIX_HEADER = src/chasm/oc/precomp.h;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					OC_PLATFORM_OSX,

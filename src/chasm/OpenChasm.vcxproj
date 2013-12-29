@@ -24,11 +24,11 @@
     <ClCompile Include="cs_demo.cpp" />
     <ClCompile Include="cs_mapml.cpp" />
     <ClCompile Include="oc\filesystem.cpp" />
-    <ClCompile Include="oc\utils.cpp" />
-    <ClCompile Include="precomp.cpp">
+    <ClCompile Include="oc\precomp.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="oc\utils.cpp" />
     <ClCompile Include="ps10.cpp" />
     <ClCompile Include="soundip\common.cpp" />
     <ClCompile Include="soundip\soundip.cpp" />
@@ -46,9 +46,9 @@
     <ClInclude Include="csputl.h" />
     <ClInclude Include="cs_demo.h" />
     <ClInclude Include="oc\filesystem.h" />
+    <ClInclude Include="oc\precomp.h" />
     <ClInclude Include="oc\types.h" />
     <ClInclude Include="oc\utils.h" />
-    <ClInclude Include="precomp.h" />
     <ClInclude Include="soundip\soundip.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -91,8 +91,8 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PrecompiledHeaderFile>precomp.h</PrecompiledHeaderFile>
-      <ForcedIncludeFiles>precomp.h</ForcedIncludeFiles>
+      <PrecompiledHeaderFile>oc\precomp.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>oc\precomp.h</ForcedIncludeFiles>
       <AdditionalIncludeDirectories>../../thirdparty/SDL/include;../../thirdparty/boost;.</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -108,8 +108,8 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PrecompiledHeaderFile>precomp.h</PrecompiledHeaderFile>
-      <ForcedIncludeFiles>precomp.h</ForcedIncludeFiles>
+      <PrecompiledHeaderFile>oc\precomp.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>oc\precomp.h</ForcedIncludeFiles>
       <AdditionalIncludeDirectories>../../thirdparty/SDL/include;../../thirdparty/boost;.</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>

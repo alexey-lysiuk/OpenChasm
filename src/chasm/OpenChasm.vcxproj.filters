@@ -13,7 +13,9 @@
     <ClCompile Include="csvesa.cpp" />
     <ClCompile Include="cs_demo.cpp" />
     <ClCompile Include="cs_mapml.cpp" />
-    <ClCompile Include="precomp.cpp" />
+    <ClCompile Include="precomp.cpp">
+      <Filter>oc</Filter>
+    </ClCompile>
     <ClCompile Include="ps10.cpp" />
     <ClCompile Include="soundip\common.cpp">
       <Filter>SoundIP</Filter>
@@ -43,7 +45,9 @@
     <ClInclude Include="csprndr.h" />
     <ClInclude Include="csputl.h" />
     <ClInclude Include="cs_demo.h" />
-    <ClInclude Include="precomp.h" />
+    <ClInclude Include="precomp.h">
+      <Filter>oc</Filter>
+    </ClInclude>
     <ClInclude Include="soundip\soundip.h">
       <Filter>SoundIP</Filter>
     </ClInclude>
