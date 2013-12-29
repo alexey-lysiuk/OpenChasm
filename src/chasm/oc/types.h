@@ -32,8 +32,7 @@ typedef long double LongDouble;
 typedef std::string  String;
 typedef std::wstring WideString;
 
-typedef std::vector<String>     StringArray;
-typedef std::vector<WideString> WideStringArray;
+typedef std::stringstream StringStream;
 
 typedef boost::filesystem::path Path;
 

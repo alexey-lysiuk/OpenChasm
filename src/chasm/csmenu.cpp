@@ -109,9 +109,9 @@ CSPBIO::ResourceFile& operator>>(CSPBIO::ResourceFile& file, MenuRect& rect)
     return file;
 }
 
-OC::StringArray ReadMenuStringArray(CSPBIO::ResourceFile& file, const size_t count)
+TMenuText::StringList ReadMenuStringVector(CSPBIO::ResourceFile& file, const size_t count)
 {
-    OC::StringArray result;
+    TMenuText::StringList result;
 
     for (size_t i = 0; i < count; ++i)
     {
@@ -140,36 +140,36 @@ void ParseMenuDescriptionFile()
     PM.Load = ReadLine(menuFile);
 
     menuFile >> PM.OptiPos;
-    PM.Opti = ReadMenuStringArray(menuFile, 13);
+    PM.Opti = ReadMenuStringVector(menuFile, 13);
 
     menuFile >> PM.DispPos;
-    PM.Disp = ReadMenuStringArray(menuFile, 4);
+    PM.Disp = ReadMenuStringVector(menuFile, 4);
 
     menuFile >> PM.ReslPos;
-    PM.Resl = ReadMenuStringArray(menuFile, 13);
+    PM.Resl = ReadMenuStringVector(menuFile, 13);
 
     menuFile >> PM.ContPos;
-    PM.Cont = ReadMenuStringArray(menuFile, 17);
+    PM.Cont = ReadMenuStringVector(menuFile, 17);
 
     menuFile >> PM.QuitPos;
-    PM.Quit = ReadMenuStringArray(menuFile, 4);
+    PM.Quit = ReadMenuStringVector(menuFile, 4);
 
     menuFile >> PM.NewgPos;
-    PM.Newg = ReadMenuStringArray(menuFile, 3);
+    PM.Newg = ReadMenuStringVector(menuFile, 3);
 
     menuFile >> PM.NGStPos;
-    PM.NGSt = ReadMenuStringArray(menuFile, 9);
-    PM.NGModes = ReadMenuStringArray(menuFile, 3);
-    PM.NGSkill = ReadMenuStringArray(menuFile, 3);
+    PM.NGSt = ReadMenuStringVector(menuFile, 9);
+    PM.NGModes = ReadMenuStringVector(menuFile, 3);
+    PM.NGSkill = ReadMenuStringVector(menuFile, 3);
 
     menuFile >> PM.NJStPos;
-    PM.NJst = ReadMenuStringArray(menuFile, 6);
+    PM.NJst = ReadMenuStringVector(menuFile, 6);
 
     menuFile >> PM.NOptPos;
-    PM.NOpt = ReadMenuStringArray(menuFile, 4);
+    PM.NOpt = ReadMenuStringVector(menuFile, 4);
 
     OC::ReadLine(menuFile);
-    PM.KName = ReadMenuStringArray(menuFile, 88);
+    PM.KName = ReadMenuStringVector(menuFile, 88);
 
     CSPBIO::ChI(menuFile);
 

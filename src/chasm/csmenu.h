@@ -42,6 +42,8 @@ struct MenuRect
 
 struct TMenuText
 {
+    typedef std::vector<OC::String> StringList;
+
     OC::String Main;
     MenuRect MainPos;
 
@@ -55,38 +57,38 @@ struct TMenuText
     OC::String Load;
     MenuRect SavePos;
 
-    OC::StringArray Opti;
+    StringList Opti;
     MenuRect OptiPos;
 
-    OC::StringArray Disp;
+    StringList Disp;
     MenuRect DispPos;
 
-    OC::StringArray Resl;
+    StringList Resl;
     MenuRect ReslPos;
 
-    OC::StringArray Cont;
+    StringList Cont;
     MenuRect ContPos;
 
-    OC::StringArray Quit;
+    StringList Quit;
     MenuRect QuitPos;
 
-    OC::StringArray Newg;
+    StringList Newg;
     MenuRect NewgPos;
 
-    OC::StringArray NGSt;
+    StringList NGSt;
     MenuRect NGStPos;
 
-    OC::StringArray NGModes;
-    OC::StringArray NGSkill;
-    OC::StringArray NJst;
+    StringList NGModes;
+    StringList NGSkill;
+    StringList NJst;
     MenuRect NJStPos;
 
-    OC::StringArray NOpt;
+    StringList NOpt;
     MenuRect NOptPos;
 
-    OC::StringArray KName;
+    StringList KName;
 
-    OC::StringArray GameNames;
+    StringList GameNames;
 };
 
 #pragma pack(pop)
