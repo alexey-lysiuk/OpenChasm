@@ -24,6 +24,7 @@
 
 #include <cstdlib>
 #include <string>
+#include <sstream>
 #include <vector>
 #include <list>
 
@@ -37,8 +38,8 @@
 
 #include <SDL.h>
 
-#include "oc/types.h"
-#include "oc/filesystem.h"
-#include "oc/utils.h"
+#include "types.h"
+#include "filesystem.h"
+#include "utils.h"
 
 #endif // OPENCHASM_PRECOMP_H_INCLUDED
