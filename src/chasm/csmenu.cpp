@@ -115,7 +115,7 @@ TMenuText::StringList ReadMenuStringVector(CSPBIO::ResourceFile& file, const siz
 
     for (size_t i = 0; i < count; ++i)
     {
-        const OC::String line = ReadLine(file);
+        const OC::String line = OC::ReadLine(file);
         result.push_back(line);
     }
 
@@ -127,17 +127,17 @@ void ParseMenuDescriptionFile()
     CSPBIO::ResourceFile menuFile("menu/menu.txt");
 
     menuFile >> PM.MainPos;
-    PM.Main = ReadLine(menuFile);
+    PM.Main = OC::ReadLine(menuFile);
 
     menuFile >> PM.SklPos;
-    PM.Skl = ReadLine(menuFile);
+    PM.Skl = OC::ReadLine(menuFile);
 
     menuFile >> PM.NetPos;
-    PM.Net = ReadLine(menuFile);
+    PM.Net = OC::ReadLine(menuFile);
 
     menuFile >> PM.SavePos;
-    PM.Save = ReadLine(menuFile);
-    PM.Load = ReadLine(menuFile);
+    PM.Save = OC::ReadLine(menuFile);
+    PM.Load = OC::ReadLine(menuFile);
 
     menuFile >> PM.OptiPos;
     PM.Opti = ReadMenuStringVector(menuFile, 13);
