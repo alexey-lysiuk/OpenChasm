@@ -756,8 +756,12 @@ struct TRocketInfo
     Uint8 rFlags;
     Uint8 SmokeID;
     Uint16 ATime;
-    TOHeader* POH;
-    TPoint3di* PAni;
+
+    TOHeader POH;
+
+    Point3DList PAni;
+
+    TRocketInfo();
 };
 
 struct ServerSaved__Type
@@ -826,7 +830,7 @@ void AllocVideo(/*...*/);
 void AllocMemory(/*...*/);
 void LoadCommonParts();
 void CheckMouse(/*...*/);
-void RemoveEqual(/*...*/);
+void RemoveEqual(OC::String& string);
 void ScanLevels(/*...*/);
 void FindNextLevel(/*...*/);
 void LoadGraphics();
@@ -932,7 +936,7 @@ static const size_t FIRST_MONSTER_INDEX = 100;
 
 extern boost::array<TMonsterInfo, 23> MonstersInfo;
 
-extern TRocketInfo RocketsInfo[32];
+extern boost::array<TRocketInfo, 32> RocketsInfo;
 extern TSepPartInfo SepPartInfo[90];
 extern TBlowInfo BlowsInfo[24];
 extern std::vector<TReObject> ReObjects;

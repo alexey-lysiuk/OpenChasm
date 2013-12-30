@@ -650,6 +650,23 @@ TObjBMPInfo::TObjBMPInfo()
 // ===========================================================================
 
 
+TRocketInfo::TRocketInfo()
+: BlowType(0)
+, GForce(0)
+, ActionR(0)
+, CheckR(0)
+, Power(0)
+, rFlags(0)
+, SmokeID(0)
+, ATime(0)
+{
+    
+}
+
+
+// ===========================================================================
+
+
 Uint16 QPifagorA32(/*...*/);
 void getmousestate(/*...*/);
 Sint16 GetJoyX(/*...*/);
@@ -924,7 +941,27 @@ void LoadCommonParts()
 }
 
 void CheckMouse(/*...*/);
-void RemoveEqual(/*...*/);
+
+void RemoveEqual(OC::String& string)
+{
+    const size_t equalPos = string.find('=');
+    if (OC::String::npos == equalPos)
+    {
+        return;
+    }
+
+    string.erase(0, equalPos + 1);
+
+    const size_t semiPos = string.find(';');
+    if (OC::String::npos != semiPos)
+    {
+        string.erase(semiPos);
+    }
+
+    boost::algorithm::trim(string);
+    boost::algorithm::to_lower(string); // to_upper() originally
+}
+
 
 static const char* const EMPTY_LEVEL_NAME = ".";
 
@@ -1218,7 +1255,7 @@ TSepPart SepList[32];
 TMine MinesList[16];
 TBlowLight BlowLights[32];
 boost::array<TMonsterInfo, 23> MonstersInfo;
-TRocketInfo RocketsInfo[32];
+boost::array<TRocketInfo, 32> RocketsInfo;
 TSepPartInfo SepPartInfo[90];
 TBlowInfo BlowsInfo[24];
 std::vector<TReObject> ReObjects;
@@ -1728,7 +1765,7 @@ void LoadBMPObjects(ResourceFile& infoFile)
     SDL_Log(" Loading Objects...");
 
     infoFile >> ObjectsLoaded;
-    ReadLine(infoFile);
+    OC::ReadLine(infoFile);
 
     ValidateCount(ObjectsLoaded, ObjBMPInf);
 
@@ -1749,7 +1786,7 @@ void LoadBMPObjects(ResourceFile& infoFile)
         OC::String filename;
         infoFile >> filename;
 
-        ReadLine(infoFile);
+        OC::ReadLine(infoFile);
 
         ResourceFile objectFile("obj/" + filename);
 
@@ -1772,7 +1809,7 @@ void Load3dObjects(ResourceFile& infoFile)
     Uint16 count;
     infoFile >> count;
 
-    ReadLine(infoFile);
+    OC::ReadLine(infoFile);
 
     ValidateCount(count, Obj3DInf);
 
@@ -1832,9 +1869,59 @@ void Load3dObjects(ResourceFile& infoFile)
     }
 }
 
+static OC::String ReadRocketFileName(ResourceFile& infoFile)
+{
+    OC::String result = OC::ReadLine(infoFile);
+
+    RemoveEqual(result);
+    boost::algorithm::replace_all(result, "\\", "/");
+
+    return result;
+}
+
 void LoadRockets(ResourceFile& infoFile)
 {
-    // TODO ...
+    SDL_Log(" Loading Rockets...");
+
+    Uint16 count;
+    infoFile >> count;
+
+    OC::ReadLine(infoFile);
+
+    ValidateCount(count, RocketsInfo);
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        TRocketInfo& rocket = RocketsInfo[i];
+
+        OC::ReadLine(infoFile);
+
+        const OC::String modelFileName     = ReadRocketFileName(infoFile);
+        const OC::String animationFileName = ReadRocketFileName(infoFile);
+
+        LoadPOH(modelFileName, rocket.POH);
+        LoadAnimation(animationFileName, rocket.POH.VCount, rocket.PAni, rocket.ATime);
+
+        Uint16 rf, fb, lt, at, at2, ft;
+
+        infoFile >> rocket.BlowType;
+        infoFile >> rocket.GForce;
+        infoFile >> rocket.ActionR;
+        infoFile >> rocket.CheckR;
+        infoFile >> rocket.Power;
+        infoFile >> rf >> fb >> lt >> at >> at2 >> ft;
+        infoFile >> rocket.SmokeID;
+
+        rocket.rFlags =
+              (0 >= rf  ? 0 : 0x20)
+            + (0 >= fb  ? 0 : 0x02)
+            + (0 >= lt  ? 0 : 0x04)
+            + (0 >= at  ? 0 : 0x08)
+            + (0 >= at2 ? 0 : 0x10)
+            + (0 >= ft  ? 0 : 0x01);
+
+        OC::ReadLine(infoFile);
+    }
 }
 
 void LoadGibs(ResourceFile& infoFile)
@@ -1854,7 +1941,7 @@ void LoadMonsters(ResourceFile& infoFile)
     Uint16 count;
     infoFile >> count;
 
-    ReadLine(infoFile);
+    OC::ReadLine(infoFile);
 
     ValidateCount(count, MonstersInfo);
 
@@ -1875,7 +1962,7 @@ void LoadMonsters(ResourceFile& infoFile)
         infoFile >> monster.Rocket;
         infoFile >> monster.SepLimit;
 
-        ReadLine(infoFile);
+        OC::ReadLine(infoFile);
 
         InitCaracter(i + FIRST_MONSTER_INDEX);
     }
