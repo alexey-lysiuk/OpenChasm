@@ -255,6 +255,24 @@ const std::streamsize ResourceFile::size() const
     return fileBuffer()->size();
 }
 
+size_t ResourceFile::readFlags(const size_t flagMasks[], const size_t count)
+{
+    size_t result = 0;
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        Uint16 value;
+        *this >> value;
+
+        if (value > 0)
+        {
+            result |= flagMasks[i];
+        }
+    }
+
+    return result;
+}
+
 EmbeddedFileBuffer* ResourceFile::fileBuffer() const
 {
     return static_cast<EmbeddedFileBuffer*>(rdbuf());
@@ -386,6 +404,18 @@ void TOHeader::load(OC::BinaryStream& stream)
     stream.readBinary(VCount);
     stream.readBinary(FCount);
     stream.readBinary(TH);
+}
+
+
+// ===========================================================================
+
+
+TSepPartInfo::TSepPartInfo()
+: ATimeA(0)
+, ATimeB(0)
+, FallSound(0)
+{
+
 }
 
 
@@ -634,7 +664,11 @@ TObj3DInfo::TObj3DInfo()
 }
 
 
-// ===========================================================================
+TPicPack::TPicPack()
+: NFrames()
+{
+    
+}
 
 
 TObjBMPInfo::TObjBMPInfo()
@@ -647,7 +681,13 @@ TObjBMPInfo::TObjBMPInfo()
 }
 
 
-// ===========================================================================
+TBlowInfo::TBlowInfo()
+: NFrames(0)
+, Flags(0)
+, GlassMode(0)
+{
+    
+}
 
 
 TRocketInfo::TRocketInfo()
@@ -1256,8 +1296,8 @@ TMine MinesList[16];
 TBlowLight BlowLights[32];
 boost::array<TMonsterInfo, 23> MonstersInfo;
 boost::array<TRocketInfo, 32> RocketsInfo;
-TSepPartInfo SepPartInfo[90];
-TBlowInfo BlowsInfo[24];
+boost::array<TSepPartInfo, 90> SepPartInfo;
+boost::array<TBlowInfo, 24> BlowsInfo;
 std::vector<TReObject> ReObjects;
 std::vector<TAmmoBag> AmmoBags;
 bool FFlags[64];
@@ -1718,7 +1758,34 @@ Sint16 CurWindow;
 bool TextSeek(/*...*/);
 void ShowFinalScreen(/*...*/);
 void Wait_R(/*...*/);
-void LoadPicsPacket(/*...*/);
+
+void LoadPicsPacket(const OC::String& filename, TPicPack& packet)
+{
+    ResourceFile packetFile(filename);
+
+    packetFile.readBinary(packet.NFrames);
+
+    const size_t dataSize = size_t(packetFile.size()) - sizeof packet.NFrames;
+    packet.PData.resize(dataSize);
+    packetFile.readBinary(packet.PData);
+
+    ChI(packetFile);
+
+    packet.FrameOfs.fill(Uint16(-1));
+
+    Uint16 frame = 0;
+    Uint16 offset = 0;
+
+    while (frame < packet.NFrames)
+    {
+        packet.FrameOfs[frame] = offset;
+
+        // ??? size * size + header
+        offset += packet.PData[offset] * packet.PData[offset + 2] + 6;
+
+        ++frame;
+    }
+}
 
 void ScanWH(Sint16& width, Sint16& height, const TOHeader& model)
 {
@@ -1902,23 +1969,25 @@ void LoadRockets(ResourceFile& infoFile)
         LoadPOH(modelFileName, rocket.POH);
         LoadAnimation(animationFileName, rocket.POH.VCount, rocket.PAni, rocket.ATime);
 
-        Uint16 rf, fb, lt, at, at2, ft;
-
         infoFile >> rocket.BlowType;
         infoFile >> rocket.GForce;
         infoFile >> rocket.ActionR;
         infoFile >> rocket.CheckR;
         infoFile >> rocket.Power;
-        infoFile >> rf >> fb >> lt >> at >> at2 >> ft;
-        infoFile >> rocket.SmokeID;
 
-        rocket.rFlags =
-              (0 >= rf  ? 0 : 0x20)
-            + (0 >= fb  ? 0 : 0x02)
-            + (0 >= lt  ? 0 : 0x04)
-            + (0 >= at  ? 0 : 0x08)
-            + (0 >= at2 ? 0 : 0x10)
-            + (0 >= ft  ? 0 : 0x01);
+        static const size_t FLAG_MASKS[] =
+        {
+            TRocketInfo::FLAG_REFLECTION,
+            TRocketInfo::FLAG_FULL_BRIGHT,
+            TRocketInfo::FLAG_LIGHT,
+            TRocketInfo::FLAG_AUTO,
+            TRocketInfo::FLAG_AUTO_2,
+            TRocketInfo::FLAG_FAST
+        };
+
+        infoFile.readFlags(FLAG_MASKS, SDL_TABLESIZE(FLAG_MASKS));
+
+        infoFile >> rocket.SmokeID;
 
         OC::ReadLine(infoFile);
     }
@@ -1926,12 +1995,76 @@ void LoadRockets(ResourceFile& infoFile)
 
 void LoadGibs(ResourceFile& infoFile)
 {
-    // TODO ...
+    SDL_Log(" Loading Gibs...");
+
+    for (size_t i = 0; i < SepPartInfo.size(); ++i)
+    {
+        TSepPartInfo& sepPart = SepPartInfo[i];
+
+        OC::String filename = OC::ReadLine(infoFile);
+        RemoveEqual(filename);
+
+        if ("#end" == filename)
+        {
+            break;
+        }
+
+        sepPart.FallSound = 73;
+
+        const size_t soundPos = filename.find("s:");
+
+        if (OC::String::npos != soundPos
+            && filename.size() > soundPos + 2)
+        {
+            const int soundNum = SDL_atoi(&filename[soundPos + 2]);
+            sepPart.FallSound = Uint16(soundNum);
+
+            filename.erase(soundPos);
+            boost::algorithm::trim(filename);
+        }
+
+        LoadPOH(filename, sepPart.POH);
+    }
 }
 
 void LoadBlows(ResourceFile& infoFile)
 {
-    // TODO ...
+    SDL_Log(" Loading Blows...");
+
+    Uint16 count;
+    infoFile >> count;
+
+    OC::ReadLine(infoFile);
+
+    ValidateCount(count, BlowsInfo);
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        TBlowInfo& blow = BlowsInfo[i];
+
+        infoFile >> blow.GlassMode;
+
+        static const size_t FLAG_MASKS[] =
+        {
+            TBlowInfo::FLAG_HALF_SIZE,
+            TBlowInfo::FLAG_SMOOKING,
+            TBlowInfo::FLAG_LOOPED,
+            TBlowInfo::FLAG_GRAVITY,
+            TBlowInfo::FLAG_JUMP,
+            TBlowInfo::FLAG_LIGHT_ON
+        };
+
+        blow.Flags = Uint16(infoFile.readFlags(FLAG_MASKS, SDL_TABLESIZE(FLAG_MASKS)));
+
+        OC::String filename;
+        infoFile >> filename;
+
+        OC::ReadLine(infoFile);
+
+        LoadPicsPacket("bmp/" + filename, blow.Frames);
+
+        blow.NFrames = blow.Frames.NFrames;
+    }
 }
 
 void LoadMonsters(ResourceFile& infoFile)

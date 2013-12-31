@@ -50,6 +50,8 @@ public:
 
     const std::streamsize size() const;
 
+    size_t readFlags(const size_t flagMasks[], const size_t count);
+
 private:
     EmbeddedFileBuffer* fileBuffer() const;
 };
@@ -136,10 +138,15 @@ struct TSepPartInfo
 {
     Uint16 ATimeA;
     Uint16 ATimeB;
+
     Uint16 FallSound;
-    TOHeader* POH;
-    TPoint3di* PAniA;
-    TPoint3di* PAniB;
+
+    TOHeader POH;
+
+    Point3DList PAniA;
+    Point3DList PAniB;
+
+    TSepPartInfo();
 };
 
 static const ResourceFile::pos_type CEL_DATA_OFFSET = 0x320;
@@ -346,8 +353,11 @@ struct TObj3DInfo
 struct TPicPack
 {
     Uint16 NFrames;
-    Uint16 FrameOfs[24];
-    Uint8* PData;
+    boost::array<Uint16, 24> FrameOfs;
+
+    std::vector<Uint8> PData;
+
+    TPicPack();
 };
 
 struct TLoc
@@ -625,10 +635,24 @@ struct VgaInfoBlock
 
 struct TBlowInfo
 {
-    Sint16 NFrames;
+    enum FlagType
+    {
+        FLAG_SMOOKING  = 0x01,
+        FLAG_LOOPED    = 0x02,
+        FLAG_GRAVITY   = 0x04,
+        FLAG_JUMP      = 0x08,
+        FLAG_HALF_SIZE = 0x10,
+        FLAG_LIGHT_ON  = 0x20
+    };
+
+    Uint16 NFrames;
+
     Uint8 Flags;
-    Uint8 GlassMode;
+    Uint16 GlassMode; // TODO: Uint8 originally
+
     TPicPack Frames;
+
+    TBlowInfo();
 };
 
 struct ModesList__Type
@@ -748,6 +772,16 @@ struct EndCamera__Type
 
 struct TRocketInfo
 {
+    enum FlagType
+    {
+        FLAG_FAST        = 0x01,
+        FLAG_FULL_BRIGHT = 0x02,
+        FLAG_LIGHT       = 0x04,
+        FLAG_AUTO        = 0x08,
+        FLAG_AUTO_2      = 0x10,
+        FLAG_REFLECTION  = 0x20,
+    };
+
     Sint16 BlowType;
     Sint16 GForce;
     Sint16 ActionR;
@@ -937,8 +971,8 @@ static const size_t FIRST_MONSTER_INDEX = 100;
 extern boost::array<TMonsterInfo, 23> MonstersInfo;
 
 extern boost::array<TRocketInfo, 32> RocketsInfo;
-extern TSepPartInfo SepPartInfo[90];
-extern TBlowInfo BlowsInfo[24];
+extern boost::array<TSepPartInfo, 90> SepPartInfo;
+extern boost::array<TBlowInfo, 24> BlowsInfo;
 extern std::vector<TReObject> ReObjects;
 extern std::vector<TAmmoBag> AmmoBags;
 extern bool FFlags[64];
@@ -1427,7 +1461,7 @@ void Init_HiMode(/*...*/);
 bool TextSeek(/*...*/);
 void ShowFinalScreen(/*...*/);
 void Wait_R(/*...*/);
-void LoadPicsPacket(/*...*/);
+void LoadPicsPacket(const OC::String& filename, TPicPack& packet);
 void ScanWH(Sint16& width, Sint16& height, const TOHeader& model);
 void AllocFloors(/*...*/);
 
