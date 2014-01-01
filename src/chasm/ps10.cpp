@@ -42,7 +42,7 @@ void LoadConfig(const bool original)
     CSPBIO::LastFName = original ? "chasm.cfg" : "chasm.def";
 
     const OC::Path configPath = OC::FileSystem::GetUserPath(CSPBIO::LastFName);
-    OC::File configFile(configPath);
+    OC::BinaryFile configFile(configPath);
 
     // Change from original behavior: 
     // Do not exit if user config was not found, try to load default one instead
@@ -69,56 +69,60 @@ void LoadConfig(const bool original)
     CSPBIO::Ms1ID = 0;
     CSPBIO::Ms2ID = 1;
 
-    configFile.readBinary(CSPBIO::_FrontOn);
-    configFile.readBinary(CSPBIO::_BackOn);
-    configFile.readBinary(CSPBIO::_LeftOn);
-    configFile.readBinary(CSPBIO::_RightOn);
-    configFile.readBinary(CSPBIO::_SLeftOn);
-    configFile.readBinary(CSPBIO::_SRightOn);
-    configFile.readBinary(CSPBIO::_JumpOn);
-    configFile.readBinary(CSPBIO::_FireOn);
-    configFile.readBinary(CSPBIO::_ChangOn);
-    configFile.readBinary(CSPBIO::_StrafeOn);
-    configFile.readBinary(CSPBIO::_SpeedUpOn);
-    configFile.readBinary(CSPBIO::_MLookOn);
-    configFile.readBinary(CSPBIO::_MLookT);
-    configFile.readBinary(CSPBIO::_ViewUpOn);
-    configFile.readBinary(CSPBIO::_ViewCntrOn);
-    configFile.readBinary(CSPBIO::_ViewDnOn);
+    configFile >> CSPBIO::_FrontOn;
+    configFile >> CSPBIO::_BackOn;
+    configFile >> CSPBIO::_LeftOn;
+    configFile >> CSPBIO::_RightOn;
+    configFile >> CSPBIO::_SLeftOn;
+    configFile >> CSPBIO::_SRightOn;
+    configFile >> CSPBIO::_JumpOn;
+    configFile >> CSPBIO::_FireOn;
+    configFile >> CSPBIO::_ChangOn;
+    configFile >> CSPBIO::_StrafeOn;
+    configFile >> CSPBIO::_SpeedUpOn;
+    configFile >> CSPBIO::_MLookOn;
+    configFile >> CSPBIO::_MLookT;
+    configFile >> CSPBIO::_ViewUpOn;
+    configFile >> CSPBIO::_ViewCntrOn;
+    configFile >> CSPBIO::_ViewDnOn;
 
-    configFile.readBinary(CSPBIO::Ms1ID);
-    configFile.readBinary(CSPBIO::Ms2ID);
-    configFile.readBinary(CSPBIO::ms3id);
+    configFile >> CSPBIO::Ms1ID;
+    configFile >> CSPBIO::Ms2ID;
+    configFile >> CSPBIO::ms3id;
 
-    configFile.readBinary(CSPBIO::RespawnTime);
+    configFile >> CSPBIO::RespawnTime;
 
-    configFile.readBinary(SoundIP::FXVolume);
-    configFile.readBinary(SoundIP::CDVolume);
+    configFile >> SoundIP::FXVolume;
+    configFile >> SoundIP::CDVolume;
 
-    configFile.readBinary(CSPBIO::MSsens);
-    configFile.readBinary(CSPBIO::Bright);
-    configFile.readBinary(CSPBIO::Contrast);
-    configFile.readBinary(CSPBIO::Color);
-    configFile.readBinary(CSPBIO::FloorW);
-    CSPBIO::b0 = configFile.readBinary<Uint8>(); // TODO ??? 2-byte variable but only one byte is read
-    configFile.readBinary(CSPBIO::InfoPage);
+    Uint8 b0;
 
-    configFile.readPascalString(CSPBIO::SelfNick, 8);
-    configFile.readBinary(CSPBIO::SelfColor);
+    configFile >> CSPBIO::MSsens;
+    configFile >> CSPBIO::Bright;
+    configFile >> CSPBIO::Contrast;
+    configFile >> CSPBIO::Color;
+    configFile >> CSPBIO::FloorW;
+    configFile >> b0;
+    configFile >> CSPBIO::InfoPage;
 
-    configFile.readBinary(CS3DM2::ShadowCount);
-    configFile.readBinary(CSPBIO::EpisodeReset);
-    configFile.readBinary(CSPBIO::Cocpit);
-    configFile.readBinary(CSPBIO::ReverseMouse);
-    configFile.readBinary(CSPBIO::MLookOn);
-    configFile.readBinary(CSPBIO::AlwaysRun);
+    CSPBIO::b0 = b0; // ??? 2-byte variable but only one byte is read
 
-    configFile.readBinary(CSPBIO::NGCard);
-    configFile.readBinary(CSPBIO::NGPort);
-    configFile.readBinary(CSPBIO::NGBaud);
+    configFile.readString(CSPBIO::SelfNick, 8);
+    configFile >> CSPBIO::SelfColor;
 
-    configFile.readBinary(CSPBIO::w);
-    configFile.readBinary(CSPBIO::Ll);
+    configFile >> CS3DM2::ShadowCount;
+    configFile >> CSPBIO::EpisodeReset;
+    configFile >> CSPBIO::Cocpit;
+    configFile >> CSPBIO::ReverseMouse;
+    configFile >> CSPBIO::MLookOn;
+    configFile >> CSPBIO::AlwaysRun;
+
+    configFile >> CSPBIO::NGCard;
+    configFile >> CSPBIO::NGPort;
+    configFile >> CSPBIO::NGBaud;
+
+    configFile >> CSPBIO::w;
+    configFile >> CSPBIO::Ll;
 
     // TODO: validate video mode
 

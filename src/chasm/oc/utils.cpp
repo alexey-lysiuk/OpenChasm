@@ -44,19 +44,4 @@ WideString ExpandString(const char* const utf8String)
     return result;
 }
 
-OC::String ReadLine(OC::BinaryStream& stream)
-{
-    OC::String result;
-    std::getline(stream, result);
-
-    const OC::String::size_type length = result.size();
-
-    if (length > 0 && '\r' == result[length - 1])
-    {
-        result.resize(length - 1);
-    }
-
-    return result;
-}
-
 } // namespace OC

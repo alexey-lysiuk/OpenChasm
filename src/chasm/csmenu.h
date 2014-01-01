@@ -117,7 +117,7 @@ extern CSPBIO::TPic NetMenu;
 extern CSPBIO::TPic m_pause;
 extern CSPBIO::TPic PTors;
 extern Sint16 MnSY;
-extern Uint8 MenuTiler[4096];
+extern boost::array<Uint8, 4096> MenuTiler;
 extern Uint8 ColorShift;
 extern Uint8 ColorZero;
 extern Uint8 RecolorMap[256];

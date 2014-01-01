@@ -24,65 +24,36 @@
 namespace OC
 {
 
-BinaryStream::BinaryStream(std::streambuf* const buffer)
-: Base(buffer)
+TextInputStream::TextInputStream()
+: std::istream(NULL)
 {
-
 }
 
-BinaryStream& BinaryStream::readBinary(bool& value)
-{
-    value = 0 != readBinary<Uint8>();
-
-    return *this;
-}
-
-#define OC_BINARY_FILE_READ_LITTLE(TYPE, SWAP_FUNC)             \
-    BinaryStream& BinaryStream::readBinary(TYPE& value)         \
-    {                                                           \
-        char* const valuePtr = reinterpret_cast<char*>(&value); \
-        read(valuePtr, sizeof value);                           \
-        value = SWAP_FUNC(value);                               \
-        return *this;                                           \
-    }
-
-#define OC_NO_SWAP_FUNC(X) (X)
-
-OC_BINARY_FILE_READ_LITTLE(Sint8, OC_NO_SWAP_FUNC)
-OC_BINARY_FILE_READ_LITTLE(Uint8, OC_NO_SWAP_FUNC)
-
-OC_BINARY_FILE_READ_LITTLE(Sint16, SDL_SwapLE16)
-OC_BINARY_FILE_READ_LITTLE(Uint16, SDL_SwapLE16)
-
-OC_BINARY_FILE_READ_LITTLE(Sint32, SDL_SwapLE32)
-OC_BINARY_FILE_READ_LITTLE(Uint32, SDL_SwapLE32)
-
-#undef OC_NO_SWAP_FUNC
-#undef OC_BINARY_FILE_READ_LITTLE
-
-String BinaryStream::readPascalString(const Uint8 byteCount)
+OC::String TextInputStream::readLine()
 {
     OC::String result;
-    readPascalString(result, byteCount);
+    readLine(result);
 
     return result;
 }
 
-BinaryStream& BinaryStream::readPascalString(String& string, const Uint8 byteCount)
+TextInputStream& TextInputStream::readLine(OC::String& value)
 {
-    const Uint8 length = readBinary<Uint8>();
-    string.resize(length);
+    std::getline(*this, value);
 
-    if (length > 0)
+    const OC::String::size_type length = value.size();
+
+    if (length > 0 && '\r' == value[length - 1])
     {
-        read(&string[0], std::min(length, byteCount));
+        value.resize(length - 1);
     }
+    
+    return *this;
+}
 
-    if (length < byteCount)
-    {
-        seekg(byteCount - length, cur);
-    }
-
+TextInputStream& TextInputStream::skipLine()
+{
+    ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     return *this;
 }
 
@@ -90,25 +61,209 @@ BinaryStream& BinaryStream::readPascalString(String& string, const Uint8 byteCou
 // ===========================================================================
 
 
-File::File(const OC::Path& path, const openmode mode)
-: Base(new FileBuffer)
+BinaryInputStream::BinaryInputStream()
+: std::ios(NULL)
 {
-    fileBuffer()->open(path, mode | std::ios::binary);
+
 }
 
-File::~File()
+BinaryInputStream& BinaryInputStream::operator>>(bool& value)
+{
+    return operator>>(reinterpret_cast<Uint8&>(value));
+}
+
+BinaryInputStream& BinaryInputStream::operator>>(Sint8& value)
+{
+    return operator>>(reinterpret_cast<Uint8&>(value));
+}
+
+BinaryInputStream& BinaryInputStream::operator>>(Uint8& value)
+{
+    if (good())
+    {
+        char* const valuePtr = reinterpret_cast<char*>(&value);
+
+        if (sizeof value != rdbuf()->sgetn(valuePtr, sizeof value))
+        {
+            setstate(failbit);
+        }
+    }
+
+    return *this;
+}
+
+BinaryInputStream& BinaryInputStream::operator>>(Sint16& value)
+{
+    return operator>>(reinterpret_cast<Uint16&>(value));
+}
+
+BinaryInputStream& BinaryInputStream::operator>>(Uint16& value)
+{
+    if (good())
+    {
+        char* const valuePtr = reinterpret_cast<char*>(&value);
+
+        if (sizeof value == rdbuf()->sgetn(valuePtr, sizeof value))
+        {
+            value = SDL_SwapLE16(value);
+        }
+        else
+        {
+            setstate(failbit);
+        }
+    }
+    
+    return *this;
+}
+
+BinaryInputStream& BinaryInputStream::operator>>(Sint32& value)
+{
+    return operator>>(reinterpret_cast<Uint32&>(value));
+}
+
+BinaryInputStream& BinaryInputStream::operator>>(Uint32& value)
+{
+    if (good())
+    {
+        char* const valuePtr = reinterpret_cast<char*>(&value);
+
+        if (sizeof value == rdbuf()->sgetn(valuePtr, sizeof value))
+        {
+            value = SDL_SwapLE32(value);
+        }
+        else
+        {
+            setstate(failbit);
+        }
+    }
+    
+    return *this;
+}
+
+std::streamsize BinaryInputStream::read(char* const buffer, const std::streamsize count)
+{
+    SDL_assert(NULL != rdbuf());
+    SDL_assert(NULL != buffer);
+
+    const std::streamsize bytesRead = rdbuf()->sgetn(buffer, count);
+    if (count != bytesRead)
+    {
+        setstate(failbit);
+    }
+
+    return bytesRead;
+}
+
+String BinaryInputStream::readString(const Uint8 byteCount)
+{
+    OC::String result;
+    readString(result, byteCount);
+
+    return result;
+}
+
+BinaryInputStream& BinaryInputStream::readString(String& string, const Uint8 byteCount)
+{
+    Uint8 length;
+    *this >> length;
+
+    if (good())
+    {
+        if (length > 0)
+        {
+            string.resize(length);
+
+            const std::streamsize bytesToRead = std::min(length, byteCount);
+            const std::streamsize bytesRead   = read(&string[0], bytesToRead);
+
+            if (bytesRead != bytesToRead)
+            {
+                setstate(failbit);
+            }
+        }
+
+        if (length < byteCount)
+        {
+            seekg(byteCount - length, cur);
+        }
+    }
+
+    return *this;
+}
+
+
+BinaryInputStream::pos_type BinaryInputStream::seekg(const streampos pos)
+{
+    SDL_assert(NULL != rdbuf());
+
+    return rdbuf()->pubseekpos(pos, in);
+}
+
+BinaryInputStream::pos_type BinaryInputStream::seekg(const streamoff off, const seekdir way)
+{
+    SDL_assert(NULL != rdbuf());
+
+    return rdbuf()->pubseekoff(off, way, in);
+}
+
+
+// ===========================================================================
+
+
+BinaryOutputStream::BinaryOutputStream()
+: std::ios(NULL)
+{
+
+}
+
+std::streamsize BinaryOutputStream::write(const char* const buffer, const std::streamsize count)
+{
+    SDL_assert(NULL != rdbuf());
+    SDL_assert(NULL != buffer);
+
+    const std::streamsize bytesWritten = rdbuf()->sputn(buffer, count);
+    if (count != bytesWritten)
+    {
+        setstate(failbit);
+    }
+
+    return bytesWritten;
+}
+
+
+// ===========================================================================
+
+
+BinaryFile::BinaryFile()
+{
+    rdbuf(new Buffer);
+}
+
+BinaryFile::BinaryFile(const OC::Path& path, const openmode mode)
+{
+    rdbuf(new Buffer);
+    
+    open(path, mode | std::ios::binary);
+}
+
+BinaryFile::~BinaryFile()
 {
     delete rdbuf();
 }
 
-bool File::is_open() const
+void BinaryFile::open(const OC::Path& path, const openmode mode)
 {
-    return fileBuffer()->is_open();
+    buffer()->open(path, mode | std::ios::binary);
 }
 
-File::FileBuffer* File::fileBuffer() const
+bool BinaryFile::is_open() const
 {
-    return static_cast<File::FileBuffer*>(rdbuf());
+    return buffer()->is_open();
+}
+
+BinaryFile::Buffer* BinaryFile::buffer() const
+{
+    return static_cast<Buffer*>(rdbuf());
 }
 
 
@@ -172,6 +327,12 @@ bool CreateDirectory(const Path& path)
 {
     boost::system::error_code error;
     return boost::filesystem::create_directory(path, error);
+}
+
+bool CreateDirectories(const Path& path)
+{
+    boost::system::error_code error;
+    return boost::filesystem::create_directories(path, error);
 }
 
 } // namespace FileSystem

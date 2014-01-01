@@ -25,36 +25,62 @@
 namespace CSPBIO
 {
 
-class EmbeddedFileBuffer;
-
-// Resource file stream, read only
-// Can be a part of big file (csm.bin) or a separate external file
-// Replaces BFile type, F and Ft objects, TOpen() and FOpen() functions
-
-class ResourceFile: public OC::BinaryStream
+class Resource
 {
-private:
-    typedef OC::BinaryStream Base;
-
 public:
-    enum OpenModeType
+    enum FlagsType
     {
-        FILE_MUST_EXIST    = 1, // Halt if file was not found
-        FILE_MAY_NOT_EXIST = 2  // Do not halt if file was not found, use is_open() to check
+        PATH_MUST_EXIST    = 1, // Exit with error if resource was not found
+        PATH_MAY_NOT_EXIST = 2  // Ignore missing resource
     };
 
-    explicit ResourceFile(const OC::Path& filePath, const unsigned int flags = FILE_MUST_EXIST);
-    virtual ~ResourceFile();
+    ~Resource();
 
-    bool is_open() const;
+    const bool is_open() const;
 
-    const std::streamsize size() const;
+    const std::streamsize  size() const { return m_size;   }
+    const std::streamoff offset() const { return m_offset; }
 
-    size_t readFlags(const size_t flagMasks[], const size_t count);
+protected:
+    Resource();
+
+    std::streambuf* open(const OC::Path& path, const FlagsType flags);
 
 private:
-    EmbeddedFileBuffer* fileBuffer() const;
+    std::streambuf* m_buffer;
+
+    std::streamsize m_size;
+    std::streamoff m_offset;
+
+    void openExternal(const OC::Path& path, const FlagsType flags);
 };
+
+
+class TextResource : public OC::TextInputStream, public Resource
+{
+public:
+    explicit TextResource(const OC::Path& path, const FlagsType flags = PATH_MUST_EXIST);
+};
+
+
+class BinaryResource : public OC::BinaryInputStream, public Resource
+{
+public:
+    explicit BinaryResource(const OC::Path& path, const FlagsType flags = PATH_MUST_EXIST);
+};
+
+
+// ===========================================================================
+
+
+// IMPORTANT NOTE!
+// Comments like
+//   [!] Uint8 originally
+// indicate that these types were altered because of C++ type system issue:
+// types Sint8/Uint8 and signed/unsigned char are the same.
+// So istream::operator>>() treats Sint8/Uint8 variable as character
+// instead of integer.
+// TODO: consider better solution: union or template wrapper?
 
 
 #pragma pack(push, 1)
@@ -85,7 +111,7 @@ struct TFace
 
     TFace();
 
-    void load(OC::BinaryStream& stream);
+    void load(OC::BinaryInputStream& stream);
 };
 
 struct TPoint3di
@@ -97,7 +123,7 @@ struct TPoint3di
     TPoint3di(const Sint16 x = 0, const Sint16 y = 0, const Sint16 z = 0)
     : X(x), Y(y), Z(z) { }
 
-    void load(OC::BinaryStream& stream);
+    void load(OC::BinaryInputStream& stream);
 };
 
 typedef std::vector<TPoint3di> Point3DList;
@@ -110,7 +136,7 @@ struct TPoint2D
     explicit TPoint2D(const Sint16 sx = 0, const Sint16 sy = 0)
     : sX(sx), sY(sy) { }
 
-    void load(OC::BinaryStream& stream);
+    void load(OC::BinaryInputStream& stream);
 };
 
 struct TOHeader
@@ -131,7 +157,7 @@ struct TOHeader
     TOHeader();
 
     void load(const OC::Path& filename);
-    void load(OC::BinaryStream& stream);
+    void load(OC::BinaryInputStream& stream);
 };
 
 struct TSepPartInfo
@@ -149,7 +175,7 @@ struct TSepPartInfo
     TSepPartInfo();
 };
 
-static const ResourceFile::pos_type CEL_DATA_OFFSET = 0x320;
+static const OC::BinaryInputStream::pos_type CEL_DATA_OFFSET = 0x320;
 
 class TPic
 {
@@ -182,7 +208,7 @@ public:
 
     // Loads picture object from given binary stream as raw data
     // Replaces LoadPic()
-    void load(OC::BinaryStream& stream);
+    void load(OC::BinaryInputStream& stream);
 
 private:
     std::vector<Uint8> m_data;  // p
@@ -648,7 +674,7 @@ struct TBlowInfo
     Uint16 NFrames;
 
     Uint8 Flags;
-    Uint16 GlassMode; // TODO: Uint8 originally
+    Uint16 GlassMode; // [!] Uint8 originally
 
     TPicPack Frames;
 
@@ -844,7 +870,7 @@ void DoHalt(const char* const message);
 void DoHalt(const OC::String& message);
 void DoHalt(const OC::Format& message);
 
-void ChI(const OC::BinaryStream& stream);
+void ChI(const std::ios& stream);
 
 void CalcDir(/*...*/);
 Sint16 Max(/*...*/);
@@ -994,6 +1020,8 @@ struct RGB
     , blue(blue)
     { }
 };
+
+OC::BinaryInputStream& operator>>(OC::BinaryInputStream& stream, RGB& value);
 
 extern boost::array<RGB, 256> Palette;
 extern boost::array<RGB, 256> Pal;
@@ -1465,14 +1493,14 @@ void LoadPicsPacket(const OC::String& filename, TPicPack& packet);
 void ScanWH(Sint16& width, Sint16& height, const TOHeader& model);
 void AllocFloors(/*...*/);
 
-void LoadSounds(ResourceFile& infoFile);
-void LoadBMPObjects(ResourceFile& infoFile);
-void Load3dObjects(ResourceFile& infoFile);
-void LoadRockets(ResourceFile& infoFile);
-void LoadGibs(ResourceFile& infoFile);
-void LoadBlows(ResourceFile& infoFile);
-void LoadMonsters(ResourceFile& infoFile);
-void LoadGunsInfo(ResourceFile& infoFile);
+void LoadSounds(TextResource& info);
+void LoadBMPObjects(TextResource& info);
+void Load3dObjects(TextResource& info);
+void LoadRockets(TextResource& info);
+void LoadGibs(TextResource& info);
+void LoadBlows(TextResource& info);
+void LoadMonsters(TextResource& info);
+void LoadGunsInfo(TextResource& info);
 
 void CLine(/*...*/);
 void Line(/*...*/);

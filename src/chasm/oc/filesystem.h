@@ -27,76 +27,149 @@
 namespace OC
 {
 
-// Generic binary stream, little endian
+// Generic text input stream
 
-class BinaryStream: public std::iostream
+class TextInputStream : public std::istream
 {
-private:
-    typedef std::iostream Base;
-
 public:
-    explicit BinaryStream(std::streambuf* const buffer);
+    // Reads until end of the line
+    OC::String readLine();
+    TextInputStream& readLine(OC::String& value);
 
+    // Skips until end of the line
+    TextInputStream& skipLine();
+
+    // Reads sequence of flags usually represented as 0 and 1
     template <typename T>
-    T readBinary()
+    TextInputStream& readFlags(T& flags, const size_t flagMasks[], const size_t count)
     {
-        T result = T();
-        readBinary(result);
+        flags = T(0);
 
-        return result;
-    }
+        for (size_t i = 0; i < count; ++i)
+        {
+            Uint16 value;
+            *this >> value;
 
-    BinaryStream& readBinary(bool& value);
-    BinaryStream& readBinary(Sint8& value);
-    BinaryStream& readBinary(Uint8& value);
-    BinaryStream& readBinary(Sint16& value);
-    BinaryStream& readBinary(Uint16& value);
-    BinaryStream& readBinary(Sint32& value);
-    BinaryStream& readBinary(Uint32& value);
-
-    template <typename T>
-    BinaryStream& readBinary(T& collection, const typename T::size_type size = typename T::size_type(-1))
-    {
-        char* const ptr = static_cast<char*>(static_cast<void*>(&collection[0]));
-
-        const std::streamsize collectionSize = sizeof(collection[0]) * collection.size();
-        const std::streamsize count = typename T::size_type(-1) == size
-            ? collectionSize
-            : size;
-
-        SDL_assert(collectionSize >= count);
-
-        read(ptr, count);
+            if (value > 0)
+            {
+                flags |= flagMasks[i];
+            }
+        }
 
         return *this;
     }
 
-    // Reads Pascal string, length byte and up to 255 characters
-    // Length byte is excluded from byteCount parameter
-    String readPascalString(const Uint8 byteCount);
-    BinaryStream& readPascalString(String& string, const Uint8 byteCount);
+    template <typename T>
+    T readFlags(const size_t flagMasks[], const size_t count)
+    {
+        T result;
+        readFlags(result, flagMasks, count);
+
+        return result;
+    }
+
+protected:
+    TextInputStream();
 };
 
 
 // ===========================================================================
 
 
-// External file, read and write
+// Generic binary input stream, little endian
 
-class File: public BinaryStream
+class BinaryInputStream : virtual public std::ios
 {
-private:
-    typedef BinaryStream               Base;
-    typedef boost::filesystem::filebuf FileBuffer;
-
 public:
-    explicit File(const OC::Path& path, const openmode mode = std::ios::in);
-    ~File();
+    BinaryInputStream& operator>>(bool& value);
+    BinaryInputStream& operator>>(Sint8& value);
+    BinaryInputStream& operator>>(Uint8& value);
+    BinaryInputStream& operator>>(Sint16& value);
+    BinaryInputStream& operator>>(Uint16& value);
+    BinaryInputStream& operator>>(Sint32& value);
+    BinaryInputStream& operator>>(Uint32& value);
 
+    std::streamsize read(char* const buffer, const std::streamsize count);
+
+    // Reads array up to specified number of elements or up to current collection size (in elements)
+    // Collection must have appropriate size in both cases
+    // Element must have overloaded BinaryInputStream& operator>>()
+    template <typename T>
+    BinaryInputStream& readArray(T& collection, const typename T::size_type count = typename T::size_type(-1))
+    {
+        char* const ptr = reinterpret_cast<char*>(&collection[0]);
+
+        const typename T::size_type collectionSize = collection.size();
+        const typename T::size_type readCount = typename T::size_type(-1) == count
+            ? collectionSize
+            : count;
+
+        SDL_assert(collectionSize >= readCount);
+
+        if (1 == sizeof collection[0])
+        {
+            // Single read call can be used in case of bytes array only
+            rdbuf()->sgetn(ptr, readCount);
+        }
+        else
+        {
+            for (typename T::size_type i = 0; i < readCount; ++i)
+            {
+                *this >> collection[i];
+            }
+        }
+
+        return *this;
+    }
+
+    // Reads Pascal string, length byte and up to 255 characters
+    // Length byte is excluded from byteCount parameter
+    String readString(const Uint8 byteCount);
+    BinaryInputStream& readString(String& string, const Uint8 byteCount);
+
+    pos_type seekg(const streampos pos);
+    pos_type seekg(const streamoff off, const seekdir way);
+
+protected:
+    BinaryInputStream();
+};
+
+
+// ===========================================================================
+
+
+// Generic binary output stream, little endian
+
+class BinaryOutputStream : virtual public std::ios
+{
+public:
+    std::streamsize write(const char* const buffer, const std::streamsize count);
+
+    // TODO: overloaded operator<<()
+
+protected:
+    BinaryOutputStream();
+};
+
+
+// ===========================================================================
+
+
+// External binary file, read and write
+
+class BinaryFile: public BinaryInputStream, public BinaryOutputStream
+{
+public:
+    BinaryFile();
+    explicit BinaryFile(const OC::Path& path, const openmode mode = std::ios::in);
+    ~BinaryFile();
+
+    void open(const OC::Path& path, const openmode mode = std::ios::in);
     bool is_open() const;
-
+    
 private:
-    FileBuffer* fileBuffer() const;
+    typedef boost::filesystem::filebuf Buffer;
+    Buffer* buffer() const;
 };
 
 
@@ -133,6 +206,7 @@ inline Path GetUserPath(const T& subPath)
 bool IsPathExist(const Path& path);
 
 bool CreateDirectory(const Path& path);
+bool CreateDirectories(const Path& path);
 
 } // namespace FileSystem
 

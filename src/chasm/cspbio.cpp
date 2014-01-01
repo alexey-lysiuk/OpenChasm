@@ -27,43 +27,153 @@ namespace CSPBIO
 namespace
 {
 
-bool     s_isInternal;   // Internal
-
-class FileTableEntry
+class BigFile : private OC::BinaryFile
 {
 public:
-    FileTableEntry()
-    : m_size(0)
-    , m_offset(0)
-    {
-    }
+    typedef std::stringbuf Buffer;
 
-    const OC::String&  filename() const { return m_filename; }
+    const bool isInternal() { return m_isInternal; }
+    void setInternal(const bool on) { m_isInternal = on; }
 
-    const std::streamsize  size() const { return m_size;   }
-    const std::streamoff offset() const { return m_offset; }
+    // Opens big file and loads its entry table
+    void initialize(const OC::Path& path);
 
-    void read(OC::File& stream);
+    // Creates buffer and reads file into it
+    Buffer* read(const OC::Path& path, std::streamsize& size, std::streamoff& offset);
+
+    // Extracts all files into directory with given path
+    // If no path provided output directory is named dump within user's directory
+    void dumpContent(const OC::Path& path = OC::Path());
 
 private:
-    OC::String      m_filename;
+    struct Entry
+    {
+        OC::String      filename;
+        std::streamsize size;
+        std::streamoff  offset;
+    };
 
-    std::streamsize m_size;
-    std::streamoff  m_offset;
+    typedef std::vector<Entry> EntryTable;
+    EntryTable m_entryTable;  // FileTable
+
+    bool m_isInternal;  // Internal
 };
 
 
-void FileTableEntry::read(OC::File& stream)
+void BigFile::initialize(const OC::Path& path)
 {
-    m_filename = stream.readPascalString(12); // filename in 8.3 format
+    if (!m_isInternal)
+    {
+        return;
+    }
 
-    m_size   = stream.readBinary<Sint32>();
-    m_offset = stream.readBinary<Sint32>();
+    open(path);
+
+    if (!is_open())
+    {
+        DoHalt(OC::Format("Cannot open file %1%, permission denied or file system error.") % BaseFile);
+    }
+
+    Uint32 magic;
+    *this >> magic;
+
+    static const Sint32 CSM_ID = 0x64695343; // 'CSid'
+
+    if (CSM_ID != magic)
+    {
+        DoHalt(OC::Format("Bad header in file %1%.") % BaseFile);
+    }
+
+    Uint16 fileCount;
+    *this >> fileCount;
+
+    for (Uint16 i = 0; i < fileCount; ++i)
+    {
+        const OC::String filename = readString(12);
+
+        Sint32 size, offset;
+        *this >> size >> offset;
+
+        const Entry entry = { filename, size, offset };
+
+        m_entryTable.push_back(entry);
+    }
+}
+
+BigFile::Buffer* BigFile::read(const OC::Path& path, std::streamsize& size, std::streamoff& offset)
+{
+    OC::String filename = path.filename().generic_string();
+    boost::algorithm::to_upper(filename);
+
+    LastFName = filename;
+
+    OC_FOREACH(const Entry& entry, m_entryTable)
+    {
+        if (entry.filename == filename)
+        {
+            size   = entry.size;
+            offset = entry.offset;
+
+            seekg(offset, beg);
+
+            // TODO: error handling
+
+            std::stringbuf* buffer = new std::stringbuf();
+
+            for (std::streamsize bytesLeft = size; bytesLeft > 0; /* EMPTY */)
+            {
+                char bytes[4096];
+
+                const std::streamsize bytesToRead = std::min(bytesLeft, std::streamsize(sizeof bytes));
+                const std::streamsize bytesRead = OC::BinaryInputStream::read(bytes, bytesToRead);
+
+                buffer->sputn(bytes, bytesRead);
+
+                bytesLeft -= bytesRead;
+            }
+
+            return buffer;
+        }
+    }
+
+    return NULL;
+}
+
+void BigFile::dumpContent(const OC::Path& path)
+{
+    SDL_assert(m_isInternal);
+    SDL_assert(!m_entryTable.empty());
+    SDL_assert(is_open());
+
+    const OC::Path dumpPath = path.empty()
+        ? OC::FileSystem::GetUserPath("dump")
+        : path;
+
+    OC::FileSystem::CreateDirectories(dumpPath);
+
+    OC_FOREACH(const Entry& entry, m_entryTable)
+    {
+        seekg(entry.offset);
+
+        const OC::Path outPath = dumpPath / entry.filename;
+        OC::BinaryFile outFile(outPath, std::ios::out);
+
+        for (std::streamsize bytesLeft = entry.size; bytesLeft > 0; /* EMPTY */)
+        {
+            char buffer[4096];
+
+            const std::streamsize bytesToRead = std::min(bytesLeft, std::streamsize(sizeof buffer));
+            const std::streamsize bytesRead = OC::BinaryInputStream::read(buffer, bytesToRead);
+
+            outFile.write(buffer, bytesRead);
+
+            bytesLeft -= bytesRead;
+        }
+    }
 }
 
 
-typedef std::vector<FileTableEntry> FileTable;
-FileTable s_fileTable; // FileTable
+BigFile s_bigFile;
 
 } // unnamed namespace
 
@@ -71,229 +181,102 @@ FileTable s_fileTable; // FileTable
 // ===========================================================================
 
 
-class EmbeddedFileBuffer : public boost::filesystem::filebuf
-{
-private:
-    typedef boost::filesystem::filebuf Base;
-
-public:
-    explicit EmbeddedFileBuffer(const OC::Path& filePath, const unsigned int flags = ResourceFile::FILE_MUST_EXIST);
-
-    const std::streamsize size() const { return m_size; }
-
-protected:
-    virtual pos_type seekoff(off_type off, std::ios::seekdir way,
-        std::ios::openmode which = std::ios::in | std::ios::out);
-    virtual pos_type seekpos(pos_type pos,
-        std::ios::openmode which = std::ios::in | std::ios::out);
-
-    virtual std::streamsize xsgetn(char* ptr, std::streamsize count);
-
-private:
-    std::streamsize m_size;
-    std::streamoff  m_offset;
-
-    bool m_isEmbedded;
-
-};
-
-
-EmbeddedFileBuffer::EmbeddedFileBuffer(const OC::Path& path, const unsigned int flags)
-: m_size(0)
+Resource::Resource()
+: m_buffer(NULL)
+, m_size(0)
 , m_offset(0)
-, m_isEmbedded(false)
 {
+}
+
+Resource::~Resource()
+{
+    delete m_buffer;
+}
+
+const bool Resource::is_open() const
+{
+    return NULL != m_buffer;
+}
+
+std::streambuf* Resource::open(const OC::Path& path, const FlagsType flags)
+{
+    SDL_assert(NULL == m_buffer);
+
     LastFName = path;
-    
+
     if (UserMaps)
     {
-        const OC::Path probePath = AddonPath / path;
-    
-        if (OC::FileSystem::IsPathExist(probePath))
-        {
-            open(probePath, std::ios::in | std::ios::binary);
-    
-            if (is_open())
-            {
-                return;
-            }
-            else
-            {
-                DoHalt(OC::Format("Cannot open file %1%, permission denied or file system error.") % probePath);
-            }
-        }
+        openExternal(AddonPath / path, flags);
     }
-    
-    if (s_isInternal)
+    else if (s_bigFile.isInternal())
     {
-        OC::String probeName = path.filename().generic_string();
-        boost::algorithm::to_upper(probeName);
-    
-        LastFName = probeName;
-        bool found = false;
-    
-        OC_FOREACH(const FileTableEntry& entry, s_fileTable)
-        {
-            if (entry.filename() == probeName)
-            {
-                m_size       = entry.size();
-                m_offset     = entry.offset();
+        m_buffer = s_bigFile.read(path, m_size, m_offset);
 
-                m_isEmbedded = true;
-
-                open(BaseFile, std::ios::in | std::ios::binary);
-
-                // TODO: error handling
-
-                if (is_open())
-                {
-                    seekpos(0);
-                    found = true;
-                }
-
-                break;
-            }
-        }
-
-        if ((flags & ResourceFile::FILE_MUST_EXIST) && !found)
+        if ((flags & PATH_MUST_EXIST) && NULL == m_buffer)
         {
             DoHalt(OC::Format("Cannot find file %1% within %2%") % path % BaseFile);
         }
     }
     else
     {
-        const OC::Path probePath = BaseFile / path;
-    
-        open(probePath, std::ios::in | std::ios::binary);
-    
-        if ((flags & ResourceFile::FILE_MUST_EXIST) && !is_open())
+        openExternal(BaseFile / path, flags);
+    }
+
+    return m_buffer;
+}
+
+void Resource::openExternal(const OC::Path& path, const FlagsType flags)
+{
+    if (OC::FileSystem::IsPathExist(path))
+    {
+        boost::filesystem::filebuf* buffer = new boost::filesystem::filebuf();
+        buffer->open(path, std::ios::in | std::ios::binary);
+
+        if (buffer->is_open())
         {
-            DoHalt(OC::Format("Cannot open file %1%, permission denied or file system error.") % probePath);
+            m_buffer = buffer;
+        }
+        else if (flags & PATH_MUST_EXIST)
+        {
+            DoHalt(OC::Format("Cannot open file %1%, permission denied or file system error.") % path);
         }
     }
 
-    if (!m_isEmbedded)
+    if (NULL != m_buffer)
     {
-        m_size = Base::seekoff(0, std::ios::end);
-        Base::seekoff(0, std::ios::beg);
+        m_size = m_buffer->pubseekoff(0, std::ios::end);
+        m_buffer->pubseekoff(0, std::ios::beg);
     }
 }
 
 
-EmbeddedFileBuffer::pos_type EmbeddedFileBuffer::seekoff(off_type off, std::ios::seekdir way, std::ios::openmode which)
+TextResource::TextResource(const OC::Path& path, const FlagsType flags)
 {
-    if (!m_isEmbedded)
-    {
-        return Base::seekoff(off, way, which);
-    }
-
-    if (std::ios::beg == way && off >= 0 && off <= m_size)
-    {
-        return Base::seekoff(m_offset + off, way, which);
-    }
-    else if (std::ios::cur == way)
-    {
-        const pos_type curPos = Base::seekoff(0, way, which) - m_offset;
-
-        if (0 == off)
-        {
-            return curPos;
-        }
-
-        const pos_type newPos = curPos + off;
-
-        if (newPos >= 0 && newPos <= m_size)
-        {
-            return Base::seekoff(off, way, which);
-        }
-    }
-    else if (std::ios::end == way && off < 0 && off > -m_size)
-    {
-        return Base::seekoff(m_offset + m_size + off, std::ios::beg, which);
-    }
-
-    return pos_type(off_type(-1));
-}
-
-EmbeddedFileBuffer::pos_type EmbeddedFileBuffer::seekpos(pos_type pos, std::ios::openmode which)
-{
-    return seekoff(off_type(pos), std::ios::beg, which);
+    rdbuf(open(path, flags));
 }
 
 
-std::streamsize EmbeddedFileBuffer::xsgetn(char* ptr, std::streamsize count)
+BinaryResource::BinaryResource(const OC::Path& path, const FlagsType flags)
 {
-    const pos_type curPos = Base::seekoff(0, std::ios::cur, std::ios::in) - m_offset;
-    SDL_assert(curPos <= m_size);
-
-    count = std::min(std::streamsize(m_size - curPos), count);
-
-    return Base::xsgetn(ptr, count);
+    rdbuf(open(path, flags));
 }
 
 
 // ===========================================================================
 
 
-ResourceFile::ResourceFile(const OC::Path& filePath, const unsigned int flags)
-: Base(new EmbeddedFileBuffer(filePath, flags))
+void TPoint3di::load(OC::BinaryInputStream& stream)
 {
-}
-
-ResourceFile::~ResourceFile()
-{
-    delete rdbuf();
-}
-
-bool ResourceFile::is_open() const
-{
-    return fileBuffer()->is_open();
-}
-
-const std::streamsize ResourceFile::size() const
-{
-    return fileBuffer()->size();
-}
-
-size_t ResourceFile::readFlags(const size_t flagMasks[], const size_t count)
-{
-    size_t result = 0;
-
-    for (size_t i = 0; i < count; ++i)
-    {
-        Uint16 value;
-        *this >> value;
-
-        if (value > 0)
-        {
-            result |= flagMasks[i];
-        }
-    }
-
-    return result;
-}
-
-EmbeddedFileBuffer* ResourceFile::fileBuffer() const
-{
-    return static_cast<EmbeddedFileBuffer*>(rdbuf());
+    stream >> X;
+    stream >> Y;
+    stream >> Z;
 }
 
 
-// ===========================================================================
-
-
-void TPoint3di::load(OC::BinaryStream& stream)
+void TPoint2D::load(OC::BinaryInputStream& stream)
 {
-    stream.readBinary(X);
-    stream.readBinary(Y);
-    stream.readBinary(Z);
-}
-
-
-void TPoint2D::load(OC::BinaryStream& stream)
-{
-    stream.readBinary(sX);
-    stream.readBinary(sY);
+    stream >> sX;
+    stream >> sY;
 }
 
 
@@ -302,29 +285,29 @@ TFace::TFace()
     SDL_zerop(this);
 }
 
-void TFace::load(OC::BinaryStream& stream)
+void TFace::load(OC::BinaryInputStream& stream)
 {
-    stream.readBinary(V1);
-    stream.readBinary(V2);
-    stream.readBinary(V3);
-    stream.readBinary(V4);
+    stream >> V1;
+    stream >> V2;
+    stream >> V3;
+    stream >> V4;
 
-    stream.readBinary(TAx);
-    stream.readBinary(TAy);
-    stream.readBinary(TBx);
-    stream.readBinary(TBy);
-    stream.readBinary(TCx);
-    stream.readBinary(TCy);
-    stream.readBinary(TDx);
-    stream.readBinary(TDy);
+    stream >> TAx;
+    stream >> TAy;
+    stream >> TBx;
+    stream >> TBy;
+    stream >> TCx;
+    stream >> TCy;
+    stream >> TDx;
+    stream >> TDy;
 
-    stream.readBinary(Next);
-    stream.readBinary(Distant);
+    stream >> Next;
+    stream >> Distant;
 
-    stream.readBinary(TNum);
-    stream.readBinary(Flags);
+    stream >> TNum;
+    stream >> Flags;
 
-    stream.readBinary(SprOFs);
+    stream >> SprOFs;
 }
 
 
@@ -343,14 +326,14 @@ static void AdjustFaceCoord(Uint16& coord)
 
 void TOHeader::load(const OC::Path& filename)
 {
-    ResourceFile file(filename);
+    BinaryResource file(filename);
 
     load(file);
 
     TH *= 64;
     TPtr.resize(TH);
 
-    file.readBinary(TPtr);
+    file.readArray(TPtr);
 
     ChI(file);
 
@@ -374,7 +357,7 @@ void TOHeader::load(const OC::Path& filename)
     }
 }
 
-void TOHeader::load(OC::BinaryStream& stream)
+void TOHeader::load(OC::BinaryInputStream& stream)
 {
     OC_FOREACH(TFace& face, Faces)
     {
@@ -401,9 +384,9 @@ void TOHeader::load(OC::BinaryStream& stream)
         vertex.load(stream);
     }
 
-    stream.readBinary(VCount);
-    stream.readBinary(FCount);
-    stream.readBinary(TH);
+    stream >> VCount;
+    stream >> FCount;
+    stream >> TH;
 }
 
 
@@ -422,52 +405,6 @@ TSepPartInfo::TSepPartInfo()
 // ===========================================================================
 
 
-namespace
-{
-
-void DumpBigFileContent(OC::File& bigFile)
-{
-    static bool isDumpEnabled = false;
-
-    if (isDumpEnabled)
-    {
-        SDL_assert(s_isInternal);
-        SDL_assert(!s_fileTable.empty());
-        SDL_assert(bigFile.is_open());
-
-        static const OC::Path DUMP_SUBDIR = OC::FileSystem::GetUserPath("dump");
-        //const OC::Path DUMP_SUBDIR = "e:\\scm_bin_dump";
-        OC::FileSystem::CreateDirectory(DUMP_SUBDIR);
-
-        OC_FOREACH(const FileTableEntry& entry, s_fileTable)
-        {
-            bigFile.seekg(entry.offset());
-
-            const OC::Path outPath = DUMP_SUBDIR / entry.filename();
-            OC::File outFile(outPath, std::ios::out);
-
-            for (std::streamsize bytesLeft = entry.size(); bytesLeft > 0; /* EMPTY */)
-            {
-                char buffer[4096];
-
-                const std::streamsize bytesToRead = std::min(bytesLeft, std::streamsize(sizeof buffer));
-                bigFile.read(buffer, bytesToRead);
-
-                const std::streamsize bytesRead = bigFile.gcount();
-                outFile.write(buffer, bytesRead);
-
-                bytesLeft -= bytesRead;
-            }
-        }
-    }
-}
-
-} // unnamed namespace
-
-
-// ===========================================================================
-
-
 void InitModule()
 {
     InitVideo();
@@ -479,7 +416,7 @@ void InitModule()
 
     if (OC::FileSystem::IsPathExist(BaseFile))
     {
-        s_isInternal = true;
+        s_bigFile.setInternal(true);
     }
     else
     {
@@ -487,7 +424,7 @@ void InitModule()
 
         if (OC::FileSystem::IsPathExist(BaseFile))
         {
-            s_isInternal = true;
+            s_bigFile.setInternal(true);
         }
         else
         {
@@ -506,38 +443,7 @@ void InitModule()
         }
     }
 
-    if (s_isInternal)
-    {
-        OC::File bigFile(BaseFile);
-
-        if (!bigFile)
-        {
-            DoHalt(OC::Format("Cannot open file %1%, permission denied or file system error.") % BaseFile);
-        }
-
-        Uint32 magic;
-        bigFile.readBinary(magic);
-
-        static const Sint32 CSM_ID = 0x64695343; // 'CSid'
-
-        if (CSM_ID != magic)
-        {
-            DoHalt(OC::Format("Bad header in file %1%.") % BaseFile);
-        }
-
-        Uint16 fileCount;
-        bigFile.readBinary(fileCount);
-
-        for (Uint16 i = 0; i < fileCount; ++i)
-        {
-            FileTableEntry entry;
-            entry.read(bigFile);
-
-            s_fileTable.push_back(entry);
-        }
-
-        DumpBigFileContent(bigFile);
-    }
+    s_bigFile.initialize(BaseFile);
 
     SDL_Log("Loading from: %s", BaseFile.string().c_str());
 }
@@ -562,33 +468,33 @@ TPic::TPic(const char* const filename)
 
 void TPic::load(const char* const filename)
 {
-    ResourceFile celFile(filename);
+    BinaryResource celFile(filename);
 
     celFile.seekg(2); // skip 0x9119 magic
-    celFile.readBinary(m_width);
-    celFile.readBinary(m_height);
+    celFile >> m_width;
+    celFile >> m_height;
 
     const size_t dataSize = m_width * m_height;
     m_data.resize(dataSize);
 
     celFile.seekg(CEL_DATA_OFFSET);
-    celFile.readBinary(m_data);
+    celFile.readArray(m_data);
 
     CSPBIO::ChI(celFile);
 }
 
-void TPic::load(OC::BinaryStream& stream)
+void TPic::load(OC::BinaryInputStream& stream)
 {
     SDL_assert(stream.good());
 
-    stream.readBinary(m_width);
-    stream.readBinary(m_height);
-    stream.readBinary(m_centerX);
+    stream >> m_width;
+    stream >> m_height;
+    stream >> m_centerX;
 
     const size_t dataSize = m_width * m_height;
     m_data.resize(dataSize);
 
-    stream.readBinary(m_data);
+    stream.readArray(m_data);
 
     CSPBIO::ChI(stream);
 }
@@ -749,7 +655,7 @@ void DoHalt(const OC::Format& message)
 }
 
 
-void ChI(const OC::BinaryStream& stream)
+void ChI(const std::ios& stream)
 {
     SDL_assert(stream.good());
 
@@ -776,10 +682,10 @@ void LoadAnimation(const OC::String& filename, const Uint16 modelVertexCount, Po
         ? "ani/" + filename
         : filename;
 
-    ResourceFile animationFile(animationPath);
+    BinaryResource animationFile(animationPath);
 
     Uint16 animationVertexCount;
-    animationFile.readBinary(animationVertexCount);
+    animationFile >> animationVertexCount;
 
     if (modelVertexCount != animationVertexCount)
     {
@@ -847,12 +753,12 @@ void InitCaracter(const size_t monsterNumber)
     SDL_assert(monsterIndex < MonstersInfo.size());
 
     TMonsterInfo& monster = MonstersInfo[monsterIndex];
-    ResourceFile characterFile("caracter/" + monster.CarName);
+    BinaryResource characterFile("caracter/" + monster.CarName);
 
     boost::array<Uint16, 3> sounds;
 
     characterFile.seekg(64);                // skip AniMap
-    characterFile.readBinary(sounds);       // read GSND
+    characterFile.readArray(sounds);        // read GSND
     characterFile.seekg(32, std::ios::cur); // skip SFXSize and SFXVol
 
     for (size_t i = 0; i < sounds.size(); ++i)
@@ -893,15 +799,15 @@ namespace
 
 void LoadRGBTable(const char* const filename, RGBTable& table)
 {
-    ResourceFile tableFile(filename);
-    tableFile.readBinary(table, 0xFF00);
+    BinaryResource tableFile(filename);
+    tableFile.readArray(table, 0xFF00);
 }
 
 } // unnamed namespace
 
 void LoadCommonParts()
 {
-    // NOTE: some values in SinTab are (by +-1) from corresponding value from original game
+    // NOTE: some values in SinTab are different (by +-1) from corresponding value from original game
     // This is caused by discrepancy in calculation using hardware floating point numbers
     // (IEEE 754 in most cases) and Pascal's Real type
 
@@ -969,15 +875,11 @@ void LoadCommonParts()
 
     LoadGround();
 
-    {
-        ResourceFile paletteFile("common/chasm2.pal");
-        paletteFile.readBinary(Palette);
-    }
+    BinaryResource paletteFile("common/chasm2.pal");
+    paletteFile.readArray(Palette);
 
-    {
-        ResourceFile asciiTableFile("common/chasm.key");
-        asciiTableFile.readBinary(ASCII_Tab);
-    }
+    BinaryResource asciiTableFile("common/chasm.key");
+    asciiTableFile.readArray(ASCII_Tab);
 }
 
 void CheckMouse(/*...*/);
@@ -1013,7 +915,7 @@ void ScanLevels()
         levelName = EMPTY_LEVEL_NAME;
 
         const OC::String filename = (OC::Format("level%1$02i/resource.%1$02i") % (i + 1)).str();
-        ResourceFile levelFile(filename, ResourceFile::FILE_MAY_NOT_EXIST);
+        TextResource levelFile(filename, Resource::PATH_MAY_NOT_EXIST);
 
         if (!levelFile.is_open())
         {
@@ -1022,7 +924,7 @@ void ScanLevels()
 
         for (;;)
         {
-            levelName = OC::ReadLine(levelFile);
+            levelName = levelFile.readLine();
             boost::algorithm::trim(levelName);
 
             ChI(levelFile);
@@ -1066,18 +968,18 @@ void LoadGraphics()
 {
     SDL_Log("Reading graphics information:");
 
-    ResourceFile infoFile("chasm.inf");
+    TextResource info("chasm.inf");
 
     for (;;)
     {
-        OC::String line = OC::ReadLine(infoFile);
+        OC::String line = info.readLine();
 
-        ChI(infoFile);
+        ChI(info);
 
         static const struct
         {
             const char* section;
-            void (*function)(ResourceFile&);
+            void (*function)(TextResource&);
         }
         loadingFunctions[] =
         {
@@ -1095,7 +997,7 @@ void LoadGraphics()
         {
             if (loadingFunctions[i].section == line)
             {
-                loadingFunctions[i].function(infoFile);
+                loadingFunctions[i].function(info);
             }
         }
 
@@ -1309,6 +1211,15 @@ TPic WIcons;
 
 boost::array<RGB, 256> Palette;
 boost::array<RGB, 256> Pal;
+
+OC::BinaryInputStream& operator>>(OC::BinaryInputStream& stream, RGB& value)
+{
+    stream >> value.red;
+    stream >> value.green;
+    stream >> value.blue;
+
+    return stream;
+}
 
 boost::array<Uint16, 256> CharSize;
 TGunInfo GunsInfo[9];
@@ -1761,13 +1672,13 @@ void Wait_R(/*...*/);
 
 void LoadPicsPacket(const OC::String& filename, TPicPack& packet)
 {
-    ResourceFile packetFile(filename);
+    BinaryResource packetFile(filename);
 
-    packetFile.readBinary(packet.NFrames);
+    packetFile >> packet.NFrames;
 
     const size_t dataSize = size_t(packetFile.size()) - sizeof packet.NFrames;
     packet.PData.resize(dataSize);
-    packetFile.readBinary(packet.PData);
+    packetFile.readArray(packet.PData);
 
     ChI(packetFile);
 
@@ -1822,17 +1733,17 @@ void ValidateCount(CountType& count, const StorageType& objects)
 
 }; // unnamed namespace
 
-void LoadSounds(ResourceFile& infoFile)
+void LoadSounds(TextResource& info)
 {
     // TODO ...
 }
 
-void LoadBMPObjects(ResourceFile& infoFile)
+void LoadBMPObjects(TextResource& info)
 {
     SDL_Log(" Loading Objects...");
 
-    infoFile >> ObjectsLoaded;
-    OC::ReadLine(infoFile);
+    info >> ObjectsLoaded;
+    info.skipLine();
 
     ValidateCount(ObjectsLoaded, ObjBMPInf);
 
@@ -1842,23 +1753,24 @@ void LoadBMPObjects(ResourceFile& infoFile)
 
         Uint16 sh, gl, hl, n;
 
-        infoFile >> sh >> gl >> hl;
-        infoFile >> bmp.Oz;
-        infoFile >> n >> n;
+        info >> sh >> gl >> hl;
+        info >> bmp.Oz;
+        info >> n >> n;
 
+        // TODO: flags
         bmp.bmpFlags = (1 == sh ? 2 : 0)
             + (1 == gl ? 1 : 0)
             + (1 == hl ? 4 : 0);
 
         OC::String filename;
-        infoFile >> filename;
+        info >> filename;
 
-        OC::ReadLine(infoFile);
+        info.skipLine();
 
-        ResourceFile objectFile("obj/" + filename);
+        BinaryResource objectFile("obj/" + filename);
 
-        objectFile.readBinary(bmp.Frames);
-        objectFile.readBinary(bmp.CurFrame);
+        objectFile >> bmp.Frames;
+        objectFile >> bmp.CurFrame;
 
         ValidateCount(bmp.Frames, bmp.Pics);
 
@@ -1869,49 +1781,48 @@ void LoadBMPObjects(ResourceFile& infoFile)
     }
 }
 
-void Load3dObjects(ResourceFile& infoFile)
+void Load3dObjects(TextResource& info)
 {
     SDL_Log(" Loading 3D Objects...");
 
     Uint16 count;
-    infoFile >> count;
-
-    OC::ReadLine(infoFile);
+    info >> count;
+    info.skipLine();
 
     ValidateCount(count, Obj3DInf);
 
     for (size_t i = 0; i < count; ++i)
     {
-        while (';' == infoFile.peek())
+        while (';' == info.peek())
         {
-            OC::ReadLine(infoFile);
+            info.skipLine();
         }
 
         TObj3DInfo& object = Obj3DInf[i];
 
-        infoFile >> object.GoRad;
-        infoFile >> object.ShadowOn;
+        info >> object.GoRad;
+        info >> object.ShadowOn;
 
-        infoFile >> object.BMPObj;
-        infoFile >> object.BMPz;
+        info >> object.BMPObj;
+        info >> object.BMPz;
 
-        infoFile >> object.ACode;
+        info >> object.ACode;
 
-        infoFile >> object.BlowUp;
-        infoFile >> object.BlowLimit;
+        info >> object.BlowUp;
+        info >> object.BlowLimit;
 
-        infoFile >> object.SFXid;
-        infoFile >> object.BSFXid;
+        info >> object.SFXid;
+        info >> object.BSFXid;
 
         OC::String modelFileName, animationFileName;
 
         {
-            const OC::String filenames = OC::ReadLine(infoFile);
+            const OC::String filenames = info.readLine();
             OC::StringStream filenamesStream(filenames);
             filenamesStream >> modelFileName >> animationFileName;
         }
 
-        ChI(infoFile);
+        ChI(info);
 
         object.Morphed = true;
 
@@ -1936,9 +1847,9 @@ void Load3dObjects(ResourceFile& infoFile)
     }
 }
 
-static OC::String ReadRocketFileName(ResourceFile& infoFile)
+static OC::String ReadRocketFileName(TextResource& info)
 {
-    OC::String result = OC::ReadLine(infoFile);
+    OC::String result = info.readLine();
 
     RemoveEqual(result);
     boost::algorithm::replace_all(result, "\\", "/");
@@ -1946,14 +1857,13 @@ static OC::String ReadRocketFileName(ResourceFile& infoFile)
     return result;
 }
 
-void LoadRockets(ResourceFile& infoFile)
+void LoadRockets(TextResource& info)
 {
     SDL_Log(" Loading Rockets...");
 
     Uint16 count;
-    infoFile >> count;
-
-    OC::ReadLine(infoFile);
+    info >> count;
+    info.skipLine();
 
     ValidateCount(count, RocketsInfo);
 
@@ -1961,19 +1871,19 @@ void LoadRockets(ResourceFile& infoFile)
     {
         TRocketInfo& rocket = RocketsInfo[i];
 
-        OC::ReadLine(infoFile);
+        info.skipLine();
 
-        const OC::String modelFileName     = ReadRocketFileName(infoFile);
-        const OC::String animationFileName = ReadRocketFileName(infoFile);
+        const OC::String modelFileName     = ReadRocketFileName(info);
+        const OC::String animationFileName = ReadRocketFileName(info);
 
         LoadPOH(modelFileName, rocket.POH);
         LoadAnimation(animationFileName, rocket.POH.VCount, rocket.PAni, rocket.ATime);
 
-        infoFile >> rocket.BlowType;
-        infoFile >> rocket.GForce;
-        infoFile >> rocket.ActionR;
-        infoFile >> rocket.CheckR;
-        infoFile >> rocket.Power;
+        info >> rocket.BlowType;
+        info >> rocket.GForce;
+        info >> rocket.ActionR;
+        info >> rocket.CheckR;
+        info >> rocket.Power;
 
         static const size_t FLAG_MASKS[] =
         {
@@ -1985,15 +1895,14 @@ void LoadRockets(ResourceFile& infoFile)
             TRocketInfo::FLAG_FAST
         };
 
-        infoFile.readFlags(FLAG_MASKS, SDL_TABLESIZE(FLAG_MASKS));
+        info.readFlags(rocket.rFlags, FLAG_MASKS, SDL_TABLESIZE(FLAG_MASKS));
 
-        infoFile >> rocket.SmokeID;
-
-        OC::ReadLine(infoFile);
+        info >> rocket.SmokeID;
+        info.skipLine();
     }
 }
 
-void LoadGibs(ResourceFile& infoFile)
+void LoadGibs(TextResource& info)
 {
     SDL_Log(" Loading Gibs...");
 
@@ -2001,7 +1910,7 @@ void LoadGibs(ResourceFile& infoFile)
     {
         TSepPartInfo& sepPart = SepPartInfo[i];
 
-        OC::String filename = OC::ReadLine(infoFile);
+        OC::String filename = info.readLine();
         RemoveEqual(filename);
 
         if ("#end" == filename)
@@ -2027,14 +1936,13 @@ void LoadGibs(ResourceFile& infoFile)
     }
 }
 
-void LoadBlows(ResourceFile& infoFile)
+void LoadBlows(TextResource& info)
 {
     SDL_Log(" Loading Blows...");
 
     Uint16 count;
-    infoFile >> count;
-
-    OC::ReadLine(infoFile);
+    info >> count;
+    info.skipLine();
 
     ValidateCount(count, BlowsInfo);
 
@@ -2042,7 +1950,7 @@ void LoadBlows(ResourceFile& infoFile)
     {
         TBlowInfo& blow = BlowsInfo[i];
 
-        infoFile >> blow.GlassMode;
+        info >> blow.GlassMode;
 
         static const size_t FLAG_MASKS[] =
         {
@@ -2054,12 +1962,11 @@ void LoadBlows(ResourceFile& infoFile)
             TBlowInfo::FLAG_LIGHT_ON
         };
 
-        blow.Flags = Uint16(infoFile.readFlags(FLAG_MASKS, SDL_TABLESIZE(FLAG_MASKS)));
+        info.readFlags(blow.Flags, FLAG_MASKS, SDL_TABLESIZE(FLAG_MASKS));
 
         OC::String filename;
-        infoFile >> filename;
-
-        OC::ReadLine(infoFile);
+        info >> filename;
+        info.skipLine();
 
         LoadPicsPacket("bmp/" + filename, blow.Frames);
 
@@ -2067,14 +1974,13 @@ void LoadBlows(ResourceFile& infoFile)
     }
 }
 
-void LoadMonsters(ResourceFile& infoFile)
+void LoadMonsters(TextResource& info)
 {
     SDL_Log(" Loading Monsters...");
 
     Uint16 count;
-    infoFile >> count;
-
-    OC::ReadLine(infoFile);
+    info >> count;
+    info.skipLine();
 
     ValidateCount(count, MonstersInfo);
 
@@ -2082,20 +1988,20 @@ void LoadMonsters(ResourceFile& infoFile)
     {
         TMonsterInfo& monster = MonstersInfo[i];
 
-        infoFile >> monster.CarName;
+        info >> monster.CarName;
 
-        infoFile >> monster.Radius;
-        infoFile >> monster.CRad;
+        info >> monster.Radius;
+        info >> monster.CRad;
 
-        infoFile >> monster.Speed;
-        infoFile >> monster.RSpeed;
+        info >> monster.Speed;
+        info >> monster.RSpeed;
 
-        infoFile >> monster.Life;
-        infoFile >> monster.KickPower;
-        infoFile >> monster.Rocket;
-        infoFile >> monster.SepLimit;
+        info >> monster.Life;
+        info >> monster.KickPower;
+        info >> monster.Rocket;
+        info >> monster.SepLimit;
 
-        OC::ReadLine(infoFile);
+        info.skipLine();
 
         InitCaracter(i + FIRST_MONSTER_INDEX);
     }
@@ -2103,7 +2009,7 @@ void LoadMonsters(ResourceFile& infoFile)
     MonstersInfo[2].MWidth -= 12;
 }
 
-void LoadGunsInfo(ResourceFile& infoFile)
+void LoadGunsInfo(TextResource& info)
 {
     // TODO ...
 }

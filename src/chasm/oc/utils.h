@@ -36,8 +36,6 @@ T Abs(const T& value)
 
 WideString ExpandString(const char* const utf8String);
 
-OC::String ReadLine(OC::BinaryStream& stream);
-
 } // namespace OC
 
 #define OC_FOREACH BOOST_FOREACH
