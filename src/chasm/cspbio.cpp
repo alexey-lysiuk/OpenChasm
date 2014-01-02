@@ -833,10 +833,6 @@ void LoadRGBTable(const char* const filename, RGBTable& table)
 
 void LoadCommonParts()
 {
-    // NOTE: some values in SinTab are different (by +-1) from corresponding value from original game
-    // This is caused by discrepancy in calculation using hardware floating point numbers
-    // (IEEE 754 in most cases) and Pascal's Real type
-
     for (size_t i = 0; i < SinTab.size(); ++i)
     {
         static const OC::Float op1 = OC::Float(M_PI); // OC::Real(0x2182, 0xDAA2, 0x490F).convert<OC::Float>();
@@ -844,7 +840,7 @@ void LoadCommonParts()
         static const OC::Float op3 = 1024.0f;         // OC::Real(0x008B, 0x0000, 0x0000).convert<OC::Float>();
         static const OC::Float op4 = 4096.0f;         // OC::Real(0x008D, 0x0000, 0x0000).convert<OC::Float>();
 
-        SinTab[i] = Sint16(SDL_sin(op1 * op2 * i / op3) * op4);
+        SinTab[i] = OC::Round<Sint16>(SDL_sin(op1 * op2 * i / op3) * op4);
     }
 
     SDL_Log("Loading environment...");
@@ -1067,9 +1063,36 @@ void DoSetPalette(/*...*/);
 namespace
 {
 
-Uint8 ApplyContast(const Uint8 color, Sint16 bk, const Uint16 k)
+inline Uint8 ApplyContast(const Uint8 color, const Sint16 b)
 {
-    return Uint8(color * bk * k / 128 + color);
+    OC::Float br = b / 63.0f; // OC::Real(0x0086, 0x0000, 0x7C00).convert<OC::Float>();
+    br -= br * br;
+    br *= 16.0f;              // OC::Real(0x0085, 0x0000, 0x0000).convert<OC::Float>();
+
+    return Uint8(color * (Contrast - 7) * OC::Round<Sint16>(br) / 128 + color);
+}
+
+inline Uint8 ApplyColor(const Uint8 color, Sint16 b)
+{
+    const OC::Float br = (Color - 7) / 8.0f; // OC::Real(0x0084, 0x0000, 0x0000).convert<OC::Float>();
+    const Sint16 l = OC::Round<Sint16>((color - b) * br) + color;
+
+    return Uint8(OC::Clamp(Sint16(0), l, Sint16(63)));
+}
+
+inline Uint8 ApplyBrightness(const Uint8 color, Sint16 b)
+{
+    const OC::Float br = 1.0f    // OC::Real(0x0081, 0x0000, 0x0000).convert<OC::Float>()
+        - (Bright - 7) / 196.0f; // OC::Real(0x0088, 0x0000, 0x4400).convert<OC::Float>()
+
+    Sint16 l = 64 - OC::Round<Sint16>((64 - color) * br);
+
+    if (b < 3)
+    {
+        l = l * b / 3;
+    }
+
+    return Uint8(OC::Clamp(Sint16(0), l, Sint16(63)));
 }
 
 } // unnamed namespace
@@ -1077,25 +1100,37 @@ Uint8 ApplyContast(const Uint8 color, Sint16 bk, const Uint16 k)
 
 void SetPalette()
 {
-    Sint16 bk = Contrast + 0xFFF9;
-
     for (size_t n = 0; n < 256; ++n)
     {
         const RGB& color = Palette[n];
 
         const Uint8 b = std::max(std::max(color.red, color.green), color.blue);
-        OC::Float br = b / 63.0f; // OC::Real(0x0086, 0x0000, 0x7C00).convert<OC::Float>();
-        br *= br;
-        br -= br;
-        br *= 16.0f; // OC::Real(0x0085, 0x0000, 0x0000).convert<OC::Float>();
-
-        const Sint16 k = Sint16(br);
-        Pal[n].red   = ApplyContast(color.red,   bk, k);
-        Pal[n].green = ApplyContast(color.green, bk, k);
-        Pal[n].blue  = ApplyContast(color.blue,  bk, k);
+        Pal[n].red   = ApplyContast(color.red,   b);
+        Pal[n].green = ApplyContast(color.green, b);
+        Pal[n].blue  = ApplyContast(color.blue,  b);
     }
 
-    // TODO ...
+    for (size_t n = 0; n < 256; ++n)
+    {
+        RGB& color = Pal[n];
+
+        const Sint16 b = (Sint16(color.red) + Sint16(color.green) + Sint16(color.blue)) / 3;
+        color.red   = ApplyColor(color.red,   b);
+        color.green = ApplyColor(color.green, b);
+        color.blue  = ApplyColor(color.blue,  b);
+    }
+
+    for (size_t n = 0; n < 256; ++n)
+    {
+        RGB& color = Pal[n];
+
+        const Sint16 b = std::max(std::max(color.red, color.green), color.blue);
+        color.red   = ApplyBrightness(color.red,   b);
+        color.green = ApplyBrightness(color.green, b);
+        color.blue  = ApplyBrightness(color.blue,  b);
+    }
+
+    // TODO: DoSetPalette();
 }
 
 void AddEvent(/*...*/);
