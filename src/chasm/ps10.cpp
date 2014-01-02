@@ -360,6 +360,10 @@ int main(int argc, char** argv)
 
     CSPBIO::LoadGraphics();
 
+    // TODO: csact::ReleaseLevel();
+
+    CSPBIO::SetVideoMode();
+
     // TODO...
 
     return EXIT_SUCCESS;

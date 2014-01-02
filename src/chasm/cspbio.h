@@ -430,11 +430,11 @@ struct FIB
 
 struct TLinesBuf
 {
-    Uint16 LinesS[1024];
-    Uint16 LinesO[1024];
-    Uint16 LinesFH1[1024];
-    Uint16 LinesFH2[1024];
-    Uint8 LinesB[1024];
+    boost::array<Uint16, 1024> LinesS;
+    boost::array<Uint16, 1024> LinesO;
+    boost::array<Uint16, 1024> LinesFH1;
+    boost::array<Uint16, 1024> LinesFH2;
+    boost::array<Uint8,  1024> LinesB;
 };
 
 struct MessageRec__Element
@@ -856,7 +856,7 @@ void VESA_TileScreen(/*...*/);
 void vesa_DrawKey(/*...*/);
 void ReDrawGround(/*...*/);
 void ShowVideoBuffer(/*...*/);
-void SetVideoMode(/*...*/);
+void SetVideoMode();
 
 Uint16 QPifagorA32(/*...*/);
 void getmousestate(/*...*/);
@@ -973,11 +973,11 @@ extern boost::array<TObjBMPInfo, 4> ObjBMPInf;
 extern boost::array<TObj3DInfo, 96> Obj3DInf;
 extern Uint16 LinesH1[847];
 extern Uint16 LinesH2[847];
-extern TLinesBuf* LinesBUF;
+extern TLinesBuf LinesBUF;
 extern THoleItem* HolesList;
 extern Uint8 SpryteUsed[120];
 extern boost::array<Uint16, 201> Mul320;
-extern Sint32 MulSW[701];
+extern boost::array<Sint32, 701> MulSW;
 extern boost::array<Sint16, 1024> SinTab;
 extern TLoc* Map;
 extern std::list<OC::String> ConsHistory;
@@ -1491,8 +1491,6 @@ void GetModeInfo(/*...*/);
 void OnlySwitchBank(/*...*/);
 void InitVideo(/*...*/);
 void ClearMonitorWindow(/*...*/);
-void Init320x200(/*...*/);
-void Init_HiMode(/*...*/);
 bool TextSeek(/*...*/);
 void ShowFinalScreen(/*...*/);
 void Wait_R(/*...*/);
@@ -1520,6 +1518,9 @@ extern OC::Path BaseFile;
 // /* nested */ void AddMode(/*...*/);
 // /* nested */ void WriteS(/*...*/);
 // /* nested */ void PutPixel(/*...*/);
+
+extern SDL_Window*   g_window;
+extern SDL_Renderer* g_renderer;
 
 } // namespace CSPBIO
 
