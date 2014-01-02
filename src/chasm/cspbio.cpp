@@ -21,6 +21,9 @@
 
 #include "cspbio.h"
 
+#include "soundip/soundip.h"
+
+
 namespace CSPBIO
 {
 
@@ -102,6 +105,8 @@ void BigFile::initialize(const OC::Path& path)
 
 BigFile::Buffer* BigFile::read(const OC::Path& path, std::streamsize& size, std::streamoff& offset)
 {
+    SDL_assert(!path.empty());
+
     OC::String filename = path.filename().generic_string();
     boost::algorithm::to_upper(filename);
 
@@ -587,6 +592,22 @@ TObjBMPInfo::TObjBMPInfo()
 }
 
 
+TGunInfo::TGunInfo()
+: RockType(0)
+, RZ0(0)
+, DAmmo(0)
+, AmmoLimit(0)
+, StartCount(0)
+, RcCount(0)
+, GunYShift(0)
+, RepairTime(0)
+, PATime(0)
+, PSTime(0)
+{
+    
+}
+
+
 TBlowInfo::TBlowInfo()
 : NFrames(0)
 , Flags(0)
@@ -789,7 +810,12 @@ void InitCaracter(const size_t monsterNumber)
 
 void UpLoadCaracter(/*...*/);
 void ReleaseCaracter(/*...*/);
-void LoadSound(/*...*/);
+
+void LoadSound(const OC::String& /*filename*/, const size_t /*index*/)
+{
+    // TODO...
+}
+
 void LoadAmb(/*...*/);
 void AllocVideo(/*...*/);
 void AllocMemory(/*...*/);
@@ -1222,7 +1248,7 @@ OC::BinaryInputStream& operator>>(OC::BinaryInputStream& stream, RGB& value)
 }
 
 boost::array<Uint16, 256> CharSize;
-TGunInfo GunsInfo[9];
+boost::array<TGunInfo, 9> GunsInfo;
 NetPlace__Element NetPlace[32];
 void* VGA;
 boost::array<Uint8, 0x5000> Ground;
@@ -1731,11 +1757,40 @@ void ValidateCount(CountType& count, const StorageType& objects)
     count = std::min(count, CountType(storageSize));
 }
 
+OC::String ReadFileNameAfterEqual(TextResource& info)
+{
+    OC::String result = info.readLine();
+
+    RemoveEqual(result);
+    boost::algorithm::replace_all(result, "\\", "/");
+    
+    return result;
+}
+
 }; // unnamed namespace
 
 void LoadSounds(TextResource& info)
 {
-    // TODO ...
+/*
+    if (1 >= SoundIP::sCard)
+    {
+        return;
+    }
+*/
+
+    SDL_Log("Load Sound Data...");
+
+    for (size_t i = 0; /* EMPTY */; ++i)
+    {
+        const OC::String filename = ReadFileNameAfterEqual(info);
+
+        if ("[SOUNDS_END]" == filename)
+        {
+            break;
+        }
+
+        LoadSound("sfx/" + filename, i);
+    }
 }
 
 void LoadBMPObjects(TextResource& info)
@@ -1847,16 +1902,6 @@ void Load3dObjects(TextResource& info)
     }
 }
 
-static OC::String ReadRocketFileName(TextResource& info)
-{
-    OC::String result = info.readLine();
-
-    RemoveEqual(result);
-    boost::algorithm::replace_all(result, "\\", "/");
-
-    return result;
-}
-
 void LoadRockets(TextResource& info)
 {
     SDL_Log(" Loading Rockets...");
@@ -1873,8 +1918,8 @@ void LoadRockets(TextResource& info)
 
         info.skipLine();
 
-        const OC::String modelFileName     = ReadRocketFileName(info);
-        const OC::String animationFileName = ReadRocketFileName(info);
+        const OC::String modelFileName     = ReadFileNameAfterEqual(info);
+        const OC::String animationFileName = ReadFileNameAfterEqual(info);
 
         LoadPOH(modelFileName, rocket.POH);
         LoadAnimation(animationFileName, rocket.POH.VCount, rocket.PAni, rocket.ATime);
@@ -1910,8 +1955,7 @@ void LoadGibs(TextResource& info)
     {
         TSepPartInfo& sepPart = SepPartInfo[i];
 
-        OC::String filename = info.readLine();
-        RemoveEqual(filename);
+        OC::String filename = ReadFileNameAfterEqual(info);
 
         if ("#end" == filename)
         {
@@ -2011,7 +2055,37 @@ void LoadMonsters(TextResource& info)
 
 void LoadGunsInfo(TextResource& info)
 {
-    // TODO ...
+    SDL_Log(" Loading Weapons...");
+
+    info >> WeaponsCount;
+    info.skipLine();
+
+    ValidateCount(WeaponsCount, GunsInfo);
+
+    for (size_t i = 0; i < WeaponsCount; ++i)
+    {
+        TGunInfo& weapon = GunsInfo[i];
+
+        const OC::String modelFilename = ReadFileNameAfterEqual(info);
+        LoadPOH(modelFilename, weapon.POH);
+
+        const OC::String staticFileName = ReadFileNameAfterEqual(info);
+        LoadAnimation(staticFileName, weapon.POH.VCount, weapon.PAStat, weapon.PSTime);
+
+        const OC::String attackFileName = ReadFileNameAfterEqual(info);
+        LoadAnimation(attackFileName, weapon.POH.VCount, weapon.PAAttack, weapon.PATime);
+
+        info >> weapon.RockType;
+        info >> weapon.RepairTime;
+        info >> weapon.GunYShift;
+        info >> weapon.RZ0;
+        info >> weapon.DAmmo;
+        info >> weapon.AmmoLimit;
+        info >> weapon.StartCount;
+        info >> weapon.RcCount;
+
+        info.skipLine();
+    }
 }
 
 void CLine(/*...*/);

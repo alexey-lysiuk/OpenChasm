@@ -593,17 +593,24 @@ struct TGunInfo
 {
     Sint16 RockType;
     Sint16 RZ0;
+
     Sint16 DAmmo;
     Sint16 AmmoLimit;
+
     Sint16 StartCount;
     Sint16 RcCount;
     Sint16 GunYShift;
+
     Sint16 RepairTime;
     Uint16 PATime;
     Uint16 PSTime;
-    TOHeader* POH;
-    TPoint3di* PAStat;
-    TPoint3di* PAAttack;
+
+    TOHeader POH;
+
+    Point3DList PAStat;
+    Point3DList PAAttack;
+
+    TGunInfo();
 };
 
 struct THoleItem
@@ -884,7 +891,7 @@ void ScanLowHigh(/*...*/);
 void InitCaracter(const size_t monsterNumber);
 void UpLoadCaracter(/*...*/);
 void ReleaseCaracter(/*...*/);
-void LoadSound(/*...*/);
+void LoadSound(const OC::String& filename, const size_t index);
 void LoadAmb(/*...*/);
 void AllocVideo(/*...*/);
 void AllocMemory(/*...*/);
@@ -1027,7 +1034,7 @@ extern boost::array<RGB, 256> Palette;
 extern boost::array<RGB, 256> Pal;
 
 extern boost::array<Uint16, 256> CharSize;
-extern TGunInfo GunsInfo[9];
+extern boost::array<TGunInfo, 9> GunsInfo;
 extern NetPlace__Element NetPlace[32];
 extern void* VGA;
 extern boost::array<Uint8, 0x5000> Ground;
