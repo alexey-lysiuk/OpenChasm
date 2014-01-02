@@ -34,6 +34,19 @@ T Abs(const T& value)
     return value < 0 ? -value : value;
 }
 
+template <typename IntType, typename FloatType>
+IntType Round(const FloatType& value)
+{
+    const FloatType addition = FloatType(value > 0 ? 0.5 : -0.5);
+    return IntType(value + addition);
+}
+
+template <typename T>
+T Clamp(const T& minimum, const T& value, const T& maximum)
+{
+    return std::min(std::max(minimum, value), maximum);
+}
+
 WideString ExpandString(const char* const utf8String);
 
 } // namespace OC
