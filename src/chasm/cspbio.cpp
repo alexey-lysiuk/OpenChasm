@@ -1736,7 +1736,7 @@ ModesList__Type ModesList;
 TDPMIRegs DRegs;
 bool NETMonitor;
 bool InBrifing;
-Uint8 VideoOwners[4];
+boost::array<Uint8, 4> VideoOwners;
 Uint16 CurOwner;
 Uint16 CurVideoMode = 1;
 Uint16 LastVideoMode;

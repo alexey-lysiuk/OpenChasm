@@ -54,7 +54,7 @@ void ExecuteEvent(/*...*/);
 void DeInit_DemoSystem(/*...*/);
 void EndDemo(/*...*/);
 void StartDemo(/*...*/);
-void GetNextDemoNumber(/*...*/);
+void GetNextDemoNumber();
 void Demo_RecordNext(/*...*/);
 void Demo_ReadNext(/*...*/);
 bool Rocket_WallCheck(/*...*/);

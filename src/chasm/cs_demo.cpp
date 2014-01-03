@@ -30,7 +30,31 @@ void ExecuteEvent(/*...*/);
 void DeInit_DemoSystem(/*...*/);
 void EndDemo(/*...*/);
 void StartDemo(/*...*/);
-void GetNextDemoNumber(/*...*/);
+
+void GetNextDemoNumber()
+{
+    using namespace CSPBIO;
+
+    for (size_t i = 0; i < 64; ++i)
+    {
+        if (++LevelN > 64)
+        {
+            LevelN = 1;
+        }
+
+        const OC::String filename = (OC::Format("chasm.r%1$02i") % LevelN).str();
+        BinaryResource demoFile(filename, Resource::PATH_MAY_NOT_EXIST);
+
+        if (demoFile.is_open())
+        {
+            return;
+        }
+    }
+
+    PlayDemo = false;
+    LevelN   = 1;
+}
+
 void Demo_RecordNext(/*...*/);
 void Demo_ReadNext(/*...*/);
 bool Rocket_WallCheck(/*...*/);

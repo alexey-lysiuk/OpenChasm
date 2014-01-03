@@ -1478,7 +1478,7 @@ extern ModesList__Type ModesList;
 extern TDPMIRegs DRegs;
 extern bool NETMonitor;
 extern bool InBrifing;
-extern Uint8 VideoOwners[4];
+extern boost::array<Uint8, 4> VideoOwners;
 extern Uint16 CurOwner;
 extern Uint16 CurVideoMode;
 extern Uint16 LastVideoMode;

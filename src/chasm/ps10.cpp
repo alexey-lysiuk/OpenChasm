@@ -169,7 +169,17 @@ void CheckTelePorts(/*...*/);
 void CheckFloorLinks(/*...*/);
 void DeinitMonitor(/*...*/);
 void SwitchMonitor(/*...*/);
-void ReInitOwners(/*...*/);
+
+void ReInitOwners()
+{
+    CSPBIO::CurOwner = 0;
+
+    for (size_t i = 0; i < CSPBIO::VideoOwners.size(); ++i)
+    {
+        CSPBIO::VideoOwners[i] = Uint8(i + 1);
+    }
+}
+
 void InsertPlayers(/*...*/);
 void NewGame(/*...*/);
 void MenuStartNet(/*...*/);
@@ -367,7 +377,16 @@ int main(int argc, char** argv)
 
     CSPBIO::ReDrawGround();
 
-    // TODO...
+    Chasm::ReInitOwners();
+
+    if (0 != CSPBIO::PlayDemo)
+    {
+        CSPBIO::LevelN = 0;
+
+        CS_DEMO::GetNextDemoNumber();
+    }
+
+    // TODO: init joystick
 
     for (;;)
     {
