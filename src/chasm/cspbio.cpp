@@ -1044,19 +1044,7 @@ void LoadGround()
 {
     VesaTiler.load("common/vesatile.cel");
     Status.load("common/status2.cel");
-    
-    const TPic groundPic("common/ground.cel");
-
-    for (size_t x = 0; x < 5; ++x)
-    {
-        for (size_t y = 0; y < 64; ++y)
-        {
-            const Uint8* const groundSrc = groundPic.data() + y * 64;
-            Uint8* const groundDst = &Ground[0] + y * 320 + x * 64;
-
-            SDL_memcpy(groundDst, groundSrc, 64);
-        }
-    }
+    Ground.load("common/ground.cel");
 
     Loading.load("common/loading.cel");
     LoadingW = Loading.width();
@@ -1070,7 +1058,20 @@ void DoSetPalette(const TPalette& palette)
         return;
     }
 
-    SDL_SetPaletteColors(g_surface->format->palette, &palette[0], 0, 256);
+    // Convert 64-color palette to 256-color
+    TPalette palette256;
+
+    for (size_t n = 0; n < TPalette::size(); ++n)
+    {
+        const RGB& srcColor = palette[n];
+        RGB& dstColor = palette256[n];
+
+        dstColor.r = srcColor.r * 4;
+        dstColor.g = srcColor.g * 4;
+        dstColor.b = srcColor.b * 4;
+    }
+
+    SDL_SetPaletteColors(g_surface->format->palette, &palette256[0], 0, int(TPalette::size()));
 }
 
 namespace
@@ -1113,7 +1114,7 @@ inline Uint8 ApplyBrightness(const Uint8 color, const Sint16 coeff)
 
 void SetPalette()
 {
-    for (size_t n = 0; n < 256; ++n)
+    for (size_t n = 0; n < TPalette::size(); ++n)
     {
         const RGB& color = Palette[n];
 
@@ -1123,7 +1124,7 @@ void SetPalette()
         Pal[n].b = ApplyContast(color.b, coeff);
     }
 
-    for (size_t n = 0; n < 256; ++n)
+    for (size_t n = 0; n < TPalette::size(); ++n)
     {
         RGB& color = Pal[n];
 
@@ -1133,7 +1134,7 @@ void SetPalette()
         color.b = ApplyColor(color.b, coeff);
     }
 
-    for (size_t n = 0; n < 256; ++n)
+    for (size_t n = 0; n < TPalette::size(); ++n)
     {
         RGB& color = Pal[n];
 
@@ -1301,7 +1302,7 @@ boost::array<Uint16, 256> CharSize;
 boost::array<TGunInfo, 9> GunsInfo;
 NetPlace__Element NetPlace[32];
 void* VGA;
-boost::array<Uint8, 0x5000> Ground;
+TPic Ground;
 TPic Status;
 TPic Loading;
 TPic VesaTiler;
@@ -1544,10 +1545,10 @@ Sint32 LastPainTime;
 Sint32 StartUpRandSeed = Sint32(time(NULL));
 Sint32 MSRND;
 TLoc L;
-Sint32 VPSize;
-Sint32 VideoH;
-Sint32 VideoW;
-Sint32 VideoBPL;
+Uint16 VPSize;   // was Sint32
+Uint16 VideoH;   // was Sint32
+Uint16 VideoW;   // was Sint32
+Uint16 VideoBPL; // was Sint32
 Uint16 VideoEX;
 Uint16 VideoEY;
 Uint16 VideoCX;

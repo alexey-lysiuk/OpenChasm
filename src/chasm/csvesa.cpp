@@ -34,7 +34,25 @@ void ClearUnusedScreens(/*...*/);
 void InitVESAMonitor(/*...*/);
 void VESA_TileScreen(/*...*/);
 void vesa_DrawKey(/*...*/);
-void ReDrawGround(/*...*/);
+
+void ReDrawGround()
+{
+    const Uint16 groundWidth  = Ground.width();
+    const Uint16 groundHeight = Ground.height();
+
+    for (Uint16 y = 0; y < VideoH; ++y)
+    {
+        for (Uint16 x = 0; x < VideoW; x += groundWidth)
+        {
+            Uint8* const dstPtr = static_cast<Uint8*>(g_surface->pixels) + y * VideoW + x;
+            const Uint8* const srcPtr = Ground.data() + y % groundHeight * groundWidth;
+            const Uint16 count = std::min(Uint16(VideoW - x), groundWidth);
+
+            memcpy(dstPtr, srcPtr, count);
+        }
+    }
+}
+
 void ShowVideoBuffer(/*...*/);
 
 void SetVideoMode()
@@ -44,13 +62,13 @@ void SetVideoMode()
     // TODO: remove hard-coded 640x480
     VideoW   = 640;
     VideoH   = 480;
-    VideoBPL = 640;
+    VideoBPL = VideoW;
 
-    FloorDiv = Uint16(VideoW + 16 / 32);
+    FloorDiv = VideoW + 16 / 32;
 
     ShutdownRenderer();
 
-    g_window = SDL_CreateWindow("OpenChasm", 0, 0, VideoW, VideoH, SDL_WINDOW_SHOWN);
+    g_window = SDL_CreateWindow("OpenChasm", 0, 0, VideoW, VideoH, SDL_WINDOW_SHOWN | SDL_WINDOWPOS_CENTERED);
 
     if (NULL == g_window)
     {
@@ -66,34 +84,18 @@ void SetVideoMode()
 
     g_surface = SDL_CreateRGBSurface(0, VideoW, VideoH, 8, 0, 0, 0, 0);
 
-    if (NULL == g_renderer)
+    if (NULL == g_surface)
     {
         DoHaltSDLError("Failed to create render surface.");
     }
-/*
+
     SDL_RenderClear(g_renderer);
-    SDL_RenderPresent(g_renderer);
 
-    SDL_Event e;
+    VideoEX = VideoW - 1;
+    VideoEY = VideoH - 1;
 
-    for (;;)
-    {
-        if (1 == SDL_PollEvent(&e)
-            && (e.type == SDL_QUIT || e.type == SDL_KEYDOWN || e.type == SDL_MOUSEBUTTONDOWN))
-        {
-            break;
-        }
-        else
-        {
-            SDL_Delay(100);
-        }
-    }
-*/
-    VideoEX = Uint16(VideoW - 1);
-    VideoEY = Uint16(VideoH - 1);
-
-    VideoCX = Uint16(VideoW / 2);
-    VideoCY = Uint16(VideoH / 2);
+    VideoCX = VideoW / 2;
+    VideoCY = VideoH / 2;
 
     VPSize  = VideoBPL * VideoH;
 

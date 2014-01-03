@@ -365,7 +365,28 @@ int main(int argc, char** argv)
     CSPBIO::SetVideoMode();
     atexit(CSPBIO::ShutdownRenderer);
 
+    CSPBIO::ReDrawGround();
+
     // TODO...
+
+    for (;;)
+    {
+        SDL_Event e;
+
+        if (1 == SDL_PollEvent(&e) && SDL_QUIT == e.type)
+        {
+            break;
+        }
+        else
+        {
+            SDL_Texture* blitTexture = SDL_CreateTextureFromSurface(CSPBIO::g_renderer, CSPBIO::g_surface);
+
+            SDL_RenderCopy(CSPBIO::g_renderer, blitTexture, NULL, NULL);
+            SDL_RenderPresent(CSPBIO::g_renderer);
+
+            SDL_DestroyTexture(blitTexture);
+        }
+    }
 
     return EXIT_SUCCESS;
 }

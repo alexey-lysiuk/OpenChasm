@@ -869,7 +869,7 @@ void ClearUnusedScreens(/*...*/);
 void InitVESAMonitor(/*...*/);
 void VESA_TileScreen(/*...*/);
 void vesa_DrawKey(/*...*/);
-void ReDrawGround(/*...*/);
+void ReDrawGround();
 void ShowVideoBuffer(/*...*/);
 void SetVideoMode();
 
@@ -1039,7 +1039,8 @@ extern boost::array<Uint16, 256> CharSize;
 extern boost::array<TGunInfo, 9> GunsInfo;
 extern NetPlace__Element NetPlace[32];
 extern void* VGA;
-extern boost::array<Uint8, 0x5000> Ground;
+
+extern TPic Ground;
 extern TPic Status;
 extern TPic Loading;
 extern TPic VesaTiler;
@@ -1286,10 +1287,10 @@ extern Sint32 LastPainTime;
 extern Sint32 StartUpRandSeed;
 extern Sint32 MSRND;
 extern TLoc L;
-extern Sint32 VPSize;
-extern Sint32 VideoH;
-extern Sint32 VideoW;
-extern Sint32 VideoBPL;
+extern Uint16 VPSize;   // was Sint32
+extern Uint16 VideoH;   // was Sint32
+extern Uint16 VideoW;   // was Sint32
+extern Uint16 VideoBPL; // was Sint32
 extern Uint16 VideoEX;
 extern Uint16 VideoEY;
 extern Uint16 VideoCX;
