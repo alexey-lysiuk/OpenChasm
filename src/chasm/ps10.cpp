@@ -301,7 +301,7 @@ int main(int argc, char** argv)
 {
     if (0 != SDL_Init(SDL_INIT_EVERYTHING))
     {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal Error", SDL_GetError(), NULL);
+        CSPBIO::DoHaltSDLError("Failed to initialize SDL.");
         return EXIT_FAILURE;
     }
 
@@ -363,6 +363,7 @@ int main(int argc, char** argv)
     // TODO: csact::ReleaseLevel();
 
     CSPBIO::SetVideoMode();
+    atexit(CSPBIO::ShutdownRenderer);
 
     // TODO...
 

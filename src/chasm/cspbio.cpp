@@ -675,6 +675,11 @@ void DoHalt(const OC::Format& message)
     DoHalt(message.str());
 }
 
+void DoHaltSDLError(const char* const message)
+{
+    DoHalt(OC::Format("%1%\nSDL returned error:\n%2%") % message % SDL_GetError());
+}
+
 
 void ChI(const std::ios& stream)
 {
@@ -1058,38 +1063,46 @@ void LoadGround()
     LoadingH = Loading.height();
 }
 
-void DoSetPalette(/*...*/);
+void DoSetPalette(const TPalette& palette)
+{
+    if (NULL == g_surface)
+    {
+        return;
+    }
+
+    SDL_SetPaletteColors(g_surface->format->palette, &palette[0], 0, 256);
+}
 
 namespace
 {
 
-inline Uint8 ApplyContast(const Uint8 color, const Sint16 b)
+inline Uint8 ApplyContast(const Uint8 color, const Sint16 coeff)
 {
-    OC::Float br = b / 63.0f; // OC::Real(0x0086, 0x0000, 0x7C00).convert<OC::Float>();
+    OC::Float br = coeff / 63.0f; // OC::Real(0x0086, 0x0000, 0x7C00).convert<OC::Float>();
     br -= br * br;
-    br *= 16.0f;              // OC::Real(0x0085, 0x0000, 0x0000).convert<OC::Float>();
+    br *= 16.0f;                  // OC::Real(0x0085, 0x0000, 0x0000).convert<OC::Float>();
 
     return Uint8(color * (Contrast - 7) * OC::Round<Sint16>(br) / 128 + color);
 }
 
-inline Uint8 ApplyColor(const Uint8 color, Sint16 b)
+inline Uint8 ApplyColor(const Uint8 color, const Sint16 coeff)
 {
     const OC::Float br = (Color - 7) / 8.0f; // OC::Real(0x0084, 0x0000, 0x0000).convert<OC::Float>();
-    const Sint16 l = OC::Round<Sint16>((color - b) * br) + color;
+    const Sint16 l = OC::Round<Sint16>((color - coeff) * br) + color;
 
     return Uint8(OC::Clamp(Sint16(0), l, Sint16(63)));
 }
 
-inline Uint8 ApplyBrightness(const Uint8 color, Sint16 b)
+inline Uint8 ApplyBrightness(const Uint8 color, const Sint16 coeff)
 {
     const OC::Float br = 1.0f    // OC::Real(0x0081, 0x0000, 0x0000).convert<OC::Float>()
         - (Bright - 7) / 196.0f; // OC::Real(0x0088, 0x0000, 0x4400).convert<OC::Float>()
 
     Sint16 l = 64 - OC::Round<Sint16>((64 - color) * br);
 
-    if (b < 3)
+    if (coeff < 3)
     {
-        l = l * b / 3;
+        l = l * coeff / 3;
     }
 
     return Uint8(OC::Clamp(Sint16(0), l, Sint16(63)));
@@ -1104,33 +1117,33 @@ void SetPalette()
     {
         const RGB& color = Palette[n];
 
-        const Uint8 b = std::max(std::max(color.red, color.green), color.blue);
-        Pal[n].red   = ApplyContast(color.red,   b);
-        Pal[n].green = ApplyContast(color.green, b);
-        Pal[n].blue  = ApplyContast(color.blue,  b);
+        const Uint8 coeff = std::max(std::max(color.r, color.g), color.b);
+        Pal[n].r = ApplyContast(color.r, coeff);
+        Pal[n].g = ApplyContast(color.g, coeff);
+        Pal[n].b = ApplyContast(color.b, coeff);
     }
 
     for (size_t n = 0; n < 256; ++n)
     {
         RGB& color = Pal[n];
 
-        const Sint16 b = (Sint16(color.red) + Sint16(color.green) + Sint16(color.blue)) / 3;
-        color.red   = ApplyColor(color.red,   b);
-        color.green = ApplyColor(color.green, b);
-        color.blue  = ApplyColor(color.blue,  b);
+        const Sint16 coeff = (Sint16(color.r) + Sint16(color.g) + Sint16(color.b)) / 3;
+        color.r = ApplyColor(color.r, coeff);
+        color.g = ApplyColor(color.g, coeff);
+        color.b = ApplyColor(color.b, coeff);
     }
 
     for (size_t n = 0; n < 256; ++n)
     {
         RGB& color = Pal[n];
 
-        const Sint16 b = std::max(std::max(color.red, color.green), color.blue);
-        color.red   = ApplyBrightness(color.red,   b);
-        color.green = ApplyBrightness(color.green, b);
-        color.blue  = ApplyBrightness(color.blue,  b);
+        const Sint16 coeff = std::max(std::max(color.r, color.g), color.b);
+        color.r = ApplyBrightness(color.r, coeff);
+        color.g = ApplyBrightness(color.g, coeff);
+        color.b = ApplyBrightness(color.b, coeff);
     }
 
-    // TODO: DoSetPalette();
+    DoSetPalette(Pal);
 }
 
 void AddEvent(/*...*/);
@@ -1270,14 +1283,16 @@ TPic BigFont;
 TPic LitFont;
 TPic WIcons;
 
-boost::array<RGB, 256> Palette;
-boost::array<RGB, 256> Pal;
+TPalette Palette;
+TPalette Pal;
 
 OC::BinaryInputStream& operator>>(OC::BinaryInputStream& stream, RGB& value)
 {
-    stream >> value.red;
-    stream >> value.green;
-    stream >> value.blue;
+    stream >> value.r;
+    stream >> value.g;
+    stream >> value.b;
+
+    value.a = 255;
 
     return stream;
 }

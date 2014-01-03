@@ -839,6 +839,21 @@ struct ServerSaved__Type
     Sint16 svhz;
 };
 
+struct RGB : public SDL_Color
+{
+    explicit RGB(const Uint8 red = 0, const Uint8 green = 0, const Uint8 blue = 0)
+    {
+        r = red;
+        g = green;
+        b = blue;
+        a = 255;
+    }
+};
+
+OC::BinaryInputStream& operator>>(OC::BinaryInputStream& stream, RGB& value);
+
+typedef boost::array<RGB, 256> TPalette;
+
 #pragma pack(pop)
 
 
@@ -877,6 +892,8 @@ void DoHalt(const char* const message);
 void DoHalt(const OC::String& message);
 void DoHalt(const OC::Format& message);
 
+void DoHaltSDLError(const char* const message);
+
 void ChI(const std::ios& stream);
 
 void CalcDir(/*...*/);
@@ -902,7 +919,7 @@ void ScanLevels(/*...*/);
 void FindNextLevel(/*...*/);
 void LoadGraphics();
 void LoadGround();
-void DoSetPalette(/*...*/);
+void DoSetPalette(const TPalette& palette);
 void SetPalette();
 void AddEvent(/*...*/);
 void AddEvVoice(/*...*/);
@@ -1015,23 +1032,8 @@ extern TPic BigFont;
 extern TPic LitFont;
 extern TPic WIcons;
 
-struct RGB
-{
-    Uint8 red;
-    Uint8 green;
-    Uint8 blue;
-
-    explicit RGB(Uint8 red = 0, Uint8 green = 0, Uint8 blue = 0)
-    : red(red)
-    , green(green)
-    , blue(blue)
-    { }
-};
-
-OC::BinaryInputStream& operator>>(OC::BinaryInputStream& stream, RGB& value);
-
-extern boost::array<RGB, 256> Palette;
-extern boost::array<RGB, 256> Pal;
+extern TPalette Palette;
+extern TPalette Pal;
 
 extern boost::array<Uint16, 256> CharSize;
 extern boost::array<TGunInfo, 9> GunsInfo;
@@ -1521,6 +1523,9 @@ extern OC::Path BaseFile;
 
 extern SDL_Window*   g_window;
 extern SDL_Renderer* g_renderer;
+extern SDL_Surface*  g_surface;
+
+void ShutdownRenderer();
 
 } // namespace CSPBIO
 

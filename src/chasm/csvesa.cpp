@@ -48,28 +48,27 @@ void SetVideoMode()
 
     FloorDiv = Uint16(VideoW + 16 / 32);
 
-    if (NULL != g_window)
-    {
-        SDL_DestroyWindow(g_window);
-    }
+    ShutdownRenderer();
 
-    if (NULL != g_renderer)
-    {
-        SDL_DestroyRenderer(g_renderer);
-    }
-
-    g_window = SDL_CreateWindow("OpenChasm", 0, 0, 640, 480, SDL_WINDOW_SHOWN);
+    g_window = SDL_CreateWindow("OpenChasm", 0, 0, VideoW, VideoH, SDL_WINDOW_SHOWN);
 
     if (NULL == g_window)
     {
-        DoHalt(OC::Format("Cannot create window: %1%") % SDL_GetError());
+        DoHaltSDLError("Failed to create window.");
     }
 
     g_renderer = SDL_CreateRenderer(g_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
     if (NULL == g_renderer)
     {
-        DoHalt(OC::Format("Cannot create renderer: %1%") % SDL_GetError());
+        DoHaltSDLError("Failed to create renderer.");
+    }
+
+    g_surface = SDL_CreateRGBSurface(0, VideoW, VideoH, 8, 0, 0, 0, 0);
+
+    if (NULL == g_renderer)
+    {
+        DoHaltSDLError("Failed to create render surface.");
     }
 /*
     SDL_RenderClear(g_renderer);
@@ -131,6 +130,24 @@ void ClearMonitorWindow(/*...*/);
 
 SDL_Window*   g_window   = NULL;
 SDL_Renderer* g_renderer = NULL;
+SDL_Surface*  g_surface  = NULL;
 
+void ShutdownRenderer()
+{
+    if (NULL != g_surface)
+    {
+        SDL_FreeSurface(g_surface);
+    }
+
+    if (NULL != g_renderer)
+    {
+        SDL_DestroyRenderer(g_renderer);
+    }
+
+    if (NULL != g_window)
+    {
+        SDL_DestroyWindow(g_window);
+    }
+}
 
 } // namespace CSPBIO
