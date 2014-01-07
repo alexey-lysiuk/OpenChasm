@@ -29,6 +29,25 @@ namespace OC
 
 class BinaryInputStream;
 
+
+// ===========================================================================
+
+
+struct Rect : SDL_Rect
+{
+    Rect(const int x = -1, const int y = -1, const int width = -1, const int height = -1)
+    {
+        this->x = x;
+        this->y = y;
+        this->w = width;
+        this->h = height;
+    }
+};
+
+
+// ===========================================================================
+
+
 // Bitmap image, replaces TPic type
 // Valid objects, load()'ed or create()'ed, must be released explicitly
 // via release() call
@@ -61,9 +80,10 @@ public:
     // Replaces LoadPic()
     void load(BinaryInputStream& stream);
 
-    // Draws itself to given destination bitmap
-    void draw(Bitmap& dest, const int x, const int y,
-        const int width = -1, const int height = -1) const;
+    // Draws itself to given destination bitmap at position (x, y)
+    // Optional clip rectangle (in source coordinates)
+    // allows to blit only part of the image
+    void draw(Bitmap& dest, const int x, const int y, const Rect& clip = Rect()) const;
 
     SDL_Texture* createTexture(SDL_Renderer* const renderer) const;
 
@@ -156,7 +176,7 @@ public:
 
     // Draws bitmap into screen buffer
     void draw(const Bitmap& image, const int x, const int y,
-        const int width = -1, const int height = -1);
+        const Rect& clip = Rect());
 
     // Draws on screen, swap buffers
     // Replaces ShowVideoBuffer() functions

@@ -162,20 +162,21 @@ void Bitmap::load(BinaryInputStream& stream, const FormatType format)
 }
 
 
-void Bitmap::draw(Bitmap& dest, const int x, const int y, const int width, const int height) const
+void Bitmap::draw(Bitmap& dest, const int x, const int y, const Rect& clip) const
 {
     SDL_assert(m_internal);
     SDL_assert(dest.m_internal);
-    
-    SDL_Rect destRect =
-    {
-        x,
-        y,
-        -1 == width  ? m_internal->w : width,
-        -1 == height ? m_internal->h : height,
-    };
 
-    SDL_BlitSurface(m_internal, NULL, dest.m_internal, &destRect);
+    const int rectX = -1  == clip.x ? 0 : clip.x;
+    const int rectY = -1  == clip.y ? 0 : clip.y;
+
+    const int rectWidth  = -1 == clip.w ? m_internal->w : clip.w;
+    const int rectHeight = -1 == clip.h ? m_internal->h : clip.h;
+
+    const SDL_Rect srcRect  = { rectX, rectY, rectWidth, rectHeight };
+          SDL_Rect destRect = {     x,     y, rectWidth, rectHeight };
+
+    SDL_BlitSurface(m_internal, &srcRect, dest.m_internal, &destRect);
 }
 
 
@@ -402,10 +403,9 @@ void Renderer::setVideoMode(const Uint16 width, const Uint16 height)
 }
 
 
-void Renderer::draw(const Bitmap& image, const int x, const int y,
-    const int width, const int height)
+void Renderer::draw(const Bitmap& image, const int x, const int y, const Rect& clip)
 {
-    image.draw(m_screen, x, y, width, height);
+    image.draw(m_screen, x, y, clip);
 }
 
 
