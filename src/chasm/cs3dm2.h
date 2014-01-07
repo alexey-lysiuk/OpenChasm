@@ -32,8 +32,6 @@ namespace CSPBIO
 namespace CS3DM2
 {
 
-#pragma pack(push, 1)
-
 struct __PPoint
 {
     Sint16 Y;
@@ -53,8 +51,6 @@ struct Free_vert__Element
     Uint16 A;
     Uint16 B;
 };
-
-#pragma pack(pop)
 
 
 void InitModule();

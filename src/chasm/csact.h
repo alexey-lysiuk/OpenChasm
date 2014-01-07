@@ -22,10 +22,10 @@
 #ifndef OPENCHASM_CSACT_H_INCLUDED
 #define OPENCHASM_CSACT_H_INCLUDED
 
+#include "oc/types.h"
+
 namespace csact
 {
-
-#pragma pack(push, 1)
 
 struct TChangesList__Element
 {
@@ -122,14 +122,12 @@ struct TMT
     Uint8 Mode;
 };
 
-#pragma pack(pop)
-
 
 void MoveOn(/*...*/);
 void GetMFloorZ(/*...*/);
 bool MS_WallCheck(/*...*/);
 bool NotFreeForMonster(/*...*/);
-void StartLoading(/*...*/);
+void StartLoading();
 void NextLoading(/*...*/);
 void GetLandHeight(/*...*/);
 void MakeTeleEffect(/*...*/);
@@ -147,7 +145,7 @@ void ReloadResources(/*...*/);
 void ScanMap(/*...*/);
 void LoadProFile(/*...*/);
 void LoadFloorMap(/*...*/);
-void LoadLevel(/*...*/);
+void LoadLevel();
 void SaveGame(/*...*/);
 void LoadGame(/*...*/);
 void ShootMe(/*...*/);

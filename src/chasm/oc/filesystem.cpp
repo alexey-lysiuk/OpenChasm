@@ -21,6 +21,8 @@
 
 #include "oc/filesystem.h"
 
+#include "oc/utils.h"
+
 namespace OC
 {
 
@@ -29,19 +31,19 @@ TextInputStream::TextInputStream()
 {
 }
 
-OC::String TextInputStream::readLine()
+String TextInputStream::readLine()
 {
-    OC::String result;
+    String result;
     readLine(result);
 
     return result;
 }
 
-TextInputStream& TextInputStream::readLine(OC::String& value)
+TextInputStream& TextInputStream::readLine(String& value)
 {
     std::getline(*this, value);
 
-    const OC::String::size_type length = value.size();
+    const String::size_type length = value.size();
 
     if (length > 0 && '\r' == value[length - 1])
     {
@@ -156,7 +158,7 @@ std::streamsize BinaryInputStream::read(char* const buffer, const std::streamsiz
 
 String BinaryInputStream::readString(const Uint8 byteCount)
 {
-    OC::String result;
+    String result;
     readString(result, byteCount);
 
     return result;
@@ -239,7 +241,7 @@ BinaryFile::BinaryFile()
     rdbuf(new Buffer);
 }
 
-BinaryFile::BinaryFile(const OC::Path& path, const openmode mode)
+BinaryFile::BinaryFile(const Path& path, const openmode mode)
 {
     rdbuf(new Buffer);
     
@@ -251,7 +253,7 @@ BinaryFile::~BinaryFile()
     delete rdbuf();
 }
 
-void BinaryFile::open(const OC::Path& path, const openmode mode)
+void BinaryFile::open(const Path& path, const openmode mode)
 {
     buffer()->open(path, mode | std::ios::binary);
 }
@@ -259,6 +261,11 @@ void BinaryFile::open(const OC::Path& path, const openmode mode)
 bool BinaryFile::is_open() const
 {
     return buffer()->is_open();
+}
+
+void BinaryFile::close()
+{
+    buffer()->close();
 }
 
 BinaryFile::Buffer* BinaryFile::buffer() const
@@ -270,71 +277,338 @@ BinaryFile::Buffer* BinaryFile::buffer() const
 // ===========================================================================
 
 
-namespace FileSystem
+class BigFile : private BinaryFile
 {
+public:
+    explicit BigFile(const Path& path);
 
-Path GetBasePath()
-{
-    static Path result;
+    // Creates buffer and reads file into it
+    StringBuffer* read(const Path& path);
 
-    if (result.empty())
+    // Extracts all files into directory with given path
+    // If no path provided output directory is named dump within user's directory
+    void dumpContent(const Path& path = Path());
+
+private:
+    struct Entry
     {
-        char* const pathUtf8 = SDL_GetBasePath();
+        String      filename;
+        std::streamsize size;
+        std::streamoff  offset;
+    };
 
-        if (NULL != pathUtf8)
+    typedef std::vector<Entry> EntryTable;
+    EntryTable m_entryTable;  // FileTable
+};
+
+
+BigFile::BigFile(const Path& path)
+: BinaryFile(path)
+{
+    if (!is_open())
+    {
+        DoHalt(Format("Cannot open file %1%, permission denied or file system error.") % path);
+    }
+
+    Uint32 magic;
+    *this >> magic;
+
+    static const Sint32 CSM_ID = 0x64695343; // 'CSid'
+
+    if (CSM_ID != magic)
+    {
+        DoHalt(Format("Bad header in file %1%.") % path);
+    }
+
+    Uint16 fileCount;
+    *this >> fileCount;
+
+    for (Uint16 i = 0; i < fileCount; ++i)
+    {
+        const String filename = readString(12);
+
+        Sint32 size, offset;
+        *this >> size >> offset;
+
+        const Entry entry = { filename, size, offset };
+
+        m_entryTable.push_back(entry);
+    }
+}
+
+
+StringBuffer* BigFile::read(const Path& path)
+{
+    SDL_assert(!path.empty());
+
+    String filename = path.filename().generic_string();
+    boost::algorithm::to_upper(filename);
+
+    OC_FOREACH(const Entry& entry, m_entryTable)
+    {
+        if (entry.filename == filename)
         {
-            result = ExpandString(pathUtf8);
+            seekg(entry.offset, beg);
 
-            SDL_free(pathUtf8);
+            // TODO: error handling
+
+            StringBuffer* buffer = new StringBuffer();
+
+            for (std::streamsize bytesLeft = entry.size; bytesLeft > 0; /* EMPTY */)
+            {
+                char bytes[4096];
+
+                const std::streamsize bytesToRead = std::min(bytesLeft, std::streamsize(sizeof bytes));
+                const std::streamsize bytesRead = BinaryInputStream::read(bytes, bytesToRead);
+
+                buffer->sputn(bytes, bytesRead);
+
+                bytesLeft -= bytesRead;
+            }
+
+            return buffer;
+        }
+    }
+
+    return NULL;
+}
+
+void BigFile::dumpContent(const Path& path)
+{
+    SDL_assert(!m_entryTable.empty());
+    SDL_assert(is_open());
+
+    const Path dumpPath = path.empty()
+        ? FileSystem::instance().userPath("dump")
+        : path;
+
+    FileSystem::createDirectories(dumpPath);
+
+    OC_FOREACH(const Entry& entry, m_entryTable)
+    {
+        seekg(entry.offset);
+
+        const Path outPath = dumpPath / entry.filename;
+        BinaryFile outFile(outPath, std::ios::out);
+
+        for (std::streamsize bytesLeft = entry.size; bytesLeft > 0; /* EMPTY */)
+        {
+            char buffer[4096];
+
+            const std::streamsize bytesToRead = std::min(bytesLeft, std::streamsize(sizeof buffer));
+            const std::streamsize bytesRead = BinaryInputStream::read(buffer, bytesToRead);
+
+            outFile.write(buffer, bytesRead);
+
+            bytesLeft -= bytesRead;
+        }
+    }
+}
+
+
+// ===========================================================================
+
+
+Resource::Resource()
+: m_buffer(NULL)
+, m_size(0)
+{
+}
+
+Resource::~Resource()
+{
+    delete m_buffer;
+}
+
+const bool Resource::is_open() const
+{
+    return NULL != m_buffer;
+}
+
+StreamBuffer* Resource::open(const Path& path, const FlagsType flags)
+{
+    SDL_assert(NULL == m_buffer);
+    
+    m_buffer = FileSystem::instance().openResource(path, flags);
+
+    if (NULL != m_buffer)
+    {
+        m_size = m_buffer->pubseekoff(0, std::ios::end);
+        m_buffer->pubseekoff(0, std::ios::beg);
+    }
+
+    return m_buffer;
+}
+
+
+// ===========================================================================
+
+
+TextResource::TextResource(const Path& path, const FlagsType flags)
+{
+    rdbuf(open(path, flags));
+}
+
+
+// ===========================================================================
+
+
+BinaryResource::BinaryResource(const Path& path, const FlagsType flags)
+{
+    rdbuf(open(path, flags));
+}
+
+
+// ===========================================================================
+
+
+FileSystem::FileSystem()
+: m_bigFile(NULL)
+{
+    if (char* const pathUtf8 = SDL_GetBasePath())
+    {
+        m_basePath = ExpandString(pathUtf8);
+        SDL_free(pathUtf8);
+    }
+
+    if (char* const pathUtf8 = SDL_GetPrefPath("", "OpenChasm"))
+    {
+        WideString pathWide = ExpandString(pathUtf8);
+
+        boost::algorithm::replace_all(pathWide, "//", "/");
+        boost::algorithm::replace_all(pathWide, "\\\\", "\\");
+
+        m_userPath = pathWide;
+
+        SDL_free(pathUtf8);
+    }
+
+    static const String DATA_FILE_NAME      = "csm.bin";
+    static const String DATA_DIRECTORY_NAME = "chasmdat/";
+
+    bool isInternal = false;
+
+    m_resourcePath = FileSystem::basePath(DATA_FILE_NAME);
+
+    if (FileSystem::isPathExist(m_resourcePath))
+    {
+        isInternal = true;
+    }
+    else
+    {
+        m_resourcePath = FileSystem::userPath(DATA_FILE_NAME);
+
+        if (FileSystem::isPathExist(m_resourcePath))
+        {
+            isInternal = true;
+        }
+        else
+        {
+            m_resourcePath = FileSystem::basePath(DATA_DIRECTORY_NAME);
+
+            if (!FileSystem::isPathExist(m_resourcePath))
+            {
+                m_resourcePath = FileSystem::userPath(DATA_DIRECTORY_NAME);
+
+                if (!FileSystem::isPathExist(m_resourcePath))
+                {
+                    // TODO: more detailed message
+                    DoHalt("Cannot find game resource file or directory.");
+                }
+            }
+        }
+    }
+
+    if (isInternal)
+    {
+        m_bigFile = new BigFile(m_resourcePath);
+    }
+
+    SDL_Log("Loading from: %s", m_resourcePath.string().c_str());
+}
+
+FileSystem::~FileSystem()
+{
+    delete m_bigFile;
+}
+
+
+StreamBuffer* FileSystem::openResource(const Path& path, const Resource::FlagsType flags)
+{
+    StreamBuffer* result;
+
+    setLastFileName(path);
+
+    if (!m_addonPath.empty())
+    {
+        result = openExternalResource(m_addonPath / path, flags);
+    }
+    else if (NULL == m_bigFile)
+    {
+        return openExternalResource(m_basePath / path, flags);
+    }
+    else
+    {
+        result = m_bigFile->read(path);
+
+        if ((flags & Resource::PATH_MUST_EXIST) && NULL == result)
+        {
+            DoHalt(Format("Cannot find file %1% within %2%") % path % m_resourcePath);
         }
     }
 
     return result;
 }
 
-Path GetUserPath()
+StreamBuffer* FileSystem::openExternalResource(const Path& path, const Resource::FlagsType flags)
 {
-    static Path result;
-
-    if (result.empty())
+    if (FileSystem::isPathExist(path))
     {
-        char* const pathUtf8 = SDL_GetPrefPath("", "OpenChasm");
+        boost::filesystem::filebuf* buffer = new boost::filesystem::filebuf();
+        buffer->open(path, std::ios::in | std::ios::binary);
 
-        if (NULL != pathUtf8)
+        if (buffer->is_open())
         {
-            WideString pathWide = ExpandString(pathUtf8);
-
-            boost::algorithm::replace_all(pathWide, "//", "/");
-            boost::algorithm::replace_all(pathWide, "\\\\", "\\");
-
-            result = pathWide;
-
-            SDL_free(pathUtf8);
+            return buffer;
+        }
+        else if (flags & Resource::PATH_MUST_EXIST)
+        {
+            DoHalt(Format("Cannot open file %1%, permission denied or file system error.") % path);
         }
     }
 
-    return result;
+    return NULL;
 }
 
 
-bool IsPathExist(const Path& path)
+void FileSystem::checkIO(const std::ios& stream) const
+{
+    SDL_assert(stream.good());
+
+    if (!stream.good())
+    {
+        DoHalt(Format("Error while accessing %1%.\n"
+            "Permission denied or file system error.") % lastFileName());
+    }
+}
+
+
+bool FileSystem::isPathExist(const Path& path)
 {
     boost::system::error_code error;
     return boost::filesystem::exists(path, error);
 }
 
-bool CreateDirectory(const Path& path)
+bool FileSystem::createDirectory(const Path& path)
 {
     boost::system::error_code error;
     return boost::filesystem::create_directory(path, error);
 }
 
-bool CreateDirectories(const Path& path)
+bool FileSystem::createDirectories(const Path& path)
 {
     boost::system::error_code error;
     return boost::filesystem::create_directories(path, error);
 }
-
-} // namespace FileSystem
 
 } // namespace OC

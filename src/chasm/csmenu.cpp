@@ -21,7 +21,8 @@
 
 #include "csmenu.h"
 
-#include "cspbio.h"
+#include "oc/filesystem.h"
+#include "oc/graphics.h"
 
 namespace CSMENU
 {
@@ -48,11 +49,11 @@ void ScanSavedNames()
     for (size_t i = 0; i < 9; ++i)
     {
         const OC::String saveFileName = (OC::Format("chasm%1$02i.sav") % i).str();
-        const OC::Path savePath = OC::FileSystem::GetUserPath(saveFileName);
+        const OC::Path savePath = OC::FileSystem::instance().userPath(saveFileName);
 
         OC::String saveName = "...";
 
-        if (OC::FileSystem::IsPathExist(savePath))
+        if (OC::FileSystem::isPathExist(savePath))
         {
             OC::BinaryFile saveFile(savePath);
 
@@ -69,13 +70,13 @@ void ScanSavedNames()
 
 Sint16 KbWait = -1;
 TMenuText PM;
-CSPBIO::TPic MainMenu;
-CSPBIO::TPic SklMenu;
-CSPBIO::TPic NetMenu;
-CSPBIO::TPic m_pause;
-CSPBIO::TPic PTors;
+OC::Bitmap MainMenu;
+OC::Bitmap SklMenu;
+OC::Bitmap NetMenu;
+OC::Bitmap m_pause;
+OC::Bitmap PTors;
 Sint16 MnSY;
-boost::array<Uint8, 4096> MenuTiler;
+OC::Bitmap MenuTiler;
 Uint8 ColorShift;
 Uint8 ColorZero;
 Uint8 RecolorMap[256];
@@ -96,7 +97,7 @@ void PutScroller15(/*...*/);
 namespace
 {
 
-CSPBIO::TextResource& operator>>(CSPBIO::TextResource& file, MenuRect& rect)
+OC::TextResource& operator>>(OC::TextResource& file, MenuRect& rect)
 {
     file >> rect.x1;
     file >> rect.y1;
@@ -108,7 +109,7 @@ CSPBIO::TextResource& operator>>(CSPBIO::TextResource& file, MenuRect& rect)
     return file;
 }
 
-TMenuText::StringList ReadMenuStringVector(CSPBIO::TextResource& file, const size_t count)
+TMenuText::StringList ReadMenuStringVector(OC::TextResource& file, const size_t count)
 {
     TMenuText::StringList result;
 
@@ -123,7 +124,7 @@ TMenuText::StringList ReadMenuStringVector(CSPBIO::TextResource& file, const siz
 
 void ParseMenuDescriptionFile()
 {
-    CSPBIO::TextResource menuFile("menu/menu.txt");
+    OC::TextResource menuFile("menu/menu.txt");
 
     menuFile >> PM.MainPos;
     PM.Main = menuFile.readLine();
@@ -170,20 +171,14 @@ void ParseMenuDescriptionFile()
     menuFile.skipLine();
     PM.KName = ReadMenuStringVector(menuFile, 88);
 
-    CSPBIO::ChI(menuFile);
+    OC::FileSystem::instance().checkIO(menuFile);
 
     // TODO: init resolutions
 }
 
 void LoadMenuAssets()
 {
-    CSPBIO::BinaryResource tileFile("menu/m_tile1.cel");
-
-    tileFile.seekg(CSPBIO::CEL_DATA_OFFSET);
-    tileFile.readArray(MenuTiler);
-
-    CSPBIO::ChI(tileFile);
-
+    MenuTiler.load("menu/m_tile1.cel");
     MainMenu.load("menu/m_main.cel");
     SklMenu.load("menu/m_new.cel");
     NetMenu.load("menu/m_netwrk.cel");

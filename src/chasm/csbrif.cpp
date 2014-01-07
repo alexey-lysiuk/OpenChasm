@@ -21,6 +21,8 @@
 
 #include "csbrif.h"
 
+#include "oc/types.h"
+
 namespace Chasm
 {
     void Build3dScene();

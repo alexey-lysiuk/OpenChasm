@@ -22,15 +22,15 @@
 #ifndef OPENCHASM_CSMENU_H_INCLUDED
 #define OPENCHASM_CSMENU_H_INCLUDED
 
-namespace CSPBIO
+#include "oc/types.h"
+
+namespace OC
 {
-    class TPic;
+    class Bitmap;
 }
 
 namespace CSMENU
 {
-
-#pragma pack(push, 1)
 
 struct MenuRect
 {
@@ -91,8 +91,6 @@ struct TMenuText
     StringList GameNames;
 };
 
-#pragma pack(pop)
-
 
 void InitModule();
 
@@ -111,13 +109,13 @@ void ScanSavedNames();
 
 extern Sint16 KbWait;
 extern TMenuText PM;
-extern CSPBIO::TPic MainMenu;
-extern CSPBIO::TPic SklMenu;
-extern CSPBIO::TPic NetMenu;
-extern CSPBIO::TPic m_pause;
-extern CSPBIO::TPic PTors;
+extern OC::Bitmap MainMenu;
+extern OC::Bitmap SklMenu;
+extern OC::Bitmap NetMenu;
+extern OC::Bitmap m_pause;
+extern OC::Bitmap PTors;
 extern Sint16 MnSY;
-extern boost::array<Uint8, 4096> MenuTiler;
+extern OC::Bitmap MenuTiler;
 extern Uint8 ColorShift;
 extern Uint8 ColorZero;
 extern Uint8 RecolorMap[256];

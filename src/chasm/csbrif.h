@@ -22,6 +22,8 @@
 #ifndef OPENCHASM_CSBRIF_H_INCLUDED
 #define OPENCHASM_CSBRIF_H_INCLUDED
 
+#include "oc/types.h"
+
 namespace CSPBIO
 {
     struct TOHeader;
@@ -30,8 +32,6 @@ namespace CSPBIO
 
 namespace CSBrif
 {
-
-#pragma pack(push, 1)
 
 struct TCharacter
 {
@@ -59,8 +59,6 @@ struct Camera__Type
     Sint16 mvz;
     Uint16 mvfi;
 };
-
-#pragma pack(pop)
 
 
 void PlayBrifing(/*...*/);

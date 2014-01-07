@@ -32,11 +32,89 @@ typedef long double LongDouble;
 typedef std::string  String;
 typedef std::wstring WideString;
 
+typedef std::streambuf    StreamBuffer;
+typedef std::stringbuf    StringBuffer;
 typedef std::stringstream StringStream;
 
 typedef boost::filesystem::path Path;
 
 typedef boost::format Format;
+
+
+// ===========================================================================
+
+
+template <typename T>
+class Singleton : boost::noncopyable
+{
+public:
+    static void initialize()
+    {
+        SDL_assert(NULL == s_instance);
+        s_instance = new T;
+    }
+
+    static void shutdown()
+    {
+        delete s_instance;
+        s_instance = NULL;
+    }
+
+    static T& instance()
+    {
+        SDL_assert(NULL != s_instance);
+        return *s_instance;
+    }
+
+protected:
+    Singleton()
+    {
+    }
+
+private:
+    static T* s_instance;
+};
+
+
+template <typename T>
+T* Singleton<T>::s_instance = NULL;
+
+
+// ===========================================================================
+
+
+#ifdef _MSC_VER
+
+template <typename T>
+inline T Exponent(const T& significand, const int exponent)
+{
+    return ldexp(significand, exponent);
+}
+
+#else // !_MSC_VER
+
+template <typename T>
+inline T Exponent(const T& significand, const int exponent);
+
+template <>
+inline Float Exponent(const Float& significand, const int exponent)
+{
+    return ldexpf(significand, exponent);
+}
+
+template <>
+inline Double Exponent(const Double& significand, const int exponent)
+{
+    return ldexp(significand, exponent);
+}
+
+template <>
+inline LongDouble Exponent(const LongDouble& significand, const int exponent)
+{
+    return ldexpl(significand, exponent);
+}
+
+#endif // _MSC_VER
 
 
 // Conversion is based on DTOTP6.C and DTOTP6.H from SNIPPETS
@@ -81,7 +159,7 @@ public:
 
         const FloatType mantissa = ((128 + m_data.split.v3) * FloatType(65536) + m_data.split.v2)
             * FloatType(65536) + m_data.split.v1;
-        const FloatType exponent = ldexp(m_data.split.s ? FloatType(-1) : FloatType(1), m_data.split.be - (129 + 39));
+        const FloatType exponent = Exponent(m_data.split.s ? FloatType(-1) : FloatType(1), m_data.split.be - (129 + 39));
 
         return mantissa * exponent;
     }

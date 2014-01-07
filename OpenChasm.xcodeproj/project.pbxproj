@@ -15,6 +15,7 @@
 		8A35F140182FC4D100C11D0C /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A35F13F182FC4D100C11D0C /* CoreAudio.framework */; };
 		8A35F142182FC4E200C11D0C /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A35F141182FC4E200C11D0C /* IOKit.framework */; };
 		8A35F144182FC4F800C11D0C /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A35F143182FC4F800C11D0C /* Carbon.framework */; };
+		8A538658187852B600BA801E /* graphics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A538656187852B600BA801E /* graphics.cpp */; };
 		8A70C81C186EAAAB00B94449 /* filesystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A70C81A186EAAAB00B94449 /* filesystem.cpp */; };
 		8A77FE991837928A00172E10 /* utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A77FE971837928A00172E10 /* utils.cpp */; };
 		8AB539341837706300C3D98E /* libSDL2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A3B68D91837701B0088E6D3 /* libSDL2.a */; };
@@ -108,6 +109,8 @@
 		8A35F143182FC4F800C11D0C /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		8A3ACEEC17F829C1002E550F /* chasm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = chasm.h; sourceTree = "<group>"; };
 		8A3B68CF1837701A0088E6D3 /* SDL.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = SDL.xcodeproj; path = thirdparty/SDL/Xcode/SDL/SDL.xcodeproj; sourceTree = "<group>"; };
+		8A538656187852B600BA801E /* graphics.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = graphics.cpp; sourceTree = "<group>"; };
+		8A538657187852B600BA801E /* graphics.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = graphics.h; sourceTree = "<group>"; };
 		8A70C81A186EAAAB00B94449 /* filesystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = filesystem.cpp; sourceTree = "<group>"; };
 		8A70C81B186EAAAB00B94449 /* filesystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = filesystem.h; sourceTree = "<group>"; };
 		8A77FE971837928A00172E10 /* utils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = utils.cpp; sourceTree = "<group>"; };
@@ -251,6 +254,8 @@
 			children = (
 				8A70C81A186EAAAB00B94449 /* filesystem.cpp */,
 				8A70C81B186EAAAB00B94449 /* filesystem.h */,
+				8A538656187852B600BA801E /* graphics.cpp */,
+				8A538657187852B600BA801E /* graphics.h */,
 				8A8A46EC1870065E00BC334C /* precomp.cpp */,
 				8A8A46ED1870065E00BC334C /* precomp.h */,
 				8A0008541838BF67001AA739 /* types.h */,
@@ -570,6 +575,7 @@
 				8ACD561317B76C3100C2640A /* csvesa.cpp in Sources */,
 				8ACD561417B76C3100C2640A /* ps10.cpp in Sources */,
 				8A70C81C186EAAAB00B94449 /* filesystem.cpp in Sources */,
+				8A538658187852B600BA801E /* graphics.cpp in Sources */,
 				8A77FE991837928A00172E10 /* utils.cpp in Sources */,
 				8ACD561517B76C3100C2640A /* common.cpp in Sources */,
 				8ACD561617B76C3100C2640A /* sound_gs.cpp in Sources */,

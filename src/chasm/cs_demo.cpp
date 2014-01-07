@@ -21,6 +21,8 @@
 
 #include "cs_demo.h"
 
+#include "oc/filesystem.h"
+
 #include "cspbio.h"
 
 namespace CS_DEMO
@@ -43,7 +45,7 @@ void GetNextDemoNumber()
         }
 
         const OC::String filename = (OC::Format("chasm.r%1$02i") % LevelN).str();
-        BinaryResource demoFile(filename, Resource::PATH_MAY_NOT_EXIST);
+        OC::BinaryResource demoFile(filename, OC::Resource::PATH_MAY_NOT_EXIST);
 
         if (demoFile.is_open())
         {

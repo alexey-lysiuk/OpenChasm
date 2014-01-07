@@ -21,6 +21,8 @@
 
 #include "csact.h"
 
+#include "cspbio.h"
+
 namespace csact
 {
 
@@ -28,7 +30,17 @@ void MoveOn(/*...*/);
 void GetMFloorZ(/*...*/);
 bool MS_WallCheck(/*...*/);
 bool NotFreeForMonster(/*...*/);
-void StartLoading(/*...*/);
+
+void StartLoading()
+{
+    if (99 == CSPBIO::LevelN)
+    {
+        return;
+    }
+
+
+}
+
 void NextLoading(/*...*/);
 void GetLandHeight(/*...*/);
 void MakeTeleEffect(/*...*/);
@@ -46,7 +58,12 @@ void ReloadResources(/*...*/);
 void ScanMap(/*...*/);
 void LoadProFile(/*...*/);
 void LoadFloorMap(/*...*/);
-void LoadLevel(/*...*/);
+
+void LoadLevel()
+{
+    StartLoading();
+}
+
 void SaveGame(/*...*/);
 void LoadGame(/*...*/);
 void ShootMe(/*...*/);

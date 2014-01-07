@@ -31,8 +31,6 @@ namespace CSPBIO
 namespace CS_DEMO
 {
 
-#pragma pack(push, 1)
-
 struct TPlayerState
 {
     Sint16 Dhx;
@@ -46,8 +44,6 @@ struct TPlayerState
     Uint16 DHz;
     Sint16 DLookVz;
 };
-
-#pragma pack(pop)
 
 
 void ExecuteEvent(/*...*/);

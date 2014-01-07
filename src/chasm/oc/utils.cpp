@@ -44,4 +44,36 @@ WideString ExpandString(const char* const utf8String)
     return result;
 }
 
+
+void DoHalt(const char* const message)
+{
+    // TODO...
+
+    if (0 == strcmp(message, "NQUIT"))
+    {
+        // TODO: show credits
+
+        exit(EXIT_SUCCESS);
+    }
+
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal Error", message, NULL);
+
+    exit(EXIT_FAILURE);
+}
+
+void DoHalt(const OC::String& message)
+{
+    DoHalt(message.c_str());
+}
+
+void DoHalt(const OC::Format& message)
+{
+    DoHalt(message.str());
+}
+
+void DoHaltSDLError(const char* const message)
+{
+    DoHalt(OC::Format("%1%\nSDL returned error:\n%2%") % message % SDL_GetError());
+}
+
 } // namespace OC

@@ -23,7 +23,6 @@
 #define OPENCHASM_OC_UTILS_H_INCLUDED
 
 #include "oc/types.h"
-#include "oc/filesystem.h"
 
 namespace OC
 {
@@ -48,6 +47,13 @@ T Clamp(const T& minimum, const T& value, const T& maximum)
 }
 
 WideString ExpandString(const char* const utf8String);
+
+
+void DoHalt(const char* const message);
+void DoHalt(const OC::String& message);
+void DoHalt(const OC::Format& message);
+
+void DoHaltSDLError(const char* const message);
 
 } // namespace OC
 

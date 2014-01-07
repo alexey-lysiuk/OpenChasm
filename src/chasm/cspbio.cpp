@@ -21,254 +21,14 @@
 
 #include "cspbio.h"
 
+#include "oc/filesystem.h"
+#include "oc/utils.h"
+
 #include "soundip/soundip.h"
 
 
 namespace CSPBIO
 {
-
-namespace
-{
-
-class BigFile : private OC::BinaryFile
-{
-public:
-    typedef std::stringbuf Buffer;
-
-    const bool isInternal() { return m_isInternal; }
-    void setInternal(const bool on) { m_isInternal = on; }
-
-    // Opens big file and loads its entry table
-    void initialize(const OC::Path& path);
-
-    // Creates buffer and reads file into it
-    Buffer* read(const OC::Path& path, std::streamsize& size, std::streamoff& offset);
-
-    // Extracts all files into directory with given path
-    // If no path provided output directory is named dump within user's directory
-    void dumpContent(const OC::Path& path = OC::Path());
-
-private:
-    struct Entry
-    {
-        OC::String      filename;
-        std::streamsize size;
-        std::streamoff  offset;
-    };
-
-    typedef std::vector<Entry> EntryTable;
-    EntryTable m_entryTable;  // FileTable
-
-    bool m_isInternal;  // Internal
-};
-
-
-void BigFile::initialize(const OC::Path& path)
-{
-    if (!m_isInternal)
-    {
-        return;
-    }
-
-    open(path);
-
-    if (!is_open())
-    {
-        DoHalt(OC::Format("Cannot open file %1%, permission denied or file system error.") % BaseFile);
-    }
-
-    Uint32 magic;
-    *this >> magic;
-
-    static const Sint32 CSM_ID = 0x64695343; // 'CSid'
-
-    if (CSM_ID != magic)
-    {
-        DoHalt(OC::Format("Bad header in file %1%.") % BaseFile);
-    }
-
-    Uint16 fileCount;
-    *this >> fileCount;
-
-    for (Uint16 i = 0; i < fileCount; ++i)
-    {
-        const OC::String filename = readString(12);
-
-        Sint32 size, offset;
-        *this >> size >> offset;
-
-        const Entry entry = { filename, size, offset };
-
-        m_entryTable.push_back(entry);
-    }
-}
-
-BigFile::Buffer* BigFile::read(const OC::Path& path, std::streamsize& size, std::streamoff& offset)
-{
-    SDL_assert(!path.empty());
-
-    OC::String filename = path.filename().generic_string();
-    boost::algorithm::to_upper(filename);
-
-    LastFName = filename;
-
-    OC_FOREACH(const Entry& entry, m_entryTable)
-    {
-        if (entry.filename == filename)
-        {
-            size   = entry.size;
-            offset = entry.offset;
-
-            seekg(offset, beg);
-
-            // TODO: error handling
-
-            std::stringbuf* buffer = new std::stringbuf();
-
-            for (std::streamsize bytesLeft = size; bytesLeft > 0; /* EMPTY */)
-            {
-                char bytes[4096];
-
-                const std::streamsize bytesToRead = std::min(bytesLeft, std::streamsize(sizeof bytes));
-                const std::streamsize bytesRead = OC::BinaryInputStream::read(bytes, bytesToRead);
-
-                buffer->sputn(bytes, bytesRead);
-
-                bytesLeft -= bytesRead;
-            }
-
-            return buffer;
-        }
-    }
-
-    return NULL;
-}
-
-void BigFile::dumpContent(const OC::Path& path)
-{
-    SDL_assert(m_isInternal);
-    SDL_assert(!m_entryTable.empty());
-    SDL_assert(is_open());
-
-    const OC::Path dumpPath = path.empty()
-        ? OC::FileSystem::GetUserPath("dump")
-        : path;
-
-    OC::FileSystem::CreateDirectories(dumpPath);
-
-    OC_FOREACH(const Entry& entry, m_entryTable)
-    {
-        seekg(entry.offset);
-
-        const OC::Path outPath = dumpPath / entry.filename;
-        OC::BinaryFile outFile(outPath, std::ios::out);
-
-        for (std::streamsize bytesLeft = entry.size; bytesLeft > 0; /* EMPTY */)
-        {
-            char buffer[4096];
-
-            const std::streamsize bytesToRead = std::min(bytesLeft, std::streamsize(sizeof buffer));
-            const std::streamsize bytesRead = OC::BinaryInputStream::read(buffer, bytesToRead);
-
-            outFile.write(buffer, bytesRead);
-
-            bytesLeft -= bytesRead;
-        }
-    }
-}
-
-
-BigFile s_bigFile;
-
-} // unnamed namespace
-
-
-// ===========================================================================
-
-
-Resource::Resource()
-: m_buffer(NULL)
-, m_size(0)
-, m_offset(0)
-{
-}
-
-Resource::~Resource()
-{
-    delete m_buffer;
-}
-
-const bool Resource::is_open() const
-{
-    return NULL != m_buffer;
-}
-
-std::streambuf* Resource::open(const OC::Path& path, const FlagsType flags)
-{
-    SDL_assert(NULL == m_buffer);
-
-    LastFName = path;
-
-    if (UserMaps)
-    {
-        openExternal(AddonPath / path, flags);
-    }
-    else if (s_bigFile.isInternal())
-    {
-        m_buffer = s_bigFile.read(path, m_size, m_offset);
-
-        if ((flags & PATH_MUST_EXIST) && NULL == m_buffer)
-        {
-            DoHalt(OC::Format("Cannot find file %1% within %2%") % path % BaseFile);
-        }
-    }
-    else
-    {
-        openExternal(BaseFile / path, flags);
-    }
-
-    return m_buffer;
-}
-
-void Resource::openExternal(const OC::Path& path, const FlagsType flags)
-{
-    if (OC::FileSystem::IsPathExist(path))
-    {
-        boost::filesystem::filebuf* buffer = new boost::filesystem::filebuf();
-        buffer->open(path, std::ios::in | std::ios::binary);
-
-        if (buffer->is_open())
-        {
-            m_buffer = buffer;
-        }
-        else if (flags & PATH_MUST_EXIST)
-        {
-            DoHalt(OC::Format("Cannot open file %1%, permission denied or file system error.") % path);
-        }
-    }
-
-    if (NULL != m_buffer)
-    {
-        m_size = m_buffer->pubseekoff(0, std::ios::end);
-        m_buffer->pubseekoff(0, std::ios::beg);
-    }
-}
-
-
-TextResource::TextResource(const OC::Path& path, const FlagsType flags)
-{
-    rdbuf(open(path, flags));
-}
-
-
-BinaryResource::BinaryResource(const OC::Path& path, const FlagsType flags)
-{
-    rdbuf(open(path, flags));
-}
-
-
-// ===========================================================================
-
 
 void TPoint3di::load(OC::BinaryInputStream& stream)
 {
@@ -331,7 +91,7 @@ static void AdjustFaceCoord(Uint16& coord)
 
 void TOHeader::load(const OC::Path& filename)
 {
-    BinaryResource file(filename);
+    OC::BinaryResource file(filename);
 
     load(file);
 
@@ -340,7 +100,7 @@ void TOHeader::load(const OC::Path& filename)
 
     file.readArray(TPtr);
 
-    ChI(file);
+    OC::FileSystem::instance().checkIO(file);
 
     for (Uint16 i = 0; i < FCount; ++i)
     {
@@ -413,95 +173,6 @@ TSepPartInfo::TSepPartInfo()
 void InitModule()
 {
     InitVideo();
-
-    static const OC::String DATA_FILE_NAME      = "csm.bin";
-    static const OC::String DATA_DIRECTORY_NAME = "chasmdat/";
-
-    BaseFile = OC::FileSystem::GetBasePath(DATA_FILE_NAME);
-
-    if (OC::FileSystem::IsPathExist(BaseFile))
-    {
-        s_bigFile.setInternal(true);
-    }
-    else
-    {
-        BaseFile = OC::FileSystem::GetUserPath(DATA_FILE_NAME);
-
-        if (OC::FileSystem::IsPathExist(BaseFile))
-        {
-            s_bigFile.setInternal(true);
-        }
-        else
-        {
-            BaseFile = OC::FileSystem::GetBasePath(DATA_DIRECTORY_NAME);
-
-            if (!OC::FileSystem::IsPathExist(BaseFile))
-            {
-                BaseFile = OC::FileSystem::GetUserPath(DATA_DIRECTORY_NAME);
-
-                if (!OC::FileSystem::IsPathExist(BaseFile))
-                {
-                    // TODO: more detailed message
-                    DoHalt("Cannot find game resource file or directory.");
-                }
-            }
-        }
-    }
-
-    s_bigFile.initialize(BaseFile);
-
-    SDL_Log("Loading from: %s", BaseFile.string().c_str());
-}
-
-
-// ===========================================================================
-
-
-TPic::TPic()
-: m_width(0)
-, m_height(0)
-{
-
-}
-
-TPic::TPic(const char* const filename)
-: m_width(0)
-, m_height(0)
-{
-    load(filename);
-}
-
-void TPic::load(const char* const filename)
-{
-    BinaryResource celFile(filename);
-
-    celFile.seekg(2); // skip 0x9119 magic
-    celFile >> m_width;
-    celFile >> m_height;
-
-    const size_t dataSize = m_width * m_height;
-    m_data.resize(dataSize);
-
-    celFile.seekg(CEL_DATA_OFFSET);
-    celFile.readArray(m_data);
-
-    CSPBIO::ChI(celFile);
-}
-
-void TPic::load(OC::BinaryInputStream& stream)
-{
-    SDL_assert(stream.good());
-
-    stream >> m_width;
-    stream >> m_height;
-    stream >> m_centerX;
-
-    const size_t dataSize = m_width * m_height;
-    m_data.resize(dataSize);
-
-    stream.readArray(m_data);
-
-    CSPBIO::ChI(stream);
 }
 
 
@@ -649,48 +320,6 @@ bool FExistFile(/*...*/);
 void FadeOut(/*...*/);
 void FadeIn(/*...*/);
 
-void DoHalt(const char* const message)
-{
-    // TODO...
-
-    if (0 == strcmp(message, "NQUIT"))
-    {
-        // TODO: show credits
-
-        exit(EXIT_SUCCESS);
-    }
-
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal Error", message, NULL);
-
-    exit(EXIT_FAILURE);
-}
-
-void DoHalt(const OC::String& message)
-{
-    DoHalt(message.c_str());
-}
-
-void DoHalt(const OC::Format& message)
-{
-    DoHalt(message.str());
-}
-
-void DoHaltSDLError(const char* const message)
-{
-    DoHalt(OC::Format("%1%\nSDL returned error:\n%2%") % message % SDL_GetError());
-}
-
-
-void ChI(const std::ios& stream)
-{
-    SDL_assert(stream.good());
-
-    if (!stream.good())
-    {
-        DoHalt(OC::Format("Error while reading %1%, permission denied or file system error.") % LastFName);
-    }
-}
-
 void CalcDir(/*...*/);
 Sint16 Max(/*...*/);
 Sint16 Min(/*...*/);
@@ -708,14 +337,14 @@ void LoadAnimation(const OC::String& filename, const Uint16 modelVertexCount, Po
         ? "ani/" + filename
         : filename;
 
-    BinaryResource animationFile(animationPath);
+    OC::BinaryResource animationFile(animationPath);
 
     Uint16 animationVertexCount;
     animationFile >> animationVertexCount;
 
     if (modelVertexCount != animationVertexCount)
     {
-        DoHalt(OC::Format("Error while loading animation file %1%. "
+        OC::DoHalt(OC::Format("Error while loading animation file %1%. "
             "Animation and Model file contain different vertexes count.") % filename);
     }
 
@@ -732,7 +361,7 @@ void LoadAnimation(const OC::String& filename, const Uint16 modelVertexCount, Po
 
     time = (animationVertexCount / modelVertexCount - 1) * 8;
 
-    ChI(animationFile);
+    OC::FileSystem::instance().checkIO(animationFile);
 }
 
 void LoadPOH(const OC::String& filename, TOHeader& model)
@@ -779,7 +408,7 @@ void InitCaracter(const size_t monsterNumber)
     SDL_assert(monsterIndex < MonstersInfo.size());
 
     TMonsterInfo& monster = MonstersInfo[monsterIndex];
-    BinaryResource characterFile("caracter/" + monster.CarName);
+    OC::BinaryResource characterFile("caracter/" + monster.CarName);
 
     boost::array<Uint16, 3> sounds;
 
@@ -795,7 +424,7 @@ void InitCaracter(const size_t monsterNumber)
     TOHeader header;
     header.load(characterFile);
 
-    ChI(characterFile);
+    OC::FileSystem::instance().checkIO(characterFile);
 
     ScanWH(monster.MWidth, monster.MHeight, header);
 
@@ -830,7 +459,7 @@ namespace
 
 void LoadRGBTable(const char* const filename, RGBTable& table)
 {
-    BinaryResource tableFile(filename);
+    OC::BinaryResource tableFile(filename);
     tableFile.readArray(table, 0xFF00);
 }
 
@@ -867,27 +496,29 @@ void LoadCommonParts()
 
     Fonts.load("common/font256.cel");
 
-    for (Uint16 j = 0; j < CharSize.size(); ++j)
+    for (Uint16 i = 0; i < CharSize.size(); ++i)
     {
-        Uint16 w = 0;
+        const Uint16 charX = i % 16;
+        const Uint16 charY = i / 16;
 
-        const Uint16 x = j & 15;
-        const Uint16 y = j / 16;
+        Uint16 width = 0;
 
-        for (Uint16 xx = 1; xx < 11; ++xx)
+        for (Uint16 cellX = 1; cellX < 12; ++cellX)
         {
-            for (Uint16 yy = 0; yy < 7; ++yy)
+            for (Uint16 cellY = 2; cellY < 9; ++cellY)
             {
-                const size_t pos = y * 2560 + yy * 256 + x * 16 + xx + 2 + 512;
+                const Uint16 x = charX * 16 + cellX;
+                const Uint16 y = charY * 10 + cellY;
 
-                if (Fonts.data(pos) != 0xFF)
+                if (0xFF != Fonts.pixel(x, y))
                 {
-                    w = xx;
+                    width = cellX - 1;
+                    break;
                 }
             }
         }
 
-        CharSize[j] = ++w;
+        CharSize[i] = 0 == width ? 1 : width;
     }
 
     BigFont.load("common/bfont2.cel");
@@ -895,17 +526,14 @@ void LoadCommonParts()
     WIcons.load("common/wicons.cel");
     ColorMap.load("common/fadetab.cel");
 
-    for (size_t n = 0; n < 52; ++n)
+    for (Uint16 y = 0; y < ColorMap.height(); ++y)
     {
-        ColorMap.setData(n * 256 + 255, 0xFF);
+        ColorMap.setPixel(255, y, 0xFF);
     }
 
     LoadGround();
 
-    BinaryResource paletteFile("common/chasm2.pal");
-    paletteFile.readArray(Palette);
-
-    BinaryResource asciiTableFile("common/chasm.key");
+    OC::BinaryResource asciiTableFile("common/chasm.key");
     asciiTableFile.readArray(ASCII_Tab);
 }
 
@@ -942,7 +570,7 @@ void ScanLevels()
         levelName = EMPTY_LEVEL_NAME;
 
         const OC::String filename = (OC::Format("level%1$02i/resource.%1$02i") % (i + 1)).str();
-        TextResource levelFile(filename, Resource::PATH_MAY_NOT_EXIST);
+        OC::TextResource levelFile(filename, OC::Resource::PATH_MAY_NOT_EXIST);
 
         if (!levelFile.is_open())
         {
@@ -954,7 +582,7 @@ void ScanLevels()
             levelName = levelFile.readLine();
             boost::algorithm::trim(levelName);
 
-            ChI(levelFile);
+            OC::FileSystem::instance().checkIO(levelFile);
 
             if (!levelName.empty())
             {
@@ -995,18 +623,18 @@ void LoadGraphics()
 {
     SDL_Log("Reading graphics information:");
 
-    TextResource info("chasm.inf");
+    OC::TextResource info("chasm.inf");
 
     for (;;)
     {
         OC::String line = info.readLine();
 
-        ChI(info);
+        OC::FileSystem::instance().checkIO(info);
 
         static const struct
         {
             const char* section;
-            void (*function)(TextResource&);
+            void (*function)(OC::TextResource&);
         }
         loadingFunctions[] =
         {
@@ -1045,106 +673,7 @@ void LoadGround()
     VesaTiler.load("common/vesatile.cel");
     Status.load("common/status2.cel");
     Ground.load("common/ground.cel");
-
     Loading.load("common/loading.cel");
-    LoadingW = Loading.width();
-    LoadingH = Loading.height();
-}
-
-void DoSetPalette(const TPalette& palette)
-{
-    if (NULL == g_surface)
-    {
-        return;
-    }
-
-    // Convert 64-color palette to 256-color
-    TPalette palette256;
-
-    for (size_t n = 0; n < TPalette::size(); ++n)
-    {
-        const RGB& srcColor = palette[n];
-        RGB& dstColor = palette256[n];
-
-        dstColor.r = srcColor.r * 4;
-        dstColor.g = srcColor.g * 4;
-        dstColor.b = srcColor.b * 4;
-    }
-
-    SDL_SetPaletteColors(g_surface->format->palette, &palette256[0], 0, int(TPalette::size()));
-}
-
-namespace
-{
-
-inline Uint8 ApplyContast(const Uint8 color, const Sint16 coeff)
-{
-    OC::Float br = coeff / 63.0f; // OC::Real(0x0086, 0x0000, 0x7C00).convert<OC::Float>();
-    br -= br * br;
-    br *= 16.0f;                  // OC::Real(0x0085, 0x0000, 0x0000).convert<OC::Float>();
-
-    return Uint8(color * (Contrast - 7) * OC::Round<Sint16>(br) / 128 + color);
-}
-
-inline Uint8 ApplyColor(const Uint8 color, const Sint16 coeff)
-{
-    const OC::Float br = (Color - 7) / 8.0f; // OC::Real(0x0084, 0x0000, 0x0000).convert<OC::Float>();
-    const Sint16 l = OC::Round<Sint16>((color - coeff) * br) + color;
-
-    return Uint8(OC::Clamp(Sint16(0), l, Sint16(63)));
-}
-
-inline Uint8 ApplyBrightness(const Uint8 color, const Sint16 coeff)
-{
-    const OC::Float br = 1.0f    // OC::Real(0x0081, 0x0000, 0x0000).convert<OC::Float>()
-        - (Bright - 7) / 196.0f; // OC::Real(0x0088, 0x0000, 0x4400).convert<OC::Float>()
-
-    Sint16 l = 64 - OC::Round<Sint16>((64 - color) * br);
-
-    if (coeff < 3)
-    {
-        l = l * coeff / 3;
-    }
-
-    return Uint8(OC::Clamp(Sint16(0), l, Sint16(63)));
-}
-
-} // unnamed namespace
-
-
-void SetPalette()
-{
-    for (size_t n = 0; n < TPalette::size(); ++n)
-    {
-        const RGB& color = Palette[n];
-
-        const Uint8 coeff = std::max(std::max(color.r, color.g), color.b);
-        Pal[n].r = ApplyContast(color.r, coeff);
-        Pal[n].g = ApplyContast(color.g, coeff);
-        Pal[n].b = ApplyContast(color.b, coeff);
-    }
-
-    for (size_t n = 0; n < TPalette::size(); ++n)
-    {
-        RGB& color = Pal[n];
-
-        const Sint16 coeff = (Sint16(color.r) + Sint16(color.g) + Sint16(color.b)) / 3;
-        color.r = ApplyColor(color.r, coeff);
-        color.g = ApplyColor(color.g, coeff);
-        color.b = ApplyColor(color.b, coeff);
-    }
-
-    for (size_t n = 0; n < TPalette::size(); ++n)
-    {
-        RGB& color = Pal[n];
-
-        const Sint16 coeff = std::max(std::max(color.r, color.g), color.b);
-        color.r = ApplyBrightness(color.r, coeff);
-        color.g = ApplyBrightness(color.g, coeff);
-        color.b = ApplyBrightness(color.b, coeff);
-    }
-
-    DoSetPalette(Pal);
 }
 
 void AddEvent(/*...*/);
@@ -1203,7 +732,6 @@ void PutConsMessage3(const OC::String& message)
 Uint16 ServerVersion;
 Sint32 Long1;
 Uint8 LB;
-bool UserMaps;
 OC::String::value_type ConsoleCommands[546];
 OC::String::value_type ncNames[24];
 Sint16 ncSDivs[5];
@@ -1219,8 +747,8 @@ void* WShadowMap;
 void* ShadowMap2;
 void* WShadowMap2;
 Uint16 FlSegs[256];
-TPic Pc;
-TPic CurPic;
+OC::Bitmap Pc;
+OC::Bitmap CurPic;
 Uint16 CurPicSeg;
 Uint16 ShadowSeg;
 Uint16 WShadowSeg;
@@ -1230,11 +758,10 @@ Uint16 cwc;
 Uint16 CurShOfs;
 Uint16 CMP0;
 Uint16 XORMask;
-
 OC::String::value_type* GFXindex;
 boost::array<OC::String, 64> ShortNames;
 boost::array<OC::String, 64> LevelNames;
-TPic ColorMap; // cm_ofs
+OC::Bitmap ColorMap; // cm_ofs
 Uint8 FloorMap[4096];
 Uint8 CellMap[4096];
 Uint8* AltXTab;
@@ -1279,42 +806,25 @@ std::vector<TReObject> ReObjects;
 std::vector<TAmmoBag> AmmoBags;
 bool FFlags[64];
 
-TPic Fonts;
-TPic BigFont;
-TPic LitFont;
-TPic WIcons;
-
-TPalette Palette;
-TPalette Pal;
-
-OC::BinaryInputStream& operator>>(OC::BinaryInputStream& stream, RGB& value)
-{
-    stream >> value.r;
-    stream >> value.g;
-    stream >> value.b;
-
-    value.a = 255;
-
-    return stream;
-}
+OC::Bitmap Fonts;
+OC::Bitmap BigFont;
+OC::Bitmap LitFont;
+OC::Bitmap WIcons;
 
 boost::array<Uint16, 256> CharSize;
 boost::array<TGunInfo, 9> GunsInfo;
 NetPlace__Element NetPlace[32];
 void* VGA;
-TPic Ground;
-TPic Status;
-TPic Loading;
-TPic VesaTiler;
+OC::Bitmap Ground;
+OC::Bitmap Status;
+OC::Bitmap Loading;
+OC::Bitmap VesaTiler;
 void* SkyPtr;
 
 RGBTable RGBTab25;
 RGBTable RGBTab60;
 
 Uint16 LoadPos;
-Uint16 LoadingH;
-Uint16 LoadingW;
-OC::Path AddonPath;
 OC::Real ca;
 OC::Real sa;
 Sint16 RShadeDir;
@@ -1338,7 +848,7 @@ Sint16 Skill = 1;
 Sint16 MyNetN = 0;
 Sint16 bpx;
 Sint16 bpy;
-TPic ConsolePtr;
+OC::Bitmap ConsolePtr;
 ConsoleText ConsoleComm(7);
 Sint16 ConsY = 0;
 Sint16 ConsDY = 0;
@@ -1351,9 +861,6 @@ Sint16 MenuMode;
 Sint16 MenuMainY;
 Uint8 MSsens;
 Sint16 DisplaySett[3];
-Sint16 Contrast;
-Sint16 Color;
-Sint16 Bright;
 Sint16 LandZ;
 Sint16 CeilZ;
 Sint16 EndDelay;
@@ -1487,8 +994,6 @@ Sint16 HMy;
 Sint16 ehx;
 Sint16 ehy;
 Sint16 ehz;
-Sint16 x;
-Sint16 y;
 Sint16 mi;
 Sint16 MapR;
 Sint16 LevelN = 1;
@@ -1545,14 +1050,6 @@ Sint32 LastPainTime;
 Sint32 StartUpRandSeed = Sint32(time(NULL));
 Sint32 MSRND;
 TLoc L;
-Uint16 VPSize;   // was Sint32
-Uint16 VideoH;   // was Sint32
-Uint16 VideoW;   // was Sint32
-Uint16 VideoBPL; // was Sint32
-Uint16 VideoEX;
-Uint16 VideoEY;
-Uint16 VideoCX;
-Uint16 VideoCY;
 bool VideoIsFlat;
 Uint16 WinW;
 Uint16 WinW2;
@@ -1666,7 +1163,6 @@ Uint8 c;
 Uint8 kod;
 Uint8 key;
 boost::array<Uint8, 256> ASCII_Tab;
-OC::Path LastFName;
 OC::String::value_type S[256];
 //Dos::Registers Regs;
 Sint16 JoyX;
@@ -1749,7 +1245,7 @@ void Wait_R(/*...*/);
 
 void LoadPicsPacket(const OC::String& filename, TPicPack& packet)
 {
-    BinaryResource packetFile(filename);
+    OC::BinaryResource packetFile(filename);
 
     packetFile >> packet.NFrames;
 
@@ -1757,7 +1253,7 @@ void LoadPicsPacket(const OC::String& filename, TPicPack& packet)
     packet.PData.resize(dataSize);
     packetFile.readArray(packet.PData);
 
-    ChI(packetFile);
+    OC::FileSystem::instance().checkIO(packetFile);
 
     packet.FrameOfs.fill(Uint16(-1));
 
@@ -1808,7 +1304,7 @@ void ValidateCount(CountType& count, const StorageType& objects)
     count = std::min(count, CountType(storageSize));
 }
 
-OC::String ReadFileNameAfterEqual(TextResource& info)
+OC::String ReadFileNameAfterEqual(OC::TextResource& info)
 {
     OC::String result = info.readLine();
 
@@ -1820,7 +1316,7 @@ OC::String ReadFileNameAfterEqual(TextResource& info)
 
 }; // unnamed namespace
 
-void LoadSounds(TextResource& info)
+void LoadSounds(OC::TextResource& info)
 {
 /*
     if (1 >= SoundIP::sCard)
@@ -1844,7 +1340,7 @@ void LoadSounds(TextResource& info)
     }
 }
 
-void LoadBMPObjects(TextResource& info)
+void LoadBMPObjects(OC::TextResource& info)
 {
     SDL_Log(" Loading Objects...");
 
@@ -1873,7 +1369,7 @@ void LoadBMPObjects(TextResource& info)
 
         info.skipLine();
 
-        BinaryResource objectFile("obj/" + filename);
+        OC::BinaryResource objectFile("obj/" + filename);
 
         objectFile >> bmp.Frames;
         objectFile >> bmp.CurFrame;
@@ -1887,7 +1383,7 @@ void LoadBMPObjects(TextResource& info)
     }
 }
 
-void Load3dObjects(TextResource& info)
+void Load3dObjects(OC::TextResource& info)
 {
     SDL_Log(" Loading 3D Objects...");
 
@@ -1928,7 +1424,7 @@ void Load3dObjects(TextResource& info)
             filenamesStream >> modelFileName >> animationFileName;
         }
 
-        ChI(info);
+        OC::FileSystem::instance().checkIO(info);
 
         object.Morphed = true;
 
@@ -1953,7 +1449,7 @@ void Load3dObjects(TextResource& info)
     }
 }
 
-void LoadRockets(TextResource& info)
+void LoadRockets(OC::TextResource& info)
 {
     SDL_Log(" Loading Rockets...");
 
@@ -1998,7 +1494,7 @@ void LoadRockets(TextResource& info)
     }
 }
 
-void LoadGibs(TextResource& info)
+void LoadGibs(OC::TextResource& info)
 {
     SDL_Log(" Loading Gibs...");
 
@@ -2031,7 +1527,7 @@ void LoadGibs(TextResource& info)
     }
 }
 
-void LoadBlows(TextResource& info)
+void LoadBlows(OC::TextResource& info)
 {
     SDL_Log(" Loading Blows...");
 
@@ -2069,7 +1565,7 @@ void LoadBlows(TextResource& info)
     }
 }
 
-void LoadMonsters(TextResource& info)
+void LoadMonsters(OC::TextResource& info)
 {
     SDL_Log(" Loading Monsters...");
 
@@ -2104,7 +1600,7 @@ void LoadMonsters(TextResource& info)
     MonstersInfo[2].MWidth -= 12;
 }
 
-void LoadGunsInfo(TextResource& info)
+void LoadGunsInfo(OC::TextResource& info)
 {
     SDL_Log(" Loading Weapons...");
 
@@ -2144,7 +1640,5 @@ void Line(/*...*/);
 void HBrline0(/*...*/);
 void InitNormalViewHi(/*...*/);
 void InitMonitorView(/*...*/);
-
-OC::Path BaseFile;
 
 } // namespace CSPBIO

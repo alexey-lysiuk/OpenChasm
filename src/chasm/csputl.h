@@ -25,8 +25,6 @@
 namespace CSPUTL
 {
 
-#pragma pack(push, 1)
-
 struct _DWord
 {
     Uint16 LW;
@@ -52,8 +50,6 @@ struct PCXHeader
     Uint16 PaletteInfo;
     Uint8 Reserved2[58];
 };
-
-#pragma pack(pop)
 
 
 bool iswater(/*...*/);

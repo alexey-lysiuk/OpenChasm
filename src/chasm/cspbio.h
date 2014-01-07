@@ -22,56 +22,16 @@
 #ifndef OPENCHASM_CSPBIO_H_INCLUDED
 #define OPENCHASM_CSPBIO_H_INCLUDED
 
+#include "oc/graphics.h"
+
+namespace OC
+{
+    class BinaryInputStream;
+    class TextResource;
+}
+
 namespace CSPBIO
 {
-
-class Resource
-{
-public:
-    enum FlagsType
-    {
-        PATH_MUST_EXIST    = 1, // Exit with error if resource was not found
-        PATH_MAY_NOT_EXIST = 2  // Ignore missing resource
-    };
-
-    ~Resource();
-
-    const bool is_open() const;
-
-    const std::streamsize  size() const { return m_size;   }
-    const std::streamoff offset() const { return m_offset; }
-
-protected:
-    Resource();
-
-    std::streambuf* open(const OC::Path& path, const FlagsType flags);
-
-private:
-    std::streambuf* m_buffer;
-
-    std::streamsize m_size;
-    std::streamoff m_offset;
-
-    void openExternal(const OC::Path& path, const FlagsType flags);
-};
-
-
-class TextResource : public OC::TextInputStream, public Resource
-{
-public:
-    explicit TextResource(const OC::Path& path, const FlagsType flags = PATH_MUST_EXIST);
-};
-
-
-class BinaryResource : public OC::BinaryInputStream, public Resource
-{
-public:
-    explicit BinaryResource(const OC::Path& path, const FlagsType flags = PATH_MUST_EXIST);
-};
-
-
-// ===========================================================================
-
 
 // IMPORTANT NOTE!
 // Comments like
@@ -81,9 +41,6 @@ public:
 // So istream::operator>>() treats Sint8/Uint8 variable as character
 // instead of integer.
 // TODO: consider better solution: union or template wrapper?
-
-
-#pragma pack(push, 1)
 
 struct TFace
 {
@@ -173,49 +130,6 @@ struct TSepPartInfo
     Point3DList PAniB;
 
     TSepPartInfo();
-};
-
-static const OC::BinaryInputStream::pos_type CEL_DATA_OFFSET = 0x320;
-
-class TPic
-{
-public:
-    TPic();
-    explicit TPic(const char* const filename);
-
-    const Uint16 width()  const { return m_width;   }  // XSize
-    const Uint16 height() const { return m_height;  }  // YSize
-    const Uint16 centeX() const { return m_centerX; }  // CenterX
-    
-    const Uint8* data() const  // p
-    {
-        return &m_data[0];
-    }
-
-    const Uint8 data(const size_t index) const  // p
-    {
-        return m_data[index];
-    }
-
-    void setData(const size_t index, const Uint8 value)  // p
-    {
-        m_data[index] = value;
-    }
-
-    // Loads picture object from .cel file by its name
-    // Replaces LoadPicFromCel()
-    void load(const char* const filename);
-
-    // Loads picture object from given binary stream as raw data
-    // Replaces LoadPic()
-    void load(OC::BinaryInputStream& stream);
-
-private:
-    std::vector<Uint8> m_data;  // p
-
-    Uint16 m_width;    // XSize
-    Uint16 m_height;   // YSize
-    Uint16 m_centerX;  // CenterX
 };
 
 struct TAmmoBag
@@ -405,7 +319,7 @@ struct TObjBMPInfo
     Uint8 Frames;
     Uint8 CurFrame;
 
-    boost::array<TPic, 16> Pics;
+    boost::array<OC::Bitmap, 16> Pics;
 
     TObjBMPInfo();
 };
@@ -839,23 +753,6 @@ struct ServerSaved__Type
     Sint16 svhz;
 };
 
-struct RGB : public SDL_Color
-{
-    explicit RGB(const Uint8 red = 0, const Uint8 green = 0, const Uint8 blue = 0)
-    {
-        r = red;
-        g = green;
-        b = blue;
-        a = 255;
-    }
-};
-
-OC::BinaryInputStream& operator>>(OC::BinaryInputStream& stream, RGB& value);
-
-typedef boost::array<RGB, 256> TPalette;
-
-#pragma pack(pop)
-
 
 void InitModule();
 
@@ -870,8 +767,6 @@ void InitVESAMonitor(/*...*/);
 void VESA_TileScreen(/*...*/);
 void vesa_DrawKey(/*...*/);
 void ReDrawGround();
-void ShowVideoBuffer(/*...*/);
-void SetVideoMode();
 
 Uint16 QPifagorA32(/*...*/);
 void getmousestate(/*...*/);
@@ -887,14 +782,6 @@ void Beep(/*...*/);
 bool FExistFile(/*...*/);
 void FadeOut(/*...*/);
 void FadeIn(/*...*/);
-
-void DoHalt(const char* const message);
-void DoHalt(const OC::String& message);
-void DoHalt(const OC::Format& message);
-
-void DoHaltSDLError(const char* const message);
-
-void ChI(const std::ios& stream);
 
 void CalcDir(/*...*/);
 Sint16 Max(/*...*/);
@@ -919,8 +806,6 @@ void ScanLevels(/*...*/);
 void FindNextLevel(/*...*/);
 void LoadGraphics();
 void LoadGround();
-void DoSetPalette(const TPalette& palette);
-void SetPalette();
 void AddEvent(/*...*/);
 void AddEvVoice(/*...*/);
 void Hline(/*...*/);
@@ -947,7 +832,6 @@ void PutConsMessage3(const OC::String& message);
 extern Uint16 ServerVersion;
 extern Sint32 Long1;
 extern Uint8 LB;
-extern bool UserMaps;
 extern OC::String::value_type ConsoleCommands[546];
 extern OC::String::value_type ncNames[24];
 extern Sint16 ncSDivs[5];
@@ -963,8 +847,8 @@ extern void* WShadowMap;
 extern void* ShadowMap2;
 extern void* WShadowMap2;
 extern Uint16 FlSegs[256];
-extern TPic Pc;
-extern TPic CurPic;
+extern OC::Bitmap Pc;
+extern OC::Bitmap CurPic;
 extern Uint16 CurPicSeg;
 extern Uint16 ShadowSeg;
 extern Uint16 WShadowSeg;
@@ -977,7 +861,7 @@ extern Uint16 XORMask;
 extern OC::String::value_type* GFXindex;
 extern boost::array<OC::String, 64> ShortNames;
 extern boost::array<OC::String, 64> LevelNames;
-extern TPic ColorMap;
+extern OC::Bitmap ColorMap;
 extern Uint8 FloorMap[4096];
 extern Uint8 CellMap[4096];
 extern Uint8* AltXTab;
@@ -1027,23 +911,20 @@ extern std::vector<TReObject> ReObjects;
 extern std::vector<TAmmoBag> AmmoBags;
 extern bool FFlags[64];
 
-extern TPic Fonts;
-extern TPic BigFont;
-extern TPic LitFont;
-extern TPic WIcons;
-
-extern TPalette Palette;
-extern TPalette Pal;
+extern OC::Bitmap Fonts;
+extern OC::Bitmap BigFont;
+extern OC::Bitmap LitFont;
+extern OC::Bitmap WIcons;
 
 extern boost::array<Uint16, 256> CharSize;
 extern boost::array<TGunInfo, 9> GunsInfo;
 extern NetPlace__Element NetPlace[32];
 extern void* VGA;
 
-extern TPic Ground;
-extern TPic Status;
-extern TPic Loading;
-extern TPic VesaTiler;
+extern OC::Bitmap Ground;
+extern OC::Bitmap Status;
+extern OC::Bitmap Loading;
+extern OC::Bitmap VesaTiler;
 extern void* SkyPtr;
 
 typedef boost::array<Uint8, 0x10000> RGBTable;
@@ -1051,9 +932,6 @@ extern RGBTable RGBTab25;
 extern RGBTable RGBTab60;
 
 extern Uint16 LoadPos;
-extern Uint16 LoadingH;
-extern Uint16 LoadingW;
-extern OC::Path AddonPath;
 extern OC::Real ca;
 extern OC::Real sa;
 extern Sint16 RShadeDir;
@@ -1077,7 +955,7 @@ extern Sint16 Skill;
 extern Sint16 MyNetN;
 extern Sint16 bpx;
 extern Sint16 bpy;
-extern TPic ConsolePtr;
+extern OC::Bitmap ConsolePtr;
 
 typedef std::list<OC::String> ConsoleText;
 extern ConsoleText ConsoleComm;
@@ -1093,9 +971,6 @@ extern Sint16 MenuMode;
 extern Sint16 MenuMainY;
 extern Uint8 MSsens;
 extern Sint16 DisplaySett[3];
-extern Sint16 Contrast;
-extern Sint16 Color;
-extern Sint16 Bright;
 extern Sint16 LandZ;
 extern Sint16 CeilZ;
 extern Sint16 EndDelay;
@@ -1229,8 +1104,6 @@ extern Sint16 HMy;
 extern Sint16 ehx;
 extern Sint16 ehy;
 extern Sint16 ehz;
-extern Sint16 x;
-extern Sint16 y;
 extern Sint16 mi;
 extern Sint16 MapR;
 extern Sint16 LevelN;
@@ -1287,14 +1160,6 @@ extern Sint32 LastPainTime;
 extern Sint32 StartUpRandSeed;
 extern Sint32 MSRND;
 extern TLoc L;
-extern Uint16 VPSize;   // was Sint32
-extern Uint16 VideoH;   // was Sint32
-extern Uint16 VideoW;   // was Sint32
-extern Uint16 VideoBPL; // was Sint32
-extern Uint16 VideoEX;
-extern Uint16 VideoEY;
-extern Uint16 VideoCX;
-extern Uint16 VideoCY;
 extern bool VideoIsFlat;
 extern Uint16 WinW;
 extern Uint16 WinW2;
@@ -1408,7 +1273,6 @@ extern Uint8 c;
 extern Uint8 kod;
 extern Uint8 key;
 extern boost::array<Uint8, 256> ASCII_Tab;
-extern OC::Path LastFName;
 extern OC::String::value_type S[256];
 //extern Dos::Registers Regs;
 extern Sint16 JoyX;
@@ -1501,14 +1365,14 @@ void LoadPicsPacket(const OC::String& filename, TPicPack& packet);
 void ScanWH(Sint16& width, Sint16& height, const TOHeader& model);
 void AllocFloors(/*...*/);
 
-void LoadSounds(TextResource& info);
-void LoadBMPObjects(TextResource& info);
-void Load3dObjects(TextResource& info);
-void LoadRockets(TextResource& info);
-void LoadGibs(TextResource& info);
-void LoadBlows(TextResource& info);
-void LoadMonsters(TextResource& info);
-void LoadGunsInfo(TextResource& info);
+void LoadSounds(OC::TextResource& info);
+void LoadBMPObjects(OC::TextResource& info);
+void Load3dObjects(OC::TextResource& info);
+void LoadRockets(OC::TextResource& info);
+void LoadGibs(OC::TextResource& info);
+void LoadBlows(OC::TextResource& info);
+void LoadMonsters(OC::TextResource& info);
+void LoadGunsInfo(OC::TextResource& info);
 
 void CLine(/*...*/);
 void Line(/*...*/);
@@ -1516,18 +1380,12 @@ void HBrline0(/*...*/);
 void InitNormalViewHi(/*...*/);
 void InitMonitorView(/*...*/);
 
-extern OC::Path BaseFile;
-
 // /* nested */ void AddMode(/*...*/);
 // /* nested */ void WriteS(/*...*/);
 // /* nested */ void PutPixel(/*...*/);
 
-extern SDL_Window*   g_window;
-extern SDL_Renderer* g_renderer;
-extern SDL_Surface*  g_surface;
-
-void ShutdownRenderer();
-
 } // namespace CSPBIO
+
+//OC::BinaryInputStream& operator>>(OC::BinaryInputStream& stream, SDL_Color& value);
 
 #endif // OPENCHASM_CSPBIO_H_INCLUDED

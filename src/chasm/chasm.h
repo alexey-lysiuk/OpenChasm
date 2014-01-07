@@ -22,10 +22,10 @@
 #ifndef OPENCHASM_CHASM_H_INCLUDED
 #define OPENCHASM_CHASM_H_INCLUDED
 
+#include "oc/types.h"
+
 namespace Chasm
 {
-
-#pragma pack(push, 1)
 
 struct TServer_Patch
 {
@@ -120,8 +120,6 @@ struct PalBuf__Element
     Uint8 G;
     Uint8 B;
 };
-
-#pragma pack(pop)
 
 
 void GetRealModeIntVector(/*...*/);

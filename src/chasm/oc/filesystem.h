@@ -33,8 +33,8 @@ class TextInputStream : public std::istream
 {
 public:
     // Reads until end of the line
-    OC::String readLine();
-    TextInputStream& readLine(OC::String& value);
+    String readLine();
+    TextInputStream& readLine(String& value);
 
     // Skips until end of the line
     TextInputStream& skipLine();
@@ -161,12 +161,14 @@ class BinaryFile: public BinaryInputStream, public BinaryOutputStream
 {
 public:
     BinaryFile();
-    explicit BinaryFile(const OC::Path& path, const openmode mode = std::ios::in);
+    explicit BinaryFile(const Path& path, const openmode mode = std::ios::in);
     ~BinaryFile();
 
-    void open(const OC::Path& path, const openmode mode = std::ios::in);
+    void open(const Path& path, const openmode mode = std::ios::in);
     bool is_open() const;
-    
+
+    void close();
+
 private:
     typedef boost::filesystem::filebuf Buffer;
     Buffer* buffer() const;
@@ -176,39 +178,114 @@ private:
 // ===========================================================================
 
 
-namespace FileSystem
+// Resource base, stored within big file (csm.bin) or externally
+
+class Resource
 {
+public:
+    enum FlagsType
+    {
+        PATH_MUST_EXIST    = 1, // Exit with error if resource was not found
+        PATH_MAY_NOT_EXIST = 2  // Ignore missing resource
+    };
 
-Path GetBasePath();
+    ~Resource();
 
-template <typename T>
-inline Path GetBasePath(const T& subPath)
+    const bool is_open() const;
+
+    const std::streamsize  size() const { return m_size;   }
+
+protected:
+    Resource();
+
+    StreamBuffer* open(const Path& path, const FlagsType flags);
+
+private:
+    StreamBuffer*   m_buffer;
+    
+    std::streamsize m_size;
+};
+
+
+// ===========================================================================
+
+
+// Text resource
+// Replaces TOpen() function
+
+class TextResource : public TextInputStream, public Resource
 {
-    Path result = GetBasePath();
+public:
+    explicit TextResource(const Path& path, const FlagsType flags = PATH_MUST_EXIST);
+};
 
-    result += subPath;
 
-    return result;
-}
+// ===========================================================================
 
-Path GetUserPath();
+    
+// Binary resource
+// Replaces FOpen() function and BFile type
 
-template <typename T>
-inline Path GetUserPath(const T& subPath)
+class BinaryResource : public BinaryInputStream, public Resource
 {
-    Path result = GetUserPath();
+public:
+    explicit BinaryResource(const Path& path, const FlagsType flags = PATH_MUST_EXIST);
+};
 
-    result += subPath;
 
-    return result;
-}
+// ===========================================================================
 
-bool IsPathExist(const Path& path);
 
-bool CreateDirectory(const Path& path);
-bool CreateDirectories(const Path& path);
+class BigFile;
 
-} // namespace FileSystem
+
+class FileSystem : public Singleton<FileSystem>
+{
+public:
+    FileSystem();
+    ~FileSystem();
+
+    // Path to executable directory which can be read-only
+    const Path& basePath() const { return m_basePath; }
+    Path basePath(const Path& subPath) const { return m_basePath / subPath; }
+
+    // Path to user's directory with read/write access
+    const Path& userPath() const { return m_userPath; }
+    Path userPath(const Path& subPath) const { return m_userPath / subPath; }
+
+    // Path to big file (csm.bin) or directory with big file's content
+    const Path& resourcePath() const { return m_resourcePath; }
+
+    // Path to add-on levels
+    const Path& addonPath() const { return m_addonPath; }
+    void setAddonPath(const Path& path) { m_addonPath = path; }
+
+    const Path& lastFileName() const { return m_lastFileName; }
+    void setLastFileName(const Path& filename) { m_lastFileName = filename; }
+
+    StreamBuffer* openResource(const Path& path, const Resource::FlagsType flags);
+    StreamBuffer* openExternalResource(const Path& path, const Resource::FlagsType flags);
+
+    // Check result of mandatory input/output operation
+    // Replaces ChI() functions
+    void checkIO(const std::ios& stream) const;
+
+    static bool isPathExist(const Path& path);
+
+    static bool createDirectory(const Path& path);
+    static bool createDirectories(const Path& path);
+
+private:
+    BigFile* m_bigFile;
+
+    Path m_basePath;
+    Path m_userPath;
+
+    Path m_resourcePath;  // BaseFile
+    Path m_addonPath;     // AddonPath, UserMaps
+
+    Path m_lastFileName;  // LastFName
+};
 
 } // namespace OC
 

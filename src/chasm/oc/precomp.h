@@ -38,8 +38,4 @@
 
 #include <SDL.h>
 
-#include "types.h"
-#include "filesystem.h"
-#include "utils.h"
-
 #endif // OPENCHASM_PRECOMP_H_INCLUDED

@@ -25,8 +25,6 @@
 namespace SoundIP
 {
 
-#pragma pack(push, 1)
-
 struct TSFXRec
 {
     void* P;
@@ -78,8 +76,6 @@ struct DMA_Entry
     Uint16 ReadTrans;
     Uint8 Cur_Mode;
 };
-
-#pragma pack(pop)
 
 
 void InitModule();

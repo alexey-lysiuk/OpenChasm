@@ -21,6 +21,10 @@
 
 #include "chasm.h"
 
+#include "oc/filesystem.h"
+#include "oc/graphics.h"
+#include "oc/utils.h"
+
 #include "soundip/soundip.h"
 #include "cs3dm2.h"
 #include "cs_demo.h"
@@ -39,9 +43,10 @@ void TimerFM(/*...*/);
 
 void LoadConfig(const bool original)
 {
-    CSPBIO::LastFName = original ? "chasm.cfg" : "chasm.def";
+    const char* const filename = original ? "chasm.cfg" : "chasm.def";
+    OC::FileSystem::instance().setLastFileName(filename);
 
-    const OC::Path configPath = OC::FileSystem::GetUserPath(CSPBIO::LastFName);
+    const OC::Path configPath = OC::FileSystem::instance().userPath(filename);
     OC::BinaryFile configFile(configPath);
 
     // Change from original behavior: 
@@ -95,15 +100,18 @@ void LoadConfig(const bool original)
     configFile >> SoundIP::FXVolume;
     configFile >> SoundIP::CDVolume;
 
+    Uint16 brightness, contrast, color;
     Uint8 b0;
 
     configFile >> CSPBIO::MSsens;
-    configFile >> CSPBIO::Bright;
-    configFile >> CSPBIO::Contrast;
-    configFile >> CSPBIO::Color;
+    configFile >> brightness;
+    configFile >> contrast;
+    configFile >> color;
     configFile >> CSPBIO::FloorW;
     configFile >> b0;
     configFile >> CSPBIO::InfoPage;
+
+    OC::BitmapManager::instance().setPaletteParameters(contrast, color, brightness);
 
     CSPBIO::b0 = b0; // ??? 2-byte variable but only one byte is read
 
@@ -126,12 +134,10 @@ void LoadConfig(const bool original)
 
     // TODO: validate video mode
 
-    CSPBIO::ChI(configFile);
+    OC::FileSystem::instance().checkIO(configFile);
 
     if (!original)
     {
-        CSPBIO::SetPalette();
-
         //SoundIP::SetVolumes();
 
         //CSPBIO::ReInitViewConst();
@@ -249,8 +255,8 @@ void ParseCommandLine(const int argc, const char* const* const argv)
         }
         else if (boost::algorithm::starts_with(parameter, "-addon:"))
         {
-            CSPBIO::AddonPath = parameter.substr(sizeof "-addon:" - 1);
-            CSPBIO::UserMaps  = true;
+            const OC::String path = parameter.substr(sizeof "-addon:" - 1);
+            OC::FileSystem::instance().setAddonPath(path);
         }
         else if ("-vmode" == parameter)
         {
@@ -307,15 +313,20 @@ void ParseCommandLine(const int argc, const char* const* const argv)
 
 }
 
+
 int main(int argc, char** argv)
 {
     if (0 != SDL_Init(SDL_INIT_EVERYTHING))
     {
-        CSPBIO::DoHaltSDLError("Failed to initialize SDL.");
+        OC::DoHaltSDLError("Failed to initialize SDL.");
         return EXIT_FAILURE;
     }
 
     atexit(SDL_Quit);
+
+    OC::FileSystem::initialize();
+    OC::BitmapManager::initialize();
+    OC::Renderer::initialize();
 
     SoundIP::InitModule();
     CSPBIO::InitModule();
@@ -356,9 +367,10 @@ int main(int argc, char** argv)
         // TODO: safe mode
     }
 
-    if (CSPBIO::UserMaps)
+    const OC::Path& addonPath = OC::FileSystem::instance().addonPath();
+    if (!addonPath.empty())
     {
-        SDL_Log("Add levels from: %s", CSPBIO::AddonPath.string().c_str());
+        SDL_Log("Add levels from: %s", addonPath.string().c_str());
     }
 
     // TODO: output hardware and diagnostic information
@@ -372,8 +384,8 @@ int main(int argc, char** argv)
 
     // TODO: csact::ReleaseLevel();
 
-    CSPBIO::SetVideoMode();
-    atexit(CSPBIO::ShutdownRenderer);
+    // TODO: video modes support
+    OC::Renderer::instance().setVideoMode(640, 480);
 
     CSPBIO::ReDrawGround();
 
@@ -390,6 +402,19 @@ int main(int argc, char** argv)
 
     for (;;)
     {
+        switch (CSPBIO::MenuCode)
+        {
+            case 4:
+                csact::LoadLevel();
+
+                CSPBIO::MenuCode = 1;
+                break;
+                
+            default:
+                //SDL_assert(false);
+                break;
+        }
+
         SDL_Event e;
 
         if (1 == SDL_PollEvent(&e) && SDL_QUIT == e.type)
@@ -398,14 +423,13 @@ int main(int argc, char** argv)
         }
         else
         {
-            SDL_Texture* blitTexture = SDL_CreateTextureFromSurface(CSPBIO::g_renderer, CSPBIO::g_surface);
-
-            SDL_RenderCopy(CSPBIO::g_renderer, blitTexture, NULL, NULL);
-            SDL_RenderPresent(CSPBIO::g_renderer);
-
-            SDL_DestroyTexture(blitTexture);
+            OC::Renderer::instance().present();
         }
     }
+
+    OC::Renderer::shutdown();
+    OC::BitmapManager::shutdown();
+    OC::FileSystem::shutdown();
 
     return EXIT_SUCCESS;
 }
