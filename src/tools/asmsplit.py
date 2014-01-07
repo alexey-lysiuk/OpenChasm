@@ -2,7 +2,7 @@
 
 # ---------------------------------------------------------------------------
 #  OpenChasm - Free software reconstruction of Chasm: The Rift game
-#  Copyright (C) 2013 Alexey Lysiuk
+#  Copyright (C) 2013, 2014 Alexey Lysiuk
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ def writeheader(file):
 /*
 **---------------------------------------------------------------------------
 ** OpenChasm - Free software reconstruction of Chasm: The Rift game
-** Copyright (C) 2013 Alexey Lysiuk
+** Copyright (C) 2013, 2014 Alexey Lysiuk
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
