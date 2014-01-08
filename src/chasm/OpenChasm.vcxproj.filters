@@ -13,9 +13,6 @@
     <ClCompile Include="csvesa.cpp" />
     <ClCompile Include="cs_demo.cpp" />
     <ClCompile Include="cs_mapml.cpp" />
-    <ClCompile Include="precomp.cpp">
-      <Filter>oc</Filter>
-    </ClCompile>
     <ClCompile Include="ps10.cpp" />
     <ClCompile Include="soundip\common.cpp">
       <Filter>SoundIP</Filter>
@@ -35,6 +32,12 @@
     <ClCompile Include="oc\filesystem.cpp">
       <Filter>oc</Filter>
     </ClCompile>
+    <ClCompile Include="oc\graphics.cpp">
+      <Filter>oc</Filter>
+    </ClCompile>
+    <ClCompile Include="oc\precomp.cpp">
+      <Filter>oc</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cs3dm2.h" />
@@ -45,9 +48,6 @@
     <ClInclude Include="csprndr.h" />
     <ClInclude Include="csputl.h" />
     <ClInclude Include="cs_demo.h" />
-    <ClInclude Include="precomp.h">
-      <Filter>oc</Filter>
-    </ClInclude>
     <ClInclude Include="soundip\soundip.h">
       <Filter>SoundIP</Filter>
     </ClInclude>
@@ -59,6 +59,12 @@
       <Filter>oc</Filter>
     </ClInclude>
     <ClInclude Include="oc\filesystem.h">
+      <Filter>oc</Filter>
+    </ClInclude>
+    <ClInclude Include="oc\graphics.h">
+      <Filter>oc</Filter>
+    </ClInclude>
+    <ClInclude Include="oc\precomp.h">
       <Filter>oc</Filter>
     </ClInclude>
   </ItemGroup>
