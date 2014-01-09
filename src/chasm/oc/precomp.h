@@ -35,6 +35,7 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/foreach.hpp>
 #include <boost/format.hpp>
+#include <boost/type_traits/is_fundamental.hpp>
 
 #include <SDL.h>
 

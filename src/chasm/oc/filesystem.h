@@ -97,8 +97,6 @@ public:
     template <typename T>
     BinaryInputStream& readArray(T& collection, const typename T::size_type count = typename T::size_type(-1))
     {
-        char* const ptr = reinterpret_cast<char*>(&collection[0]);
-
         const typename T::size_type collectionSize = collection.size();
         const typename T::size_type readCount = typename T::size_type(-1) == count
             ? collectionSize
@@ -106,16 +104,19 @@ public:
 
         SDL_assert(collectionSize >= readCount);
 
-        if (1 == sizeof collection[0])
+        if (readCount > 0)
         {
-            // Single read call can be used in case of bytes array only
-            rdbuf()->sgetn(ptr, readCount);
-        }
-        else
-        {
-            for (typename T::size_type i = 0; i < readCount; ++i)
+            if (boost::is_fundamental<typename T::value_type>::value)
             {
-                *this >> collection[i];
+                rdbuf()->sgetn(reinterpret_cast<char*>(&collection[0]),
+                    readCount * sizeof(typename T::value_type));
+            }
+            else
+            {
+                for (typename T::size_type i = 0; i < readCount; ++i)
+                {
+                    *this >> collection[i];
+                }
             }
         }
 
