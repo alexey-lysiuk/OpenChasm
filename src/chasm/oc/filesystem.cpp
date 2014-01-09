@@ -64,9 +64,8 @@ TextInputStream& TextInputStream::skipLine()
 
 
 BinaryInputStream::BinaryInputStream()
-: std::ios(NULL)
 {
-
+    init(NULL);
 }
 
 BinaryInputStream& BinaryInputStream::operator>>(bool& value)
@@ -213,9 +212,8 @@ BinaryInputStream::pos_type BinaryInputStream::seekg(const streamoff off, const 
 
 
 BinaryOutputStream::BinaryOutputStream()
-: std::ios(NULL)
 {
-
+    init(NULL);
 }
 
 std::streamsize BinaryOutputStream::write(const char* const buffer, const std::streamsize count)
