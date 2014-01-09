@@ -383,7 +383,7 @@ void Renderer::setVideoMode(const Uint16 width, const Uint16 height)
 {
     release();
 
-    m_window = SDL_CreateWindow("OpenChasm", 0, 0, width, height, SDL_WINDOW_SHOWN | SDL_WINDOWPOS_CENTERED);
+    m_window = SDL_CreateWindow("OpenChasm", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_SHOWN);
 
     if (NULL == m_window)
     {
