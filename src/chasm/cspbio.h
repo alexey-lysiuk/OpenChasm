@@ -247,6 +247,8 @@ struct TLight
     Sint16 R0;
     Sint16 R1;
     Sint16 MaxB;
+
+    TLight();
 };
 
 struct TEvent
@@ -254,9 +256,11 @@ struct TEvent
     char C;
     Uint8 info;
     Sint16 param;
-    Sint16 __CX;
+    Sint16 CX;
     Sint16 CY;
     Sint16 CZ;
+
+    TEvent();
 };
 
 struct TObj3DInfo
@@ -539,13 +543,15 @@ struct THoleItem
     OC::Real wl;
 };
 
-struct TTPort__Element
+struct Teleport
 {
     Sint16 TSrx;
     Sint16 TSry;
     Sint16 TDstx;
     Sint16 TDsty;
     Sint16 TFi;
+
+    Teleport();
 };
 
 struct TDPMIRegs
@@ -865,8 +871,8 @@ extern OC::Bitmap ColorMap;
 extern Uint8 FloorMap[4096];
 extern Uint8 CellMap[4096];
 extern Uint8* AltXTab;
-extern TLight* Lights;
-extern TTPort__Element* Tports;
+extern boost::array<TLight, 256> Lights;
+extern boost::array<Teleport, 128> Tports;
 extern void* PImPtr[120];
 extern Uint16 PImSeg[120];
 extern Uint8 WallMask[120];
@@ -882,15 +888,15 @@ extern boost::array<Sint32, 701> MulSW;
 extern boost::array<Sint16, 1024> SinTab;
 extern TLoc* Map;
 extern std::list<OC::String> ConsHistory;
-extern Uint8* VMask;
-extern Uint8* Flags;
+extern boost::array<Uint8, 4096> VMask;
+extern boost::array<Uint8, 4096> Flags;
 extern Uint8* DarkMap;
 extern Uint8* AmbMap;
-extern Uint8* TeleMap;
+extern boost::array<Uint8, 4096> TeleMap;
 extern Uint8* FloorZHi;
 extern Uint8* FloorZLo;
 extern EndCamera__Type EndCamera;
-extern TEvent EventsList[16];
+extern boost::array<TEvent, 16> EventsList;
 extern TFrame* FramesList;
 extern TBlow* BlowsList;
 extern TMonster MonstersList[90];
@@ -1323,8 +1329,8 @@ extern Sint16 CDTrack;
 extern Sint32 CDTime;
 extern boost::array<TPlayerInfo, 8> Players;
 extern Uint8 LastBorn;
-extern Uint8 LevelChanges[16];
-extern Uint16 ProcState[4];
+extern boost::array<Uint8, 16> LevelChanges;
+extern boost::array<Uint16, 4> ProcState;
 extern OC::String::value_type NetMessage[33];
 extern MessageRec__Element MessageRec[4];
 extern ProcMessage__Type ProcMessage;

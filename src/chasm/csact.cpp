@@ -38,10 +38,38 @@ void StartLoading()
         return;
     }
 
+    CSPBIO::LoadPos = 2;
 
+    //OC::Renderer::instance().draw(CSPBIO::VesaTiler, 400, 20);
+    //OC::Renderer::instance().draw(CSPBIO::Status, 20, 20);
+
+    const int x = (OC::Renderer::instance().screenWidth() - CSPBIO::Loading.width()) / 2;
+    const int y = OC::Renderer::instance().screenHeight() / 2 - 40;
+    const OC::Rect clipRect(-1, -1, -1, CSPBIO::Loading.height() / 2);
+
+    OC::Renderer::instance().draw(CSPBIO::Loading, x, y, clipRect);
+    OC::Renderer::instance().present();
 }
 
-void NextLoading(/*...*/);
+void NextLoading()
+{
+    if (0 == CSPBIO::LoadPos)
+    {
+        return;
+    }
+
+    CSPBIO::LoadPos += 4;
+    CSPBIO::LoadPos = std::min(CSPBIO::LoadPos, Uint16(150));
+    
+    const int x = (OC::Renderer::instance().screenWidth() - CSPBIO::Loading.width()) / 2;
+    const int y = OC::Renderer::instance().screenHeight() / 2 - 40;
+    const int w = CSPBIO::LoadPos * CSPBIO::Loading.width() / 150;
+    const OC::Rect clipRect(-1, CSPBIO::Loading.height() / 2, w, CSPBIO::Loading.height() / 2);
+
+    OC::Renderer::instance().draw(CSPBIO::Loading, x, y, clipRect);
+    OC::Renderer::instance().present();
+}
+
 void GetLandHeight(/*...*/);
 void MakeTeleEffect(/*...*/);
 void AddMine(/*...*/);
@@ -62,6 +90,28 @@ void LoadFloorMap(/*...*/);
 void LoadLevel()
 {
     StartLoading();
+
+    CSPBIO::FullMap = 0;
+    CSPBIO::takt = 0;
+    CSPBIO::MsTakt = 0;
+    CSPBIO::LCDTrack = 0;
+    CSPBIO::BLevelDef = 320;
+    CSPBIO::FirstTakt = 1;
+    CSPBIO::LastBorn = 0;
+
+    NextLoading();
+
+    //for (int i = 0; i < 38; ++i)
+    //{
+    //    SDL_Delay(100);
+    //    NextLoading();
+    //}
+
+    InitLevelDefaults();
+
+    NextLoading();
+
+    // TODO...
 }
 
 void SaveGame(/*...*/);
@@ -104,7 +154,41 @@ void LoadAction(/*...*/);
 void LoadProcess(/*...*/);
 void Stop3d(/*...*/);
 void LoadEndCamera(/*...*/);
-void InitLevelDefaults(/*...*/);
+
+void InitLevelDefaults()
+{
+    CSPBIO::t1 = 4;
+    CSPBIO::GunShift = 64;
+    CSPBIO::ShakeLevel = 0;
+    CSPBIO::LookVz = 0;
+    CSPBIO::WXSize = 64;
+    CSPBIO::MapMode = 0;
+
+    CSPBIO::LastPainTime = 0;
+    CSPBIO::Time = 0;
+
+    CSPBIO::RCount = 0;
+    CSPBIO::BCount = 0;
+    CSPBIO::ExMode = 0;
+    CSPBIO::TCount = 0;
+    CSPBIO::LCount = 0;
+    CSPBIO::SCount = 0;
+    CSPBIO::MnCount = 0;
+    CSPBIO::DCount = 0;
+    CSPBIO::ReCount = 0;
+    CSPBIO::AmCount = 0;
+    CSPBIO::HolCount = 0;
+
+    CSPBIO::TeleMap.fill(0xFF);
+    CSPBIO::Lights.fill(CSPBIO::TLight());
+    CSPBIO::Tports.fill(CSPBIO::Teleport());
+    CSPBIO::VMask.fill(0);
+    CSPBIO::Flags.fill(0);
+    CSPBIO::LevelChanges.fill(0); // [0..7] were cleared originally
+    CSPBIO::ProcState.fill(0);
+    CSPBIO::EventsList.fill(CSPBIO::TEvent());
+}
+
 void ProcessDeathZone(/*...*/);
 bool CheckConflict(/*...*/);
 bool CheckLifePoint(/*...*/);

@@ -225,6 +225,36 @@ TPlayerInfo::TPlayerInfo()
 // ===========================================================================
 
 
+TLight::TLight()
+: lx(0)
+, ly(0)
+, L(0)
+, R0(0)
+, R1(0)
+, MaxB(0)
+{
+
+}
+
+
+// ===========================================================================
+
+
+TEvent::TEvent()
+: C(0)
+, info(0)
+, param(0)
+, CX(0)
+, CY(0)
+, CZ(0)
+{
+
+}
+
+
+// ===========================================================================
+
+
 TObj3DInfo::TObj3DInfo()
 : GoRad(0)
 , ACode(0)
@@ -246,11 +276,17 @@ TObj3DInfo::TObj3DInfo()
 }
 
 
+// ===========================================================================
+
+
 TPicPack::TPicPack()
 : NFrames()
 {
     
 }
+
+
+// ===========================================================================
 
 
 TObjBMPInfo::TObjBMPInfo()
@@ -261,6 +297,9 @@ TObjBMPInfo::TObjBMPInfo()
 {
 
 }
+
+
+// ===========================================================================
 
 
 TGunInfo::TGunInfo()
@@ -279,6 +318,23 @@ TGunInfo::TGunInfo()
 }
 
 
+// ===========================================================================
+
+
+Teleport::Teleport()
+: TSrx(0)
+, TSry(0)
+, TDstx(0)
+, TDsty(0)
+, TFi(0)
+{
+
+}
+
+
+// ===========================================================================
+
+
 TBlowInfo::TBlowInfo()
 : NFrames(0)
 , Flags(0)
@@ -286,6 +342,9 @@ TBlowInfo::TBlowInfo()
 {
     
 }
+
+
+// ===========================================================================
 
 
 TRocketInfo::TRocketInfo()
@@ -765,8 +824,8 @@ OC::Bitmap ColorMap; // cm_ofs
 Uint8 FloorMap[4096];
 Uint8 CellMap[4096];
 Uint8* AltXTab;
-TLight* Lights;
-TTPort__Element* Tports;
+boost::array<TLight, 256> Lights;
+boost::array<Teleport, 128> Tports;
 void* PImPtr[120];
 Uint16 PImSeg[120];
 Uint8 WallMask[120];
@@ -782,15 +841,15 @@ boost::array<Sint32, 701> MulSW;
 boost::array<Sint16, 1024> SinTab;
 TLoc* Map;
 std::list<OC::String> ConsHistory;
-Uint8* VMask;
-Uint8* Flags;
+boost::array<Uint8, 4096> VMask;
+boost::array<Uint8, 4096> Flags;
 Uint8* DarkMap;
 Uint8* AmbMap;
-Uint8* TeleMap;
+boost::array<Uint8, 4096> TeleMap;
 Uint8* FloorZHi;
 Uint8* FloorZLo;
 EndCamera__Type EndCamera;
-TEvent EventsList[16];
+boost::array<TEvent, 16> EventsList;
 TFrame* FramesList;
 TBlow* BlowsList;
 TMonster MonstersList[90];
@@ -1213,8 +1272,8 @@ Sint16 CDTrack;
 Sint32 CDTime;
 boost::array<TPlayerInfo, 8> Players;
 Uint8 LastBorn;
-Uint8 LevelChanges[16];
-Uint16 ProcState[4];
+boost::array<Uint8, 16> LevelChanges;
+boost::array<Uint16, 4> ProcState;
 OC::String::value_type NetMessage[33];
 MessageRec__Element MessageRec[4];
 ProcMessage__Type ProcMessage;
