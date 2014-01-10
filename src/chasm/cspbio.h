@@ -232,11 +232,13 @@ struct LongRec
     Uint16 HighWord;
 };
 
-struct NetPlace__Element
+struct NetPlaceElement
 {
     Sint16 plx;
     Sint16 ply;
     Uint16 PFI;
+
+    NetPlaceElement();
 };
 
 struct TLight
@@ -250,6 +252,8 @@ struct TLight
 
     TLight();
 };
+
+OC::BinaryInputStream& operator>>(OC::BinaryInputStream& stream, TLight& value);
 
 struct TEvent
 {
@@ -313,7 +317,11 @@ struct TLoc
     Sint16 y1;
     Sint16 x2;
     Sint16 y2;
+
+    TLoc();
 };
+
+OC::BinaryInputStream& operator>>(OC::BinaryInputStream& stream, TLoc& value);
 
 struct TObjBMPInfo
 {
@@ -886,7 +894,7 @@ extern Uint8 SpryteUsed[120];
 extern boost::array<Uint16, 201> Mul320;
 extern boost::array<Sint32, 701> MulSW;
 extern boost::array<Sint16, 1024> SinTab;
-extern TLoc* Map;
+extern boost::array<TLoc, 4096> Map;
 extern std::list<OC::String> ConsHistory;
 extern boost::array<Uint8, 4096> VMask;
 extern boost::array<Uint8, 4096> Flags;
@@ -924,7 +932,7 @@ extern OC::Bitmap WIcons;
 
 extern boost::array<Uint16, 256> CharSize;
 extern boost::array<TGunInfo, 9> GunsInfo;
-extern NetPlace__Element NetPlace[32];
+extern boost::array<NetPlaceElement, 32> NetPlace;
 extern void* VGA;
 
 extern OC::Bitmap Ground;
@@ -1391,7 +1399,5 @@ void InitMonitorView(/*...*/);
 // /* nested */ void PutPixel(/*...*/);
 
 } // namespace CSPBIO
-
-//OC::BinaryInputStream& operator>>(OC::BinaryInputStream& stream, SDL_Color& value);
 
 #endif // OPENCHASM_CSPBIO_H_INCLUDED

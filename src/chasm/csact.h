@@ -24,6 +24,11 @@
 
 #include "oc/types.h"
 
+namespace OC
+{
+    class BinaryInputStream;
+}
+
 namespace csact
 {
 
@@ -121,6 +126,8 @@ struct TMT
     Uint8 FI;
     Uint8 Mode;
 };
+
+OC::BinaryInputStream& operator>>(OC::BinaryInputStream& stream, TMT& value);
 
 
 void MoveOn(/*...*/);

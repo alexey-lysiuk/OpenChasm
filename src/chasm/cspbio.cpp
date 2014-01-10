@@ -81,7 +81,6 @@ TOHeader::TOHeader()
 , FCount(0)
 , TH(0)
 {
-
 }
 
 static void AdjustFaceCoord(Uint16& coord)
@@ -163,7 +162,6 @@ TSepPartInfo::TSepPartInfo()
 , ATimeB(0)
 , FallSound(0)
 {
-
 }
 
 
@@ -225,6 +223,17 @@ TPlayerInfo::TPlayerInfo()
 // ===========================================================================
 
 
+NetPlaceElement::NetPlaceElement()
+: plx(0)
+, ply(0)
+, PFI(0)
+{
+}
+
+
+// ===========================================================================
+
+
 TLight::TLight()
 : lx(0)
 , ly(0)
@@ -233,7 +242,19 @@ TLight::TLight()
 , R1(0)
 , MaxB(0)
 {
+}
 
+
+OC::BinaryInputStream& operator>>(OC::BinaryInputStream& stream, TLight& value)
+{
+    stream >> value.lx;
+    stream >> value.ly;
+    stream >> value.L;
+    stream >> value.R0;
+    stream >> value.R1;
+    stream >> value.MaxB;
+
+    return stream;
 }
 
 
@@ -248,7 +269,6 @@ TEvent::TEvent()
 , CY(0)
 , CZ(0)
 {
-
 }
 
 
@@ -272,7 +292,6 @@ TObj3DInfo::TObj3DInfo()
 , FTime(0)
 , ATime(0)
 {
-
 }
 
 
@@ -282,7 +301,35 @@ TObj3DInfo::TObj3DInfo()
 TPicPack::TPicPack()
 : NFrames()
 {
-    
+}
+
+
+// ===========================================================================
+
+
+TLoc::TLoc()
+: Spr(0)
+, Size(0)
+, Dark(0)
+, x1(0)
+, y1(0)
+, x2(0)
+, y2(0)
+{
+}
+
+
+OC::BinaryInputStream& operator>>(OC::BinaryInputStream& stream, TLoc& value)
+{
+    stream >> value.Spr;
+    stream >> value.Size;
+    stream >> value.Dark;
+    stream >> value.x1;
+    stream >> value.y1;
+    stream >> value.x2;
+    stream >> value.y2;
+
+    return stream;
 }
 
 
@@ -295,7 +342,6 @@ TObjBMPInfo::TObjBMPInfo()
 , Frames(0)
 , CurFrame(0)
 {
-
 }
 
 
@@ -314,7 +360,6 @@ TGunInfo::TGunInfo()
 , PATime(0)
 , PSTime(0)
 {
-    
 }
 
 
@@ -328,7 +373,6 @@ Teleport::Teleport()
 , TDsty(0)
 , TFi(0)
 {
-
 }
 
 
@@ -340,7 +384,6 @@ TBlowInfo::TBlowInfo()
 , Flags(0)
 , GlassMode(0)
 {
-    
 }
 
 
@@ -357,7 +400,6 @@ TRocketInfo::TRocketInfo()
 , SmokeID(0)
 , ATime(0)
 {
-    
 }
 
 
@@ -839,7 +881,7 @@ Uint8 SpryteUsed[120];
 boost::array<Uint16, 201> Mul320;
 boost::array<Sint32, 701> MulSW;
 boost::array<Sint16, 1024> SinTab;
-TLoc* Map;
+boost::array<TLoc, 4096> Map;
 std::list<OC::String> ConsHistory;
 boost::array<Uint8, 4096> VMask;
 boost::array<Uint8, 4096> Flags;
@@ -872,7 +914,7 @@ OC::Bitmap WIcons;
 
 boost::array<Uint16, 256> CharSize;
 boost::array<TGunInfo, 9> GunsInfo;
-NetPlace__Element NetPlace[32];
+boost::array<NetPlaceElement, 32> NetPlace;
 void* VGA;
 OC::Bitmap Ground;
 OC::Bitmap Status;
