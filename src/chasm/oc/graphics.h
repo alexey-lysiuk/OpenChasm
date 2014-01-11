@@ -74,7 +74,7 @@ public:
 
     // Loads image from .cel file by its name
     // Replaces LoadPicFromCel()
-    void load(const char* const filename);
+    void load(const Path& path);
 
     // Loads image from given binary stream as raw data
     // Replaces LoadPic()

@@ -105,9 +105,9 @@ void Bitmap::release()
 }
 
 
-void Bitmap::load(const char* const filename)
+void Bitmap::load(const Path& path)
 {
-    BinaryResource celFile(filename);
+    BinaryResource celFile(path);
     load(celFile, FORMAT_CEL);
 }
 
