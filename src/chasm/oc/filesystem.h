@@ -290,4 +290,10 @@ private:
 
 } // namespace OC
 
+
+inline OC::FileSystem& ocFS()
+{
+    return OC::FileSystem::instance();
+}
+
 #endif // OPENCHASM_OC_FILESYSTEM_H_INCLUDED
