@@ -27,6 +27,7 @@
 namespace OC
 {
     class BinaryInputStream;
+    class TextResource;
 }
 
 namespace csact
@@ -148,8 +149,8 @@ void SetMePain(/*...*/);
 void AddDeadPlayer(/*...*/);
 void ExplodePlayer(/*...*/);
 void ReleaseLevel(/*...*/);
-void ReloadResources(/*...*/);
-void ScanMap(/*...*/);
+void ReloadResources();
+void ScanMap();
 void LoadProFile(/*...*/);
 void LoadFloorMap(/*...*/);
 void LoadLevel();
@@ -176,11 +177,11 @@ Uint8 GetFloorZ(/*...*/);
 void LoadSpryte(/*...*/);
 Uint8 sgn(/*...*/);
 void LoadFrame(/*...*/);
-void LoadSky(/*...*/);
-void SetCDTrack(/*...*/);
-void SetDepth(/*...*/);
+void LoadSky(const OC::String& resourceString);
+void SetCDTrack(const OC::String& resourceString);
+void SetDepth(const OC::String& resourceString);
 void ReloadFloors(/*...*/);
-void LoadGFXIndex(/*...*/);
+void LoadGFXIndex(OC::TextResource& resource);
 void InitZPositions(/*...*/);
 void InitChanges(/*...*/);
 OC::String ReadCommand(/*...*/);
@@ -214,9 +215,6 @@ extern Sint16 cfy;
 // /* nested */ void TryToGo__0(/*...*/);
 // /* nested */ void TryToGo2B(/*...*/);
 // /* nested */ void TryToGo2P__0(/*...*/);
-// /* nested */ void LoadNewSounds(/*...*/);
-// /* nested */ void LoadAmbients(/*...*/);
-// /* nested */ void UpLoad3dObjects(/*...*/);
 
 } // namespace csact
 

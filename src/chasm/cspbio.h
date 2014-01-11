@@ -810,7 +810,7 @@ void InitCaracter(const size_t monsterNumber);
 void UpLoadCaracter(/*...*/);
 void ReleaseCaracter(/*...*/);
 void LoadSound(const OC::String& filename, const size_t index);
-void LoadAmb(/*...*/);
+void LoadAmb(const OC::String& filename, const size_t index);
 void AllocVideo(/*...*/);
 void AllocMemory(/*...*/);
 void LoadCommonParts();
@@ -872,7 +872,7 @@ extern Uint16 cwc;
 extern Uint16 CurShOfs;
 extern Uint16 CMP0;
 extern Uint16 XORMask;
-extern OC::String::value_type* GFXindex;
+extern boost::array<OC::String, 128> GFXindex;
 extern boost::array<OC::String, 64> ShortNames;
 extern boost::array<OC::String, 64> LevelNames;
 extern OC::Bitmap ColorMap;
@@ -883,7 +883,7 @@ extern boost::array<TLight, 256> Lights;
 extern boost::array<Teleport, 128> Tports;
 extern void* PImPtr[120];
 extern Uint16 PImSeg[120];
-extern Uint8 WallMask[120];
+extern boost::array<Uint8, 120> WallMask;
 extern boost::array<TObjBMPInfo, 4> ObjBMPInf;
 extern boost::array<TObj3DInfo, 96> Obj3DInf;
 extern Uint16 LinesH1[847];
@@ -939,7 +939,7 @@ extern OC::Bitmap Ground;
 extern OC::Bitmap Status;
 extern OC::Bitmap Loading;
 extern OC::Bitmap VesaTiler;
-extern void* SkyPtr;
+extern OC::Bitmap SkyPtr;
 
 typedef boost::array<Uint8, 0x10000> RGBTable;
 extern RGBTable RGBTab25;
@@ -1397,6 +1397,16 @@ void InitMonitorView(/*...*/);
 // /* nested */ void AddMode(/*...*/);
 // /* nested */ void WriteS(/*...*/);
 // /* nested */ void PutPixel(/*...*/);
+
+enum Load3DObjectMode
+{
+    LOAD_3D_OBJECT_CHASM_INFO,
+    LOAD_3D_OBJECT_LEVEL_RESOURCE,
+};
+
+void Load3DObject(OC::TextResource& resource, TObj3DInfo& object, const Load3DObjectMode mode);
+
+OC::String ReadFileNameAfterEqual(OC::TextResource& resource);
 
 } // namespace CSPBIO
 

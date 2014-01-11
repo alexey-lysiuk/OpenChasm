@@ -94,8 +94,131 @@ void SetMePain(/*...*/);
 void AddDeadPlayer(/*...*/);
 void ExplodePlayer(/*...*/);
 void ReleaseLevel(/*...*/);
-void ReloadResources(/*...*/);
-void ScanMap(/*...*/);
+
+namespace
+{
+
+void LoadNewSounds(OC::TextResource& resource)
+{
+    for (size_t i = 80; /* EMPTY */; ++i)
+    {
+        OC::String filename = CSPBIO::ReadFileNameAfterEqual(resource);
+
+        if ("#end" == filename)
+        {
+            break;
+        }
+        else
+        {
+            filename = (OC::Format("level%1$02i/sfx/%2%") % CSPBIO::LevelN % filename).str();
+        }
+
+        CSPBIO::LoadSound(filename, i);
+    }
+}
+
+void LoadAmbients(OC::TextResource& resource)
+{
+    for (size_t i = 0; /* EMPTY */; ++i)
+    {
+        OC::String filename = CSPBIO::ReadFileNameAfterEqual(resource);
+
+        if ("#end" == filename)
+        {
+            break;
+        }
+        else
+        {
+            filename = (OC::Format("level%1$02i/amb/%2%") % CSPBIO::LevelN % filename).str();
+        }
+
+        CSPBIO::LoadAmb(filename, i);
+    }
+}
+
+void UpLoad3dObjects(OC::TextResource& resource)
+{
+    for (size_t i = 32; i < CSPBIO::Obj3DInf.size(); /* EMPTY */)
+    {
+        while (';' == resource.peek())
+        {
+            resource.skipLine();
+        }
+
+        if ('#' == resource.peek())
+        {
+            break;
+        }
+
+        Load3DObject(resource, CSPBIO::Obj3DInf[i], CSPBIO::LOAD_3D_OBJECT_LEVEL_RESOURCE);
+
+        ++i;
+    }
+
+    NextLoading();
+}
+
+} // unnamed namespace
+
+void ReloadResources()
+{
+    const OC::String filename = (OC::Format("level%1$02i/resource.%1$02i") % CSPBIO::LevelN).str();
+    OC::TextResource resourceFile(filename);
+
+    for (;;)
+    {
+        OC::String line = resourceFile.readLine();
+        boost::algorithm::trim(line);
+        boost::algorithm::to_lower(line);
+
+        ocFS().checkIO(resourceFile);
+
+        if (line.empty() || ';' == line[0])
+        {
+            continue;
+        }
+        else if ("#end." == line)
+        {
+            break;
+        }
+        else if (line.find("#sky=") != OC::String::npos)
+        {
+            LoadSky(line);
+        }
+        else if (line.find("#cdtrack=") != OC::String::npos)
+        {
+            SetCDTrack(line);
+        }
+        else if (line.find("#depth=") != OC::String::npos)
+        {
+            SetDepth(line);
+        }
+        else if (line.find("#gfx") != OC::String::npos)
+        {
+            LoadGFXIndex(resourceFile);
+        }
+        else if (line.find("#newobjects") != OC::String::npos)
+        {
+            UpLoad3dObjects(resourceFile);
+        }
+        else if (line.find("#ambients") != OC::String::npos)
+        {
+            LoadAmbients(resourceFile);
+        }
+        else if (line.find("#newsounds") != OC::String::npos)
+        {
+            LoadNewSounds(resourceFile);
+        }
+    }
+
+    // TODO...
+}
+
+void ScanMap()
+{
+
+}
+
 void LoadProFile(/*...*/);
 void LoadFloorMap(/*...*/);
 
@@ -164,14 +287,14 @@ void LoadLevel()
                 player.RefTime = 0;
                 player.GodTime = 0;
                 
-                CSPBIO::HFi = mt.FI << 13;
+                CSPBIO::HFi = Uint16(mt.FI << 13);
             }
 
             CSPBIO::NetPlaceElement& netPlace = CSPBIO::NetPlace[mt.Mode];
 
             netPlace.plx = mt.mx;
             netPlace.plx = mt.my;
-            netPlace.PFI = mt.FI << 13;
+            netPlace.PFI = Uint16(mt.FI << 13);
         }
         else
         {
@@ -216,6 +339,9 @@ void LoadLevel()
 
     NextLoading();
 
+    ScanMap();
+    ReloadResources();
+
     // TODO...
 }
 
@@ -242,11 +368,109 @@ Uint8 GetFloorZ(/*...*/);
 void LoadSpryte(/*...*/);
 Uint8 sgn(/*...*/);
 void LoadFrame(/*...*/);
-void LoadSky(/*...*/);
-void SetCDTrack(/*...*/);
-void SetDepth(/*...*/);
+
+namespace
+{
+
+OC::String ExtractValue(const OC::String& string)
+{
+    const OC::String::size_type equalPos = string.find('=');
+    SDL_assert(OC::String::npos != equalPos);
+
+    OC::String result = string.substr(equalPos + 1);
+    boost::algorithm::trim(result);
+
+    return result;
+}
+
+} // unnamed namespace
+
+void LoadSky(const OC::String& resourceString)
+{
+    const OC::String filename = ExtractValue(resourceString);
+    CSPBIO::SkyPtr.load(filename);
+}
+
+void SetCDTrack(const OC::String& resourceString)
+{
+    const OC::String track = ExtractValue(resourceString);
+    const int trackNum = SDL_atoi(track.c_str());
+
+    CSPBIO::LCDTrack = Sint16(trackNum);
+}
+
+void SetDepth(const OC::String& resourceString)
+{
+    const OC::String depth = ExtractValue(resourceString);
+    const int depthNum = SDL_atoi(depth.c_str());
+
+    CSPBIO::BLevelDef = Sint16(depthNum);
+}
+
 void ReloadFloors(/*...*/);
-void LoadGFXIndex(/*...*/);
+
+void LoadGFXIndex(OC::TextResource& resource)
+{
+    for (size_t i = 0; i < CSPBIO::WallMask.size(); ++i)
+    {
+        Uint8& mask = CSPBIO::WallMask[i];
+        mask = 7;
+
+        OC::String filename = resource.readLine();
+        boost::algorithm::trim(filename);
+
+        if (filename.size() < 5)
+        {
+            continue;
+        }
+
+        // Remove index prefix
+        filename = filename.substr(5);
+
+        const OC::String::size_type length = filename.size();
+        if (length < 5)
+        {
+            continue;
+        }
+
+        if (SDL_isspace(filename[length - 4]))
+        {
+            // Parse flags
+
+            const OC::String::value_type oChar = filename[length - 1];
+            SDL_assert('o' == oChar || '.' == oChar);
+
+            if ('o' == oChar)
+            {
+                mask -= 4;
+            }
+
+            const OC::String::value_type sChar = filename[length - 2];
+            SDL_assert('s' == sChar || '.' == sChar);
+
+            if ('s' == sChar)
+            {
+                mask -= 2;
+            }
+
+            const OC::String::value_type gChar = filename[length - 3];
+            SDL_assert('g' == gChar || '.' == gChar);
+
+            if ('g' == gChar)
+            {
+                mask -= 1;
+            }
+
+            filename.erase(length - 3);
+            boost::algorithm::trim(filename);
+        }
+
+        CSPBIO::GFXindex[i] = filename;
+    }
+
+    CSPBIO::WallMask.back() = 3;
+}
+
 void InitZPositions(/*...*/);
 void InitChanges(/*...*/);
 OC::String ReadCommand(/*...*/);
@@ -314,8 +538,5 @@ Sint16 cfy;
 // /* nested */ void TryToGo__0(/*...*/);
 // /* nested */ void TryToGo2B(/*...*/);
 // /* nested */ void TryToGo2P__0(/*...*/);
-// /* nested */ void LoadNewSounds(/*...*/);
-// /* nested */ void LoadAmbients(/*...*/);
-// /* nested */ void UpLoad3dObjects(/*...*/);
 
 } // namespace csact

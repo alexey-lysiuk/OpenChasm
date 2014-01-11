@@ -551,7 +551,11 @@ void LoadSound(const OC::String& /*filename*/, const size_t /*index*/)
     // TODO...
 }
 
-void LoadAmb(/*...*/);
+void LoadAmb(const OC::String& /*filename*/, const size_t /*index*/)
+{
+    // TODO...
+}
+
 void AllocVideo(/*...*/);
 void AllocMemory(/*...*/);
 
@@ -859,7 +863,7 @@ Uint16 cwc;
 Uint16 CurShOfs;
 Uint16 CMP0;
 Uint16 XORMask;
-OC::String::value_type* GFXindex;
+boost::array<OC::String, 128> GFXindex;
 boost::array<OC::String, 64> ShortNames;
 boost::array<OC::String, 64> LevelNames;
 OC::Bitmap ColorMap; // cm_ofs
@@ -870,7 +874,7 @@ boost::array<TLight, 256> Lights;
 boost::array<Teleport, 128> Tports;
 void* PImPtr[120];
 Uint16 PImSeg[120];
-Uint8 WallMask[120];
+boost::array<Uint8, 120> WallMask;
 boost::array<TObjBMPInfo, 4> ObjBMPInf;
 boost::array<TObj3DInfo, 96> Obj3DInf;
 Uint16 LinesH1[847];
@@ -920,7 +924,7 @@ OC::Bitmap Ground;
 OC::Bitmap Status;
 OC::Bitmap Loading;
 OC::Bitmap VesaTiler;
-void* SkyPtr;
+OC::Bitmap SkyPtr;
 
 RGBTable RGBTab25;
 RGBTable RGBTab60;
@@ -1405,16 +1409,6 @@ void ValidateCount(CountType& count, const StorageType& objects)
     count = std::min(count, CountType(storageSize));
 }
 
-OC::String ReadFileNameAfterEqual(OC::TextResource& info)
-{
-    OC::String result = info.readLine();
-
-    RemoveEqual(result);
-    boost::algorithm::replace_all(result, "\\", "/");
-    
-    return result;
-}
-
 }; // unnamed namespace
 
 void LoadSounds(OC::TextResource& info)
@@ -1496,57 +1490,7 @@ void Load3dObjects(OC::TextResource& info)
 
     for (size_t i = 0; i < count; ++i)
     {
-        while (';' == info.peek())
-        {
-            info.skipLine();
-        }
-
-        TObj3DInfo& object = Obj3DInf[i];
-
-        info >> object.GoRad;
-        info >> object.ShadowOn;
-
-        info >> object.BMPObj;
-        info >> object.BMPz;
-
-        info >> object.ACode;
-
-        info >> object.BlowUp;
-        info >> object.BlowLimit;
-
-        info >> object.SFXid;
-        info >> object.BSFXid;
-
-        OC::String modelFileName, animationFileName;
-
-        {
-            const OC::String filenames = info.readLine();
-            OC::StringStream filenamesStream(filenames);
-            filenamesStream >> modelFileName >> animationFileName;
-        }
-
-        OC::FileSystem::instance().checkIO(info);
-
-        object.Morphed = true;
-
-        if (!animationFileName.empty() && '%' == animationFileName[0])
-        {
-            animationFileName.erase(0, 1);
-
-            object.Morphed = false;
-        }
-
-        object.BMPz *= 32;
-
-        if (object.BMPObj > 0)
-        {
-            --object.BMPObj;
-        }
-
-        LoadPOH(modelFileName, object.POH);
-        LoadAnimation(animationFileName, object.POH.VCount, object.PAni, object.ATime);
-
-        ScanLoHi(object.LoZ, object.HiZ, object.POH);
+        Load3DObject(info, Obj3DInf[i], LOAD_3D_OBJECT_CHASM_INFO);
     }
 }
 
@@ -1741,5 +1685,81 @@ void Line(/*...*/);
 void HBrline0(/*...*/);
 void InitNormalViewHi(/*...*/);
 void InitMonitorView(/*...*/);
+
+void Load3DObject(OC::TextResource& resource, TObj3DInfo& object, const Load3DObjectMode mode)
+{
+    while (';' == resource.peek())
+    {
+        resource.skipLine();
+    }
+
+    resource >> object.GoRad;
+    resource >> object.ShadowOn;
+
+    resource >> object.BMPObj;
+    resource >> object.BMPz;
+
+    resource >> object.ACode;
+
+    resource >> object.BlowUp;
+    resource >> object.BlowLimit;
+
+    resource >> object.SFXid;
+    resource >> object.BSFXid;
+
+    OC::String modelFileName, animationFileName;
+
+    {
+        const OC::String filenames = resource.readLine();
+        OC::StringStream filenamesStream(filenames);
+        filenamesStream >> modelFileName >> animationFileName;
+    }
+
+    OC::FileSystem::instance().checkIO(resource);
+
+    object.Morphed = true;
+
+    if (!animationFileName.empty() && '%' == animationFileName[0])
+    {
+        animationFileName.erase(0, 1);
+
+        object.Morphed = false;
+    }
+
+    object.BMPz *= 32;
+
+    if (object.BMPObj > 0)
+    {
+        --object.BMPObj;
+    }
+
+    if (LOAD_3D_OBJECT_LEVEL_RESOURCE == mode)
+    {
+        if (!modelFileName.empty())
+        {
+            modelFileName = (OC::Format("level%1$02i/3d/") % LevelN).str() + modelFileName;
+        }
+
+        if (!animationFileName.empty())
+        {
+            animationFileName = (OC::Format("level%1$02i/ani/") % LevelN).str() + animationFileName;
+        }
+    }
+
+    LoadPOH(modelFileName, object.POH);
+    LoadAnimation(animationFileName, object.POH.VCount, object.PAni, object.ATime);
+
+    ScanLoHi(object.LoZ, object.HiZ, object.POH);
+}
+
+OC::String ReadFileNameAfterEqual(OC::TextResource& resource)
+{
+    OC::String result = resource.readLine();
+
+    RemoveEqual(result);
+    boost::algorithm::replace_all(result, "\\", "/");
+    
+    return result;
+}
 
 } // namespace CSPBIO
