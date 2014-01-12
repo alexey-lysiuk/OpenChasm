@@ -78,6 +78,10 @@ void NextLoading()
     const int w = CSPBIO::LoadPos * CSPBIO::Loading.width() / 150;
     const OC::Rect clipRect(-1, CSPBIO::Loading.height() / 2, w, CSPBIO::Loading.height() / 2);
 
+    // TODO: remove this
+    SDL_Event e; while (1 == SDL_PollEvent(&e)) { }
+    // TODO: remove this
+
     OC::Renderer::instance().draw(CSPBIO::Loading, x, y, clipRect);
     OC::Renderer::instance().present();
 }
@@ -210,6 +214,47 @@ void ReloadResources()
             LoadNewSounds(resourceFile);
         }
     }
+
+    NextLoading();
+
+    for (size_t x = 0; x < 64; ++x)
+    {
+        for (size_t y = 0; y < 64; ++y)
+        {
+            const Uint8 sprite = CSPBIO::Map[x * 64 + y].Spr;
+
+            if (sprite > 0 && sprite < 119)
+            {
+                CSPBIO::SpryteUsed[sprite - 1] = 1;
+            }
+        }
+    }
+
+    NextLoading();
+
+    for (size_t n = 0; n < CSPBIO::SpryteUsed.size() - 1; ++n)
+    {
+        if (0 == (n % 7))
+        {
+            NextLoading();
+        }
+
+        if (0 == CSPBIO::SpryteUsed[n])
+        {
+            continue;
+        }
+
+        if (n + 1 < 86)
+        {
+            LoadSpryte(n);
+        }
+        else
+        {
+            LoadFrame(n);
+        }
+    }
+
+    NextLoading();
 
     // TODO...
 }
@@ -365,9 +410,30 @@ Uint8 LocUsed(/*...*/);
 Uint8 LocUsedTar(/*...*/);
 void GetFloorLoHi(/*...*/);
 Uint8 GetFloorZ(/*...*/);
-void LoadSpryte(/*...*/);
+
+void LoadSpryte(const size_t index)
+{
+    const OC::String& gfxName = CSPBIO::GFXindex[index];
+
+    if (gfxName.empty())
+    {
+        OC::DoHalt(OC::Format("No registered spryte used! %1%") % index);
+    }
+
+    const OC::String gfxFileName = (OC::Format("level%1$02i/gfx/%2%") % CSPBIO::LevelN % gfxName).str();
+    CSPBIO::PImPtr[index].load(gfxFileName);
+
+    // TODO ...
+}
+
 Uint8 sgn(/*...*/);
-void LoadFrame(/*...*/);
+
+void LoadFrame(const size_t index)
+{
+    LoadSpryte(index);
+
+    // TODO ...
+}
 
 namespace
 {
