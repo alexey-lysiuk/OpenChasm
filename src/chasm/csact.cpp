@@ -41,6 +41,19 @@ OC::BinaryInputStream& operator>>(OC::BinaryInputStream& stream, TMT& value)
 }
 
 
+// ===========================================================================
+
+
+void InitModule()
+{
+    for (size_t i = 0; i < BrTab.size(); ++i)
+    {
+        BrTab[i] = Uint8(4 + i * 2);
+    }
+
+    BrTab.back() = 35;
+}
+
 void MoveOn(/*...*/);
 void GetMFloorZ(/*...*/);
 bool MS_WallCheck(/*...*/);
@@ -261,7 +274,40 @@ void ReloadResources()
 
 void ScanMap()
 {
+    for (size_t x = 0; x < 64; ++x)
+    {
+        for (size_t y = 0; y < 64; ++y)
+        {
+            CSPBIO::TLoc& location = CSPBIO::Map[x * 64 + y];
 
+            if (location.Spr >= 1 && location.Spr <= 120)
+            {
+                location.Dark = BrTab[location.Dark];
+            }
+            else if (location.Spr >= 131 && location.Spr <= 226)
+            {
+                if ((0 != CSPBIO::CLIENT && 0 != CSPBIO::SERVER || 0 != location.x2)
+                    && !((1 << CSPBIO::Skill) & location.x2))
+                {
+                    location.Spr = 0;
+                }
+
+                location.y2 = location.x2;
+                location.x2 = (location.Dark & 7) << 13;
+            }
+            else if (250 == location.Spr)
+            {
+                location.Spr = 0;
+            }
+        }
+    }
+
+    NextLoading();
+
+    if (0 == CSPBIO::NetPlace[3].plx)
+    {
+        OC::DoHalt("No NET Places.");
+    }
 }
 
 void LoadProFile(/*...*/);
@@ -591,7 +637,7 @@ bool LifeConflict(/*...*/);
 void RemapWall(/*...*/);
 void ContinueProcess(/*...*/);
 
-Uint8 BrTab[16];
+boost::array<Uint8, 16> BrTab;
 bool Corrected;
 Sint16 cfx;
 Sint16 cfy;

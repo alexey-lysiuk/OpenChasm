@@ -131,6 +131,8 @@ struct TMT
 OC::BinaryInputStream& operator>>(OC::BinaryInputStream& stream, TMT& value);
 
 
+void InitModule();
+
 void MoveOn(/*...*/);
 void GetMFloorZ(/*...*/);
 bool MS_WallCheck(/*...*/);
@@ -202,7 +204,7 @@ bool LifeConflict(/*...*/);
 void RemapWall(/*...*/);
 void ContinueProcess(/*...*/);
 
-extern Uint8 BrTab[16];
+extern boost::array<Uint8, 16> BrTab;
 extern bool Corrected;
 extern Sint16 cfx;
 extern Sint16 cfy;
